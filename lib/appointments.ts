@@ -5,7 +5,20 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export type AppointmentStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+export type AppointmentStatus = "REQUESTED" | "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+
+/**
+ * Normalizes any appointment status to the Postgres enum `appointment_status_enum` values:
+ * 'REQUESTED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
+ */
+export function toDbStatus(s?: string): "REQUESTED" | "CONFIRMED" | "COMPLETED" | "CANCELLED" {
+  if (!s) return "CONFIRMED";
+  const upper = s.toUpperCase();
+  if (upper === "PENDING" || upper === "REQUESTED") return "REQUESTED";
+  if (upper === "COMPLETED") return "COMPLETED";
+  if (upper === "CANCELLED" || upper === "DECLINED") return "CANCELLED";
+  return "CONFIRMED";
+}
 
 export interface AppointmentItem {
   id: string;
@@ -67,6 +80,7 @@ function unpackLinkAndNotes(rawLink?: string | null, directNotes?: string | null
  */
 export async function getAppointments(filters: {
   clientId?: string;
+  clientUserIds?: string[];
   advisorId?: string;
   tenantId?: string;
 }): Promise<AppointmentItem[]> {
@@ -76,9 +90,12 @@ export async function getAppointments(filters: {
       .select("*")
       .order("start_time", { ascending: false });
 
-    if (filters.clientId) {
+    if (filters.clientUserIds && filters.clientUserIds.length > 0) {
+      query = query.in("client_id", filters.clientUserIds);
+    } else if (filters.clientId) {
       query = query.eq("client_id", filters.clientId);
     }
+
     if (filters.advisorId) {
       query = query.eq("advisor_id", filters.advisorId);
     }
@@ -96,22 +113,38 @@ export async function getAppointments(filters: {
     const clientIds = Array.from(new Set(data.map((r) => r.client_id).filter(Boolean)));
     const advisorIds = Array.from(new Set(data.map((r) => r.advisor_id).filter(Boolean)));
 
-    const [clientsRes, advisorsRes] = await Promise.all([
+    const [clientsRes, clientUsersRes, advisorsRes] = await Promise.all([
       clientIds.length > 0
-        ? supabaseAdmin.from("clients").select("client_id, full_name").in("client_id", clientIds)
+        ? supabaseAdmin
+            .from("clients")
+            .select("client_id, user_id, full_name")
+            .or(`client_id.in.(${clientIds.join(",")}),user_id.in.(${clientIds.join(",")})`)
+        : Promise.resolve({ data: [] }),
+      clientIds.length > 0
+        ? supabaseAdmin.from("users").select("id, first_name, last_name").in("id", clientIds)
         : Promise.resolve({ data: [] }),
       advisorIds.length > 0
         ? supabaseAdmin.from("users").select("id, first_name, last_name").in("id", advisorIds)
         : Promise.resolve({ data: [] }),
     ]);
 
-    const clientMap = new Map((clientsRes.data || []).map((c) => [c.client_id, c.full_name]));
+    const clientMap = new Map<string, string>();
+    (clientUsersRes.data || []).forEach((u: any) => {
+      const name = `${u.first_name || ""} ${u.last_name || ""}`.trim();
+      if (name) clientMap.set(u.id, name);
+    });
+    (clientsRes.data || []).forEach((c: any) => {
+      if (c.user_id && c.full_name) clientMap.set(c.user_id, c.full_name);
+      if (c.client_id && c.full_name) clientMap.set(c.client_id, c.full_name);
+    });
+
     const advisorMap = new Map(
-      (advisorsRes.data || []).map((u) => [u.id, `${u.first_name || ""} ${u.last_name || ""}`.trim()])
+      (advisorsRes.data || []).map((u: any) => [u.id, `${u.first_name || ""} ${u.last_name || ""}`.trim()])
     );
 
     return data.map((row) => {
       const { cleanLink, notes } = unpackLinkAndNotes(row.meeting_link, row.notes);
+      const rawStatus = row.status || "CONFIRMED";
       return {
         id: row.id,
         tenant_id: row.tenant_id,
@@ -121,9 +154,9 @@ export async function getAppointments(filters: {
         meeting_link: cleanLink,
         start_time: row.start_time,
         end_time: row.end_time,
-        status: (row.status as AppointmentStatus) || "PENDING",
+        status: (rawStatus as AppointmentStatus),
         notes,
-        scheduled_by: (row.scheduled_by as any) || (row.status === "PENDING" ? "CLIENT" : "ADVISOR"),
+        scheduled_by: (row.scheduled_by as any) || (rawStatus === "REQUESTED" ? "CLIENT" : "ADVISOR"),
         created_at: row.created_at,
         updated_at: row.updated_at,
         client_name: clientMap.get(row.client_id) || "Client",
@@ -156,9 +189,9 @@ export async function createAppointment(params: {
   const now = new Date().toISOString();
 
   // If status is not provided:
-  // If scheduled by client -> PENDING (requires advisor confirmation)
+  // If scheduled by client -> REQUESTED (requires advisor confirmation)
   // If scheduled by advisor -> CONFIRMED
-  const status: AppointmentStatus = params.status || (params.scheduledBy === "CLIENT" ? "PENDING" : "CONFIRMED");
+  const status = toDbStatus(params.status || (params.scheduledBy === "CLIENT" ? "REQUESTED" : "CONFIRMED"));
 
   // Fallback meeting link if none provided
   const meetingLink = params.meetingLink?.trim() || `https://meet.google.com/uwp-session-${Math.random().toString(36).substring(2, 8)}`;
@@ -282,7 +315,7 @@ export async function updateAppointment(
     newNotes = currentNotes ? `${currentNotes}\n\n${logEntry}` : logEntry;
   }
 
-  const newStatus = updates.status || existing.status;
+  const newStatus = toDbStatus(updates.status || existing.status);
   const newLink = updates.meetingLink?.trim() || currentLink;
 
   // Attempt 1: Direct update with notes column
@@ -311,7 +344,7 @@ export async function updateAppointment(
         end_time: data.end_time,
         status: data.status,
         notes: data.notes || newNotes,
-        scheduled_by: data.scheduled_by || existing.scheduled_by || "ADVISOR",
+        scheduled_by: data.scheduled_by || existing.scheduled_by,
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
@@ -320,9 +353,9 @@ export async function updateAppointment(
     console.warn("Direct appointment update notice, using packed link adapter:", err);
   }
 
-  // Attempt 2: Fallback packed link update
+  // Attempt 2: Fallback encoding notes in meeting_link
   const packedLink = packLinkAndNotes(newLink, newNotes);
-  const { data: fbData, error: fbErr } = await supabaseAdmin
+  const { data: fallbackData, error: fallbackErr } = await supabaseAdmin
     .from("appointments")
     .update({
       status: newStatus,
@@ -333,24 +366,23 @@ export async function updateAppointment(
     .select()
     .single();
 
-  if (fbErr || !fbData) {
-    throw new Error(fbErr?.message || "Failed to update appointment.");
+  if (fallbackErr || !fallbackData) {
+    throw new Error(fallbackErr?.message || "Failed to update appointment.");
   }
 
   return {
-    id: fbData.id,
-    tenant_id: fbData.tenant_id,
-    client_id: fbData.client_id,
-    advisor_id: fbData.advisor_id,
-    title: fbData.title,
+    id: fallbackData.id,
+    tenant_id: fallbackData.tenant_id,
+    client_id: fallbackData.client_id,
+    advisor_id: fallbackData.advisor_id,
+    title: fallbackData.title,
     meeting_link: newLink,
-    start_time: fbData.start_time,
-    end_time: fbData.end_time,
-    status: fbData.status,
+    start_time: fallbackData.start_time,
+    end_time: fallbackData.end_time,
+    status: fallbackData.status,
     notes: newNotes,
-    scheduled_by: existing.scheduled_by || "ADVISOR",
-    created_at: fbData.created_at,
-    updated_at: fbData.updated_at,
+    scheduled_by: existing.scheduled_by,
+    created_at: fallbackData.created_at,
+    updated_at: fallbackData.updated_at,
   };
 }
-

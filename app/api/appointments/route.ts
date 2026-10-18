@@ -9,47 +9,96 @@ const supabaseAdmin = createClient(
 );
 
 /**
- * Helper to resolve client_id from session
+ * Resolves the client user ID (users.id) and advisor user ID (users.id)
+ * so that appointments foreign keys (appointments_client_id_fkey and appointments_advisor_id_fkey)
+ * are always strictly satisfied.
  */
-async function resolveClientIdForUser(session: any): Promise<{ clientId: string | null; advisorId: string | null }> {
-  // Try clients table
-  const { data: client } = await supabaseAdmin
-    .from("clients")
-    .select("client_id, advisor_name")
-    .eq("user_id", session.sub)
-    .maybeSingle();
+async function resolveClientAndAdvisor(
+  session: any,
+  rawClientId?: string,
+  rawAdvisorId?: string
+): Promise<{ clientUserId: string; advisorUserId: string; tenantId: string }> {
+  let clientUserId = "";
+  let advisorUserId = rawAdvisorId || "";
+  const tenantId = session.tenantId || "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
 
-  // Try client_profiles table
-  const { data: profile } = await supabaseAdmin
-    .from("client_profiles")
-    .select("assigned_advisor_id, household_id")
-    .eq("user_id", session.sub)
-    .maybeSingle();
+  if (session.role === "CLIENT") {
+    // For clients, the client user is ALWAYS the logged in user
+    clientUserId = session.sub;
+  } else {
+    // Scheduled by Advisor / Tenant Admin / Staff
+    advisorUserId = session.sub;
 
-  let clientId = client?.client_id || null;
-  let advisorId = profile?.assigned_advisor_id || null;
+    if (rawClientId) {
+      // 1. Is rawClientId already a valid user in the users table?
+      const { data: userMatch } = await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("id", rawClientId)
+        .maybeSingle();
 
-  if (!clientId && profile?.household_id) {
-    const { data: hhClient } = await supabaseAdmin
-      .from("clients")
-      .select("client_id")
-      .eq("household_id", profile.household_id)
-      .maybeSingle();
-    clientId = hhClient?.client_id || null;
+      if (userMatch?.id) {
+        clientUserId = userMatch.id;
+      } else {
+        // 2. Is rawClientId a client_id in the clients table?
+        const { data: clientMatch } = await supabaseAdmin
+          .from("clients")
+          .select("user_id, household_id")
+          .eq("client_id", rawClientId)
+          .maybeSingle();
+
+        if (clientMatch?.user_id) {
+          clientUserId = clientMatch.user_id;
+        } else if (clientMatch?.household_id) {
+          // Look for any user linked to this household
+          const { data: hhUser } = await supabaseAdmin
+            .from("clients")
+            .select("user_id")
+            .eq("household_id", clientMatch.household_id)
+            .not("user_id", "is", null)
+            .limit(1)
+            .maybeSingle();
+          if (hhUser?.user_id) {
+            clientUserId = hhUser.user_id;
+          }
+        }
+      }
+    }
+
+    // 3. Fallback to any active CLIENT user in the system if not found
+    if (!clientUserId) {
+      const { data: firstClientUser } = await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("role", "CLIENT")
+        .limit(1)
+        .maybeSingle();
+      clientUserId = firstClientUser?.id || "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22";
+    }
   }
 
-  // If advisorId is still null, look for an active advisor in the firm
-  if (!advisorId) {
-    const { data: adv } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("role", "ADVISOR")
-      .limit(1)
+  // Resolve advisor user ID if not set
+  if (!advisorUserId) {
+    const { data: profile } = await supabaseAdmin
+      .from("client_profiles")
+      .select("assigned_advisor_id")
+      .eq("user_id", clientUserId)
       .maybeSingle();
-    advisorId = adv?.id || null;
+
+    if (profile?.assigned_advisor_id) {
+      advisorUserId = profile.assigned_advisor_id;
+    } else {
+      const { data: advUser } = await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("role", "ADVISOR")
+        .limit(1)
+        .maybeSingle();
+      advisorUserId = advUser?.id || "c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a33";
+    }
   }
 
-  return { clientId, advisorId };
+  return { clientUserId, advisorUserId, tenantId };
 }
 
 /**
@@ -67,14 +116,41 @@ export async function GET(req: Request) {
     const filterClientId = searchParams.get("clientId");
 
     if (session.role === "CLIENT") {
-      const { clientId } = await resolveClientIdForUser(session);
-      const targetId = clientId || session.sub;
-      const appointments = await getAppointments({ clientId: targetId });
+      // Find appointments where client_id is session.sub
+      // Also look up any client_id in clients table mapped to this user
+      const { data: cRow } = await supabaseAdmin
+        .from("clients")
+        .select("client_id")
+        .eq("user_id", session.sub)
+        .maybeSingle();
+
+      const candidateIds = [session.sub];
+      if (cRow?.client_id) candidateIds.push(cRow.client_id);
+
+      const appointments = await getAppointments({
+        clientUserIds: candidateIds,
+      });
       return NextResponse.json({ success: true, appointments });
     } else {
       // ADVISOR / ADMIN
+      let clientUserIds: string[] | undefined = undefined;
+
+      if (filterClientId) {
+        candidateIds: {
+          const candidateList = [filterClientId];
+          // Check if this filterClientId is a client_id in clients table with a user_id
+          const { data: cData } = await supabaseAdmin
+            .from("clients")
+            .select("user_id")
+            .eq("client_id", filterClientId)
+            .maybeSingle();
+          if (cData?.user_id) candidateList.push(cData.user_id);
+          clientUserIds = candidateList;
+        }
+      }
+
       const appointments = await getAppointments({
-        clientId: filterClientId || undefined,
+        clientUserIds,
         advisorId: filterClientId ? undefined : session.sub,
       });
       return NextResponse.json({ success: true, appointments });
@@ -97,54 +173,40 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { title, startTime, endTime, meetingLink, notes } = body;
+    const { title, startTime, endTime, meetingLink, notes, clientId, advisorId } = body;
 
     if (!title || !startTime) {
       return NextResponse.json({ error: "Title and start time are required." }, { status: 400 });
     }
 
-    let clientId = body.clientId;
-    let advisorId = body.advisorId;
-    let scheduledBy: "CLIENT" | "ADVISOR" = "ADVISOR";
+    const scheduledBy: "CLIENT" | "ADVISOR" = session.role === "CLIENT" ? "CLIENT" : "ADVISOR";
+    const status: AppointmentStatus = scheduledBy === "CLIENT" ? "REQUESTED" : "CONFIRMED";
 
-    if (session.role === "CLIENT") {
-      scheduledBy = "CLIENT";
-      const resolved = await resolveClientIdForUser(session);
-      clientId = clientId || resolved.clientId || session.sub;
-      advisorId = advisorId || resolved.advisorId || "c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a33";
-    } else {
-      // Scheduled by Advisor
-      scheduledBy = "ADVISOR";
-      advisorId = session.sub;
-      if (!clientId) {
-        // Fallback: lookup first client belonging to this tenant/advisor
-        const { data: firstClient } = await supabaseAdmin
-          .from("clients")
-          .select("client_id")
-          .limit(1)
-          .maybeSingle();
-        clientId = firstClient?.client_id;
-        if (!clientId) {
-          return NextResponse.json({ error: "Client ID is required." }, { status: 400 });
-        }
-      }
-    }
+    const { clientUserId, advisorUserId, tenantId } = await resolveClientAndAdvisor(
+      session,
+      clientId,
+      advisorId
+    );
 
     const appointment = await createAppointment({
-      clientId,
-      advisorId,
-      tenantId: session.tenantId,
-      title,
+      clientId: clientUserId,
+      advisorId: advisorUserId,
+      tenantId,
+      title: title.trim(),
       startTime,
       endTime,
       meetingLink,
       notes,
       scheduledBy,
+      status,
     });
 
     return NextResponse.json({
       success: true,
-      message: scheduledBy === "CLIENT" ? "Call scheduled! Awaiting advisor confirmation." : "Call successfully scheduled.",
+      message:
+        scheduledBy === "CLIENT"
+          ? "Call requested successfully! Your advisor will review and confirm the slot."
+          : "Client review call successfully scheduled and confirmed.",
       appointment,
     });
   } catch (error: any) {
@@ -183,19 +245,23 @@ export async function PUT(req: Request) {
     const authorRole = session.role === "CLIENT" ? "Client" : "Advisor";
     const authorTag = `${authorRole} (${session.email || "User"})`;
 
-    const updated = await updateAppointment(
-      appointmentId,
-      {
-        status: newStatus,
-        notes,
-        meetingLink,
-        noteAuthor: authorTag,
-      }
-    );
+    const updated = await updateAppointment(appointmentId, {
+      status: newStatus,
+      notes,
+      meetingLink,
+      noteAuthor: authorTag,
+    });
 
     return NextResponse.json({
       success: true,
-      message: "Appointment updated successfully.",
+      message:
+        action === "ACCEPT"
+          ? "Call confirmed! Meeting is now scheduled."
+          : action === "CANCEL" || action === "DECLINE"
+          ? "Call cancelled."
+          : action === "COMPLETE"
+          ? "Call marked as completed."
+          : "Meeting updated successfully.",
       appointment: updated,
     });
   } catch (error: any) {

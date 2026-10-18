@@ -41,6 +41,7 @@ export default function AppointmentsManager({
   // Modal State for Scheduling
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string>(clientId || (clients && clients[0]?.client_id) || "");
   const [formTitle, setFormTitle] = useState("Portfolio Strategy & Suggestions Review");
   const [formDate, setFormDate] = useState("");
@@ -92,8 +93,9 @@ export default function AppointmentsManager({
   // Handle scheduling a new call
   const handleScheduleCall = async (e: React.FormEvent) => {
     e.preventDefault();
+    setModalError(null);
     if (!formDate || !formTime) {
-      showToast("Please choose a date and time for the call.", "error");
+      setModalError("Please choose a date and time for the call.");
       return;
     }
 
@@ -125,10 +127,12 @@ export default function AppointmentsManager({
 
       showToast(json.message || "Call scheduled successfully!");
       setIsScheduleOpen(false);
+      setModalError(null);
       setFormNotes("");
       setFormLink("");
       await fetchAppointments();
     } catch (err: any) {
+      setModalError(err.message || "Failed to schedule appointment.");
       showToast(err.message || "Failed to schedule appointment.", "error");
     } finally {
       setIsSubmitting(false);
@@ -205,7 +209,7 @@ export default function AppointmentsManager({
       {/* Toast Notification */}
       {notification && (
         <div
-          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl border shadow-2xl flex items-center gap-2.5 text-xs font-semibold ${
+          className={`fixed bottom-6 right-6 z-[60] px-4 py-3 rounded-xl border shadow-2xl flex items-center gap-2.5 text-xs font-semibold ${
             notification.type === "success"
               ? "bg-slate-900 border-emerald-500/40 text-emerald-400"
               : "bg-slate-900 border-rose-500/40 text-rose-400"
@@ -235,6 +239,7 @@ export default function AppointmentsManager({
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             setFormDate(tomorrow.toISOString().split("T")[0]);
+            setModalError(null);
             setIsScheduleOpen(true);
           }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold transition shadow-md shadow-sky-500/20 whitespace-nowrap"
@@ -280,7 +285,7 @@ export default function AppointmentsManager({
             });
             const timeStr = `${startDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} - ${endDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
 
-            const isPending = appt.status === "PENDING";
+            const isPending = appt.status === "PENDING" || appt.status === "REQUESTED";
             const isConfirmed = appt.status === "CONFIRMED";
             const isCompleted = appt.status === "COMPLETED";
             const isCancelled = appt.status === "CANCELLED";
@@ -313,7 +318,7 @@ export default function AppointmentsManager({
                             : "bg-rose-500/10 text-rose-400 border-rose-500/20"
                         }`}
                       >
-                        {appt.status}
+                        {isPending ? "Pending Review" : appt.status}
                       </span>
                     </div>
 
@@ -565,6 +570,13 @@ export default function AppointmentsManager({
                   className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 focus:outline-none focus:border-sky-500 placeholder:text-slate-600"
                 />
               </div>
+
+              {modalError && (
+                <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-2 text-xs animate-in fade-in">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+                  <span>{modalError}</span>
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
                 <button
