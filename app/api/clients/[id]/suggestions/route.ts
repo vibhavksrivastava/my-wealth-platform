@@ -229,7 +229,7 @@ export async function PUT(
     const { id: clientId } = await params;
     const body = await req.json();
 
-    const { suggestionId, status, advisorNotes, actionLogText, clientActionNotes } = body;
+    const { suggestionId, status, advisorNotes, actionLogText, commentText, clientActionNotes } = body;
     if (!suggestionId) {
       return NextResponse.json({ error: "suggestionId is required." }, { status: 400 });
     }
@@ -245,13 +245,35 @@ export async function PUT(
 
     let updatedSuggestion;
 
-    // Scenario A: Appending an execution tracking log ("What was done")
-    if (actionLogText && typeof actionLogText === "string" && actionLogText.trim()) {
+    // Scenario A: Client or Advisor Adding a Discussion Comment
+    if (commentText && typeof commentText === "string" && commentText.trim()) {
       const authorRole = session.role === "CLIENT" ? `Client (${profileData.client.full_name})` : `Advisor (${session.email || "Advisor"})`;
+      const formattedComment = `💬 [Discussion Comment]: ${commentText.trim()}`;
       updatedSuggestion = await appendActionLogToSuggestion(
         suggestionId,
         clientId,
-        actionLogText,
+        formattedComment,
+        authorRole
+      );
+
+      await logAuditEvent({
+        tenantId: session.tenantId,
+        clientId,
+        advisorId: session.sub,
+        action: "UPDATE",
+        entityType: "SUGGESTION",
+        entityId: suggestionId,
+        details: { action: "ADD_COMMENT", commentSnippet: commentText.slice(0, 100) },
+      });
+    }
+    // Scenario B: Appending an execution tracking log ("What was done")
+    else if (actionLogText && typeof actionLogText === "string" && actionLogText.trim()) {
+      const authorRole = session.role === "CLIENT" ? `Client (${profileData.client.full_name})` : `Advisor (${session.email || "Advisor"})`;
+      const formattedAction = `✅ [Action Completed]: ${actionLogText.trim()}`;
+      updatedSuggestion = await appendActionLogToSuggestion(
+        suggestionId,
+        clientId,
+        formattedAction,
         authorRole
       );
 

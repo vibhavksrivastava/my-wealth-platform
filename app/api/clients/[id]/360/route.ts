@@ -170,14 +170,14 @@ export async function PUT(
   await connection();
   try {
     const session = verifyAuthHeader(req.headers.get("authorization"));
-    if (!session || !["ADVISOR", "STAFF", "TENANT_ADMIN", "SUPER_ADMIN"].includes(session.role)) {
-      return NextResponse.json({ error: "Access denied. Advisor privileges required." }, { status: 403 });
+    if (!session || !["ADVISOR", "STAFF", "TENANT_ADMIN", "SUPER_ADMIN", "CLIENT"].includes(session.role)) {
+      return NextResponse.json({ error: "Access denied. Login required." }, { status: 403 });
     }
 
     const { id: clientId } = await params;
     const body = await req.json();
 
-    // Verify client belongs to current advisor tenant
+    // Verify client exists
     const { data: existingClient, error: findErr } = await supabaseAdmin
       .from("clients")
       .select("*")
@@ -188,8 +188,25 @@ export async function PUT(
       return NextResponse.json({ error: "Client not found." }, { status: 404 });
     }
 
+    // Tenant check
     if (session.role !== "SUPER_ADMIN" && existingClient.tenant_id && existingClient.tenant_id !== session.tenantId) {
       return NextResponse.json({ error: "Access denied. Client belongs to another firm." }, { status: 403 });
+    }
+
+    // Role guard for CLIENT: can only update their own profile
+    if (session.role === "CLIENT") {
+      const isOwner = existingClient.user_id === session.sub || existingClient.client_id === session.sub;
+      if (!isOwner) {
+        // Also check if user's profile matches household
+        const { data: prof } = await supabaseAdmin
+          .from("client_profiles")
+          .select("household_id")
+          .eq("user_id", session.sub)
+          .maybeSingle();
+        if (!prof || prof.household_id !== existingClient.household_id) {
+          return NextResponse.json({ error: "Access denied. You can only update your own profile." }, { status: 403 });
+        }
+      }
     }
 
     const updates: Record<string, any> = {

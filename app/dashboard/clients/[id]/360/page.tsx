@@ -108,6 +108,17 @@ export default function Client360Page({
   // Active Tab: overview | cashflow | assets | liabilities | goals | suggestions
   const [activeTab, setActiveTab] = useState<"overview" | "cashflow" | "assets" | "liabilities" | "goals" | "suggestions">("overview");
   const [suggestionsCount, setSuggestionsCount] = useState<number>(0);
+  const [currentUserRole, setCurrentUserRole] = useState<string>("ADVISOR");
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("user_profile");
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u.role) setCurrentUserRole(u.role);
+      }
+    } catch {}
+  }, []);
 
   // Household Consolidated vs Individual Mode
   const [viewScope, setViewScope] = useState<"HOUSEHOLD" | "INDIVIDUAL">("HOUSEHOLD");
@@ -247,7 +258,7 @@ export default function Client360Page({
               Retry
             </button>
             <Link
-              href="/dashboard/advisor"
+              href={currentUserRole === "CLIENT" ? "/dashboard/client" : "/dashboard/advisor"}
               className="px-3.5 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-300 hover:text-white"
             >
               Return to Console
@@ -286,11 +297,11 @@ export default function Client360Page({
         <div>
           <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
             <Link
-              href="/dashboard/advisor"
+              href={currentUserRole === "CLIENT" ? "/dashboard/client" : "/dashboard/advisor"}
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition font-medium"
             >
               <ArrowLeft className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Back to Advisor Dashboard</span>
+              <span>{currentUserRole === "CLIENT" ? "Back to Client Dashboard" : "Back to Advisor Dashboard"}</span>
             </Link>
             <span>&bull;</span>
             <span className="font-mono text-slate-300">{client.uwp_client_code || "UWP-CLIENT"}</span>

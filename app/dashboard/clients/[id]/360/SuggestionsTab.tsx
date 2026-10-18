@@ -23,6 +23,7 @@ import {
   PiggyBank,
   Check,
   History,
+  MessageSquare,
 } from "lucide-react";
 
 interface SuggestionsTabProps {
@@ -170,6 +171,42 @@ export default function SuggestionsTab({
       await fetchSuggestions(false);
     } catch (err: any) {
       showToast(err.message || "Failed to record action log.", "error");
+    } finally {
+      setIsLoggingAction((prev) => ({ ...prev, [suggestionId]: false }));
+    }
+  };
+
+  // Handle logging a discussion comment on a suggestion (for meeting strategy discussions)
+  const handleRecordComment = async (suggestionId: string) => {
+    const text = actionLogInputs[suggestionId];
+    if (!text || !text.trim()) {
+      showToast("Please enter a discussion note or comment to post.", "error");
+      return;
+    }
+
+    setIsLoggingAction((prev) => ({ ...prev, [suggestionId]: true }));
+    try {
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch(`/api/clients/${clientId}/suggestions`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          suggestionId,
+          commentText: text.trim(),
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to post discussion comment.");
+
+      showToast("Discussion comment recorded! Visible to both advisor and client for upcoming meetings.");
+      setActionLogInputs((prev) => ({ ...prev, [suggestionId]: "" }));
+      await fetchSuggestions(false);
+    } catch (err: any) {
+      showToast(err.message || "Failed to post comment.", "error");
     } finally {
       setIsLoggingAction((prev) => ({ ...prev, [suggestionId]: false }));
     }
@@ -734,21 +771,39 @@ export default function SuggestionsTab({
                             handleRecordActionLog(s.id);
                           }
                         }}
-                        placeholder="e.g. Increased monthly SIP by ₹10,000 in Large Cap Fund on 18 Oct 2026..."
-                        className="flex-1 px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 transition"
+                        placeholder="Add a discussion comment for upcoming strategy review, or record an action completed..."
+                        className="flex-1 px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-purple-500 transition"
                       />
-                      <button
-                        onClick={() => handleRecordActionLog(s.id)}
-                        disabled={isLoggingAction[s.id]}
-                        className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap shadow-sm shadow-emerald-500/20"
-                      >
-                        {isLoggingAction[s.id] ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Check className="h-3 w-3" />
-                        )}
-                        <span>Record Action</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleRecordComment(s.id)}
+                          disabled={isLoggingAction[s.id]}
+                          className="px-3.5 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap shadow-sm shadow-purple-500/20"
+                          title="Post a strategic comment or question to discuss during meetings"
+                        >
+                          {isLoggingAction[s.id] ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <MessageSquare className="h-3.5 w-3.5" />
+                          )}
+                          <span>Post Comment</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRecordActionLog(s.id)}
+                          disabled={isLoggingAction[s.id]}
+                          className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap shadow-sm shadow-emerald-500/20"
+                          title="Record an implementation action completed"
+                        >
+                          {isLoggingAction[s.id] ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Check className="h-3.5 w-3.5" />
+                          )}
+                          <span>Record Action</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -18,7 +18,11 @@ import {
   ArrowRight,
   Check,
   Loader2,
+  MessageSquare,
+  Pencil,
 } from "lucide-react";
+import Link from "next/link";
+import AppointmentsManager from "@/components/AppointmentsManager";
 
 function formatINR(val: number) {
   if (val >= 10000000) {
@@ -117,9 +121,46 @@ export default function ClientDashboard() {
     }
   };
 
+  const handlePostClientComment = async (suggestionId: string, targetClientId: string) => {
+    const text = clientActionInput[suggestionId];
+    if (!text || !text.trim()) return;
+
+    setIsSavingAction((prev) => ({ ...prev, [suggestionId]: true }));
+    setActionFeedback(null);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch(`/api/clients/${targetClientId}/suggestions`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          suggestionId,
+          commentText: text.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        setActionFeedback("Comment posted! Your advisor can review and discuss it during your next call.");
+        setTimeout(() => setActionFeedback(null), 4000);
+        setClientActionInput((prev) => ({ ...prev, [suggestionId]: "" }));
+        await reloadData();
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setActionFeedback(errJson.error || "Failed to post comment.");
+      }
+    } catch (err: any) {
+      setActionFeedback(err.message || "Failed to post comment.");
+    } finally {
+      setIsSavingAction((prev) => ({ ...prev, [suggestionId]: false }));
+    }
+  };
+
   const totalAssets = Number(data?.profile?.total_assets || 42500000);
   const totalLiabilities = Number(data?.profile?.total_liabilities || 10975114);
   const netWorth = Number(data?.profile?.net_worth || 31524886);
+  const clientRecord = data?.clientRecord;
   const assetsList = data?.assets || [];
   const liabilitiesList = data?.liabilities || [];
   const goalsList = data?.goals || [];
@@ -140,7 +181,16 @@ export default function ClientDashboard() {
             Consolidated family net worth & financial planning scorecard.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {clientRecord?.client_id && (
+            <Link
+              href={`/dashboard/clients/${clientRecord.client_id}/360`}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-sky-500 to-purple-600 hover:from-sky-400 hover:to-purple-500 text-white text-xs font-bold transition shadow-md shadow-purple-500/20"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              <span>View & Edit Complete 360 Profile</span>
+            </Link>
+          )}
           <span className="px-3 py-1 rounded-full text-xs font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
             Risk Profile: {data?.profile?.risk_profile_category || "Moderate"}
           </span>
@@ -355,16 +405,25 @@ export default function ClientDashboard() {
                     </div>
                   )}
 
-                  {/* Interactive Execution Log for Client */}
+                  {/* Comments & Execution Discussion Log for Client */}
                   <div className="pt-2 border-t border-slate-800/80 space-y-2">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                      Execution Updates (What you have completed)
-                    </span>
+                    <div className="flex items-center justify-between text-xs font-bold text-white">
+                      <span className="flex items-center gap-1.5">
+                        <MessageSquare className="h-3.5 w-3.5 text-purple-400" />
+                        Comments & Execution Log (Visible to Your Advisor)
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-normal">
+                        Add questions to discuss in meetings or record what you did
+                      </span>
+                    </div>
 
-                    {plan.client_action_notes && (
-                      <div className="p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-xs text-slate-300 font-mono whitespace-pre-wrap">
+                    {plan.client_action_notes ? (
+                      <div className="p-3.5 rounded-lg bg-slate-900/90 border border-slate-800 text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
                         {plan.client_action_notes}
+                      </div>
+                    ) : (
+                      <div className="p-2.5 rounded-lg bg-slate-900/40 border border-slate-800/60 text-[11px] text-slate-500 italic">
+                        No comments or actions recorded yet. You can add questions or notes below for your advisor to review.
                       </div>
                     )}
 
@@ -376,20 +435,34 @@ export default function ClientDashboard() {
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
-                            handleLogClientAction(plan.id, targetClientId);
+                            handlePostClientComment(plan.id, targetClientId);
                           }
                         }}
-                        placeholder="Record what you did (e.g. Started ₹10,000/mo SIP in Large Cap Fund on 18 Oct)..."
-                        className="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
+                        placeholder="Add a comment/question for your advisor, or log an action you completed..."
+                        className="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-purple-500"
                       />
-                      <button
-                        onClick={() => handleLogClientAction(plan.id, targetClientId)}
-                        disabled={isSavingAction[plan.id]}
-                        className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center justify-center gap-1 whitespace-nowrap shadow-sm"
-                      >
-                        {isSavingAction[plan.id] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-                        <span>Save My Update</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handlePostClientComment(plan.id, targetClientId)}
+                          disabled={isSavingAction[plan.id]}
+                          className="px-3.5 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition flex items-center justify-center gap-1 whitespace-nowrap shadow-sm shadow-purple-500/20"
+                          title="Post a question or comment to discuss during meetings"
+                        >
+                          {isSavingAction[plan.id] ? <Loader2 className="h-3 w-3 animate-spin" /> : <MessageSquare className="h-3.5 w-3.5" />}
+                          <span>Post Comment</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleLogClientAction(plan.id, targetClientId)}
+                          disabled={isSavingAction[plan.id]}
+                          className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center justify-center gap-1 whitespace-nowrap shadow-sm"
+                          title="Record an implementation action completed"
+                        >
+                          {isSavingAction[plan.id] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                          <span>Record Action</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -431,55 +504,15 @@ export default function ClientDashboard() {
             ))}
           </div>
         </div>
-
-        {/* Scheduled Appointments */}
-        <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/40">
-          <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-purple-400" />
-            Scheduled Reviews & Meetings
-          </h2>
-          <div className="space-y-3">
-            {appointments.length > 0 ? (
-              appointments.map((appt: any) => (
-                <div
-                  key={appt.id}
-                  className="p-3.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-center justify-between"
-                >
-                  <div>
-                    <div className="text-xs font-semibold text-white">{appt.title}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
-                      {new Date(appt.start_time).toLocaleString("en-IN", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {appt.meeting_link && (
-                      <a
-                        href={appt.meeting_link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 text-xs font-semibold transition"
-                      >
-                        <Video className="h-3 w-3" />
-                        Join Call
-                      </a>
-                    )}
-                    <span className="px-2 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
-                      {appt.status}
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="p-4 text-center text-xs text-slate-400">
-                No upcoming appointments. Request an appointment with your advisor.
-              </div>
-            )}
-          </div>
-        </div>
       </div>
+
+      {/* Real-time Appointments & Strategy Review Meetings */}
+      <AppointmentsManager
+        clientId={data?.clientRecord?.client_id}
+        userRole="CLIENT"
+        title="Scheduled Strategy Calls & Advisor Reviews"
+        subtitle="Schedule review calls with your advisor, accept call invites, and view permanent meeting notes."
+      />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
   Video,
   ExternalLink 
 } from "lucide-react";
+import AppointmentsManager from "@/components/AppointmentsManager";
 
 function formatINR(val: number) {
   if (val >= 10000000) {
@@ -190,57 +191,13 @@ export default function AdvisorDashboard() {
             ))}
           </div>
         </div>
-
-        {/* Scheduled Appointments */}
-        <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/40">
-          <h2 className="text-base font-bold text-white mb-4 flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-purple-400" />
-              Calendar & Meetings Pipeline
-            </span>
-            <span className="text-xs text-slate-400">{appointments.length} Scheduled</span>
-          </h2>
-          <div className="space-y-3">
-            {appointments.length > 0 ? (
-              appointments.map((appt: any) => (
-                <div
-                  key={appt.id}
-                  className="p-3.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-center justify-between"
-                >
-                  <div>
-                    <div className="text-xs font-semibold text-white">{appt.title}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
-                      {new Date(appt.start_time).toLocaleString("en-IN", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {appt.meeting_link && (
-                      <a
-                        href={appt.meeting_link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 text-xs font-semibold transition"
-                      >
-                        <Video className="h-3 w-3" />
-                        Join Call
-                      </a>
-                    )}
-                    <span className="px-2 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
-                      {appt.status}
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="p-4 text-center text-xs text-slate-400">
-                No meetings scheduled for this week.
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Calendar & Review Meetings Pipeline */}
+        <AppointmentsManager
+          userRole="ADVISOR"
+          clients={clients}
+          title="Calendar & Meetings Pipeline"
+          subtitle="Manage client reviews, accept client call requests, and record strategic call notes."
+        />
       </div>
     </div>
   );

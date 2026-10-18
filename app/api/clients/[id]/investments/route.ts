@@ -11,13 +11,26 @@ const supabaseAdmin = createClient(
 async function verifyClientAccess(clientId: string, session: any) {
   const { data: client } = await supabaseAdmin
     .from("clients")
-    .select("client_id, tenant_id, user_id, full_name")
+    .select("client_id, tenant_id, user_id, full_name, household_id")
     .eq("client_id", clientId)
     .maybeSingle();
 
   if (!client) return { error: "Client not found", status: 404 };
   if (session.role !== "SUPER_ADMIN" && client.tenant_id && client.tenant_id !== session.tenantId) {
     return { error: "Access denied. Client belongs to another firm.", status: 403 };
+  }
+  if (session.role === "CLIENT") {
+    const isOwner = client.user_id === session.sub || client.client_id === session.sub;
+    if (!isOwner) {
+      const { data: prof } = await supabaseAdmin
+        .from("client_profiles")
+        .select("household_id")
+        .eq("user_id", session.sub)
+        .maybeSingle();
+      if (!prof || prof.household_id !== client.household_id) {
+        return { error: "Access denied. You can only modify your own records.", status: 403 };
+      }
+    }
   }
   return { client };
 }
@@ -29,7 +42,7 @@ export async function POST(
   await connection();
   try {
     const session = verifyAuthHeader(req.headers.get("authorization"));
-    if (!session || !["ADVISOR", "STAFF", "TENANT_ADMIN", "SUPER_ADMIN"].includes(session.role)) {
+    if (!session || !["ADVISOR", "STAFF", "TENANT_ADMIN", "SUPER_ADMIN", "CLIENT"].includes(session.role)) {
       return NextResponse.json({ error: "Unauthorized access." }, { status: 401 });
     }
 
@@ -108,7 +121,7 @@ export async function PUT(
   await connection();
   try {
     const session = verifyAuthHeader(req.headers.get("authorization"));
-    if (!session || !["ADVISOR", "STAFF", "TENANT_ADMIN", "SUPER_ADMIN"].includes(session.role)) {
+    if (!session || !["ADVISOR", "STAFF", "TENANT_ADMIN", "SUPER_ADMIN", "CLIENT"].includes(session.role)) {
       return NextResponse.json({ error: "Unauthorized access." }, { status: 401 });
     }
 
@@ -189,7 +202,7 @@ export async function DELETE(
   await connection();
   try {
     const session = verifyAuthHeader(req.headers.get("authorization"));
-    if (!session || !["ADVISOR", "STAFF", "TENANT_ADMIN", "SUPER_ADMIN"].includes(session.role)) {
+    if (!session || !["ADVISOR", "STAFF", "TENANT_ADMIN", "SUPER_ADMIN", "CLIENT"].includes(session.role)) {
       return NextResponse.json({ error: "Unauthorized access." }, { status: 401 });
     }
 
