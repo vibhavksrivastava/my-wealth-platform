@@ -86,6 +86,18 @@ export async function GET(req: Request) {
       advisor = adv;
     }
 
+    // Fetch tenant white-label branding
+    let tenant = null;
+    const targetTenantId = session.tenantId || profile?.tenant_id || clientRecord?.tenant_id;
+    if (targetTenantId) {
+      const { data: t } = await supabaseAdmin
+        .from("tenants")
+        .select("id, subdomain, firm_legal_name, firm_brand_name, logo_url, primary_color, disclaimer_text, arn_number, ria_number")
+        .eq("id", targetTenantId)
+        .maybeSingle();
+      tenant = t;
+    }
+
     return NextResponse.json({
       profile: profile || {
         total_assets: 0,
@@ -93,6 +105,7 @@ export async function GET(req: Request) {
         net_worth: 0,
         risk_profile_category: "Moderate",
       },
+      tenant,
       clientRecord,
       advisor,
       assets,

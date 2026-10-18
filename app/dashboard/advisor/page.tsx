@@ -11,7 +11,13 @@ import {
   ArrowUpRight, 
   CheckCircle2,
   Video,
-  ExternalLink 
+  ExternalLink,
+  UploadCloud,
+  Building2,
+  X,
+  AlertCircle,
+  Loader2,
+  Sparkles
 } from "lucide-react";
 import AppointmentsManager from "@/components/AppointmentsManager";
 
@@ -30,6 +36,33 @@ export default function AdvisorDashboard() {
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // CAS Import modal states
+  const [showCasModal, setShowCasModal] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const [casInput, setCasInput] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
+  const [casStatus, setCasStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const loadData = () => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      fetch("/api/advisor/overview", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((json) => {
+          setData(json);
+          if (json?.clients?.length > 0 && !selectedClientId) {
+            setSelectedClientId(json.clients[0].client_id);
+          }
+        })
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const profile = localStorage.getItem("user_profile");
     if (profile) {
@@ -40,19 +73,7 @@ export default function AdvisorDashboard() {
         // fallback
       }
     }
-
-    const token = localStorage.getItem("auth_token");
-    if (token) {
-      fetch("/api/advisor/overview", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.json())
-        .then((json) => setData(json))
-        .catch(console.error)
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
+    loadData();
   }, []);
 
   const metrics = data?.metrics || {
@@ -63,20 +84,110 @@ export default function AdvisorDashboard() {
   };
   const clients = data?.clients || [];
   const appointments = data?.appointments || [];
+  const tenant = data?.tenant;
+
+  const handleImportCas = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClientId) {
+      setCasStatus({ type: "error", message: "Please select a client record." });
+      return;
+    }
+    if (!casInput.trim()) {
+      setCasStatus({ type: "error", message: "Please paste CAMS/KFintech CAS JSON or text data." });
+      return;
+    }
+
+    setIsImporting(true);
+    setCasStatus(null);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch(`/api/clients/${selectedClientId}/import-cas`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ casData: casInput }),
+      });
+
+      const resJson = await res.json();
+      if (!res.ok) {
+        throw new Error(resJson.error || "Failed to import CAS statement.");
+      }
+
+      setCasStatus({
+        type: "success",
+        message: `Successfully ingested ${resJson.importedCount} mutual fund folios totaling ${formatINR(resJson.totalImportedValuation)}! Updated client net worth to ${formatINR(resJson.newNetWorth)}.`,
+      });
+      loadData();
+    } catch (err: any) {
+      setCasStatus({ type: "error", message: err.message || "An error occurred while importing." });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const populateSampleCas = () => {
+    const sample = [
+      { scheme: "HDFC Top 100 Fund - Growth Direct", folio: "10492819/22", valuation: 750000, cost: 550000 },
+      { scheme: "Mirae Asset Large Cap Fund - Direct Growth", folio: "84729104", valuation: 520000, cost: 400000 },
+      { scheme: "Parag Parikh Flexi Cap Fund - Direct Plan Growth", folio: "93821049", valuation: 980000, cost: 680000 },
+      { scheme: "Nippon India Small Cap Fund - Growth", folio: "72619028", valuation: 430000, cost: 250000 }
+    ];
+    setCasInput(JSON.stringify(sample, null, 2));
+  };
 
   return (
     <div className="space-y-6">
-      {/* Advisor Header */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Advisor & MFD Console &bull; {userName}
-          </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Client portfolio oversight, household net-worth snapshots, and scheduled advisory reviews.
-          </p>
+      {/* Advisor Header with Dynamic White-Label Firm Branding */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-900/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {tenant?.logo_url ? (
+            <img 
+              src={tenant.logo_url} 
+              alt={tenant.firm_brand_name || "Advisory Firm"} 
+              className="h-12 w-12 rounded-xl object-contain bg-slate-900 border border-emerald-500/30 p-1"
+            />
+          ) : (
+            <div className="h-12 w-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <Building2 className="h-6 w-6" />
+            </div>
+          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                {tenant?.firm_brand_name || "InvestWell Mint &bull; Wealth Console"}
+              </span>
+              {tenant?.arn_number && (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                  ARN: {tenant.arn_number}
+                </span>
+              )}
+              {tenant?.ria_number && (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800">
+                  RIA: {tenant.ria_number}
+                </span>
+              )}
+            </div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              Advisor & MFD Console &bull; {userName}
+            </h1>
+            <p className="mt-0.5 text-xs text-slate-400">
+              Multi-tenant advisory practice &bull; Client portfolio oversight & automated recommendations
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => {
+              setShowCasModal(true);
+              setCasStatus(null);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 shadow-sm transition"
+          >
+            <UploadCloud className="h-4 w-4 text-emerald-400" />
+            Import CAMS / KFin CAS
+          </button>
           <Link
             href="/dashboard/clients/new"
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition"
@@ -191,6 +302,7 @@ export default function AdvisorDashboard() {
             ))}
           </div>
         </div>
+
         {/* Calendar & Review Meetings Pipeline */}
         <AppointmentsManager
           userRole="ADVISOR"
@@ -199,6 +311,117 @@ export default function AdvisorDashboard() {
           subtitle="Manage client reviews, accept client call requests, and record strategic call notes."
         />
       </div>
+
+      {/* CAMS / KFintech CAS Ingestion Modal */}
+      {showCasModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative">
+            <button
+              onClick={() => setShowCasModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <UploadCloud className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Import CAMS / KFintech CAS Statement</h3>
+                <p className="text-xs text-slate-400">Batch parse and ingest mutual fund folios directly into client assets</p>
+              </div>
+            </div>
+
+            {casStatus && (
+              <div
+                className={`mb-4 p-3 rounded-lg text-xs flex items-start gap-2.5 ${
+                  casStatus.type === "success"
+                    ? "bg-emerald-950/60 border border-emerald-500/40 text-emerald-300"
+                    : "bg-rose-950/60 border border-rose-500/40 text-rose-300"
+                }`}
+              >
+                {casStatus.type === "success" ? (
+                  <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-emerald-400" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-400" />
+                )}
+                <span>{casStatus.message}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleImportCas} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Select Target Client Record:
+                </label>
+                <select
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="">-- Choose Client --</option>
+                  {clients.map((c: any) => (
+                    <option key={c.client_id} value={c.client_id}>
+                      {c.full_name} ({c.uwp_client_code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-slate-300">
+                    CAMS / KFintech CAS Data (JSON or Tabular / CSV):
+                  </label>
+                  <button
+                    type="button"
+                    onClick={populateSampleCas}
+                    className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-medium transition"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    Load Sample Folios
+                  </button>
+                </div>
+                <textarea
+                  value={casInput}
+                  onChange={(e) => setCasInput(e.target.value)}
+                  placeholder={`Paste CAS JSON or CSV entries, e.g.:\n[\n  { "scheme": "HDFC Top 100 Fund", "folio": "12345/67", "valuation": 650000 }\n]`}
+                  rows={7}
+                  className="w-full px-3 py-2 bg-slate-950 font-mono border border-slate-800 rounded-lg text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCasModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isImporting}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 disabled:opacity-50 transition"
+                >
+                  {isImporting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Ingesting Folios...
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="h-4 w-4" />
+                      Process & Ingest Holdings
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

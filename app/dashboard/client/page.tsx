@@ -20,6 +20,7 @@ import {
   Loader2,
   MessageSquare,
   Pencil,
+  Building2,
 } from "lucide-react";
 import Link from "next/link";
 import AppointmentsManager from "@/components/AppointmentsManager";
@@ -168,18 +169,43 @@ export default function ClientDashboard() {
   const appointments = data?.appointments || [];
   const suggestionsList = data?.suggestions || [];
   const advisor = data?.advisor;
+  const tenant = data?.tenant;
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-sky-950/60 to-slate-900 border border-sky-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Welcome back, {userName}
-          </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Consolidated family net worth & financial planning scorecard.
-          </p>
+      {/* Welcome Banner with Dynamic White-Label Firm Branding */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-sky-950/60 to-slate-900 border border-sky-900/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {tenant?.logo_url ? (
+            <img 
+              src={tenant.logo_url} 
+              alt={tenant.firm_brand_name || "Advisory Firm"} 
+              className="h-12 w-12 rounded-xl object-contain bg-slate-900 border border-sky-500/30 p-1"
+            />
+          ) : (
+            <div className="h-12 w-12 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+              <Building2 className="h-6 w-6" />
+            </div>
+          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-sky-400">
+                {tenant?.firm_brand_name || "InvestWell Mint Client Portal"}
+              </span>
+              {tenant?.arn_number && (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                  ARN: {tenant.arn_number}
+                </span>
+              )}
+            </div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              Welcome back, {userName}
+            </h1>
+            <p className="mt-0.5 text-xs text-slate-400">
+              Consolidated family net worth & financial planning scorecard
+              {advisor?.full_name ? ` • Advisor: ${advisor.full_name}` : ""}
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {clientRecord?.client_id && (

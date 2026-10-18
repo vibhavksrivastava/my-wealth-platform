@@ -41,6 +41,17 @@ export async function GET(req: Request) {
     const totalAssets = (clientProfiles || []).reduce((acc, curr) => acc + Number(curr.total_assets || 0), 0);
     const totalNetWorth = (clientProfiles || []).reduce((acc, curr) => acc + Number(curr.net_worth || 0), 0);
 
+    // Fetch tenant white-label branding
+    let tenant = null;
+    if (session.tenantId) {
+      const { data: t } = await supabaseAdmin
+        .from("tenants")
+        .select("id, subdomain, firm_legal_name, firm_brand_name, logo_url, primary_color, secondary_color, disclaimer_text, arn_number, ria_number")
+        .eq("id", session.tenantId)
+        .maybeSingle();
+      tenant = t;
+    }
+
     return NextResponse.json({
       metrics: {
         totalAUM: totalAssets,
@@ -48,6 +59,7 @@ export async function GET(req: Request) {
         activeHouseholds: (clientsList || []).length,
         appointmentsCount: (appointments || []).length,
       },
+      tenant,
       clients: clientsList || [],
       clientProfiles: clientProfiles || [],
       appointments: appointments || [],
