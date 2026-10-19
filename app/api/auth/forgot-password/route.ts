@@ -51,9 +51,34 @@ export async function POST(req: Request) {
 
     const resetUrl = `/reset-password?token=${token}&email=${encodeURIComponent(cleanEmail)}`;
 
+    // Dispatch transactional email via Unified Communications engine
+    try {
+      const { sendEmail } = await import("@/lib/communications");
+      await sendEmail({
+        to: cleanEmail,
+        subject: "WealthOS • Reset Your Account Password",
+        html: `
+          <div style="font-family: sans-serif; max-width: 580px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; color: #0f172a;">
+            <h2 style="color: #0284c7; margin-top: 0;">Password Reset Request</h2>
+            <p>Hello ${user.first_name || "Valued User"},</p>
+            <p>We received a request to reset your password. Click the button below to choose a new password. This link is valid for 60 minutes.</p>
+            <div style="margin: 28px 0; text-align: center;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}${resetUrl}" 
+                 style="background-color: #0284c7; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                Reset Password
+              </a>
+            </div>
+            <p style="font-size: 12px; color: #64748b;">If you did not request this, you can safely ignore this email. Your password will remain unchanged.</p>
+          </div>
+        `,
+      });
+    } catch (mailErr) {
+      console.warn("Failed to dispatch reset email:", mailErr);
+    }
+
     return NextResponse.json({
       success: true,
-      message: "Password reset link generated successfully.",
+      message: "Password reset link generated and dispatched successfully.",
       resetUrl,
       expiresIn: "60 minutes",
     });

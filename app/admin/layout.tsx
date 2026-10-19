@@ -15,6 +15,7 @@ import {
   ChevronRight,
   TrendingUp,
   Receipt,
+  MessageSquare,
 } from "lucide-react";
 
 interface UserProfile {
@@ -108,6 +109,12 @@ export default function TenantAdminLayout({
       label: "Billing & Plans",
       href: "/admin/billing",
       icon: Receipt,
+      exact: true,
+    },
+    {
+      label: "Communications",
+      href: "/admin/communications",
+      icon: MessageSquare,
       exact: true,
     },
   ];
