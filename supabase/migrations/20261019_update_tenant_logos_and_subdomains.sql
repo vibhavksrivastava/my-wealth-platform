@@ -65,3 +65,4 @@ VALUES (
 ON CONFLICT (subdomain) DO UPDATE SET
   logo_url = 'https://dbudnhbziywrjesmzqxb.supabase.co/storage/v1/object/public/public-assets/platform/logo.png',
   is_active = TRUE;
+

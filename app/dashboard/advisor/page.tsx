@@ -35,6 +35,12 @@ export default function AdvisorDashboard() {
   const [userName, setUserName] = useState("Advisor");
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [tenantError, setTenantError] = useState<{
+    error: string;
+    mismatchedTenant?: boolean;
+    expectedFirmName?: string;
+    expectedSubdomain?: string;
+  } | null>(null);
 
   // CAS Import modal states
   const [showCasModal, setShowCasModal] = useState(false);
@@ -49,9 +55,16 @@ export default function AdvisorDashboard() {
       fetch("/api/advisor/overview", {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then((res) => res.json())
-        .then((json) => {
+        .then(async (res) => {
+          const json = await res.json();
+          if (!res.ok) {
+            if (json.mismatchedTenant) {
+              setTenantError(json);
+            }
+            return;
+          }
           setData(json);
+          setTenantError(null);
           if (json?.clients?.length > 0 && !selectedClientId) {
             setSelectedClientId(json.clients[0].client_id);
           }
@@ -77,10 +90,10 @@ export default function AdvisorDashboard() {
   }, []);
 
   const metrics = data?.metrics || {
-    totalAUM: 42500000,
-    totalNetWorth: 31524886,
-    activeHouseholds: 1,
-    appointmentsCount: 1,
+    totalAUM: 0,
+    totalNetWorth: 0,
+    activeHouseholds: 0,
+    appointmentsCount: 0,
   };
   const clients = data?.clients || [];
   const appointments = data?.appointments || [];
@@ -200,6 +213,31 @@ export default function AdvisorDashboard() {
         </div>
       </div>
 
+      {/* Cross-Tenant Session Mismatch Alert */}
+      {tenantError && (
+        <div className="p-5 rounded-2xl bg-amber-950/70 border border-amber-500/40 text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-bold text-white text-sm">Cross-Tenant Account Mismatch</h3>
+              <p className="text-xs text-amber-300/90 mt-0.5 leading-relaxed">
+                {tenantError.error}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem("auth_token");
+              localStorage.removeItem("user_profile");
+              window.location.href = "/login";
+            }}
+            className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 transition shadow-md shadow-amber-500/20"
+          >
+            Sign in to {tenantError.expectedFirmName || "this practice"}
+          </button>
+        </div>
+      )}
+
       {/* Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/50">
@@ -260,46 +298,58 @@ export default function AdvisorDashboard() {
             <span className="text-xs text-slate-400">{clients.length} Total</span>
           </h2>
           <div className="space-y-3">
-            {clients.map((c: any) => (
-              <div
-                key={c.client_id}
-                className="p-3.5 rounded-lg bg-slate-950/60 hover:bg-slate-900 border border-slate-800/80 hover:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition group"
-              >
-                <div>
-                  <Link
-                    href={`/dashboard/clients/${c.client_id}/360`}
-                    className="text-xs font-semibold text-white hover:text-sky-400 transition flex items-center gap-1.5"
-                  >
-                    <span>{c.full_name}</span>
-                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                      360 &deg;
-                    </span>
-                  </Link>
-                  <div className="text-[11px] text-slate-400 mt-0.5">
-                    Code: {c.uwp_client_code} &bull; Horizon: {c.planning_horizon_years} yrs &bull; Risk: {c.risk_profile}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 self-end sm:self-auto">
-                  <div className="text-right hidden md:block">
-                    <div className="text-xs font-bold text-emerald-400">
-                      {formatINR(Number(c.annual_gross_income))}/yr
+            {clients.length === 0 ? (
+              <div className="py-12 px-4 rounded-lg bg-slate-950/40 border border-dashed border-slate-800 text-center text-xs">
+                <Users className="h-8 w-8 mx-auto mb-2 text-slate-600" />
+                <p className="font-semibold text-slate-300">
+                  No client planning records for {tenant?.firm_brand_name || "this practice"} yet.
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Click &ldquo;+ New Client Fact-Find&rdquo; above to onboard your first household profile.
+                </p>
+              </div>
+            ) : (
+              clients.map((c: any) => (
+                <div
+                  key={c.client_id}
+                  className="p-3.5 rounded-lg bg-slate-950/60 hover:bg-slate-900 border border-slate-800/80 hover:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition group"
+                >
+                  <div>
+                    <Link
+                      href={`/dashboard/clients/${c.client_id}/360`}
+                      className="text-xs font-semibold text-white hover:text-sky-400 transition flex items-center gap-1.5"
+                    >
+                      <span>{c.full_name}</span>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                        360 &deg;
+                      </span>
+                    </Link>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      Code: {c.uwp_client_code} &bull; Horizon: {c.planning_horizon_years} yrs &bull; Risk: {c.risk_profile}
                     </div>
                   </div>
-                  <Link
-                    href={`/dashboard/clients/${c.client_id}/360`}
-                    className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-sky-600 hover:bg-sky-500 text-white shadow-sm transition"
-                  >
-                    Client 360 &deg;
-                  </Link>
-                  <Link
-                    href={`/dashboard/clients/${c.client_id}/net-worth`}
-                    className="px-2 py-1 rounded-md text-[10px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
-                  >
-                    Net Worth
-                  </Link>
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="text-right hidden md:block">
+                      <div className="text-xs font-bold text-emerald-400">
+                        {formatINR(Number(c.annual_gross_income))}/yr
+                      </div>
+                    </div>
+                    <Link
+                      href={`/dashboard/clients/${c.client_id}/360`}
+                      className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-sky-600 hover:bg-sky-500 text-white shadow-sm transition"
+                    >
+                      Client 360 &deg;
+                    </Link>
+                    <Link
+                      href={`/dashboard/clients/${c.client_id}/net-worth`}
+                      className="px-2 py-1 rounded-md text-[10px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+                    >
+                      Net Worth
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
