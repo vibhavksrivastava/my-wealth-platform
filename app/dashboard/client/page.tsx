@@ -182,26 +182,39 @@ export default function ClientDashboard() {
   const advisor = data?.advisor;
   const tenant = data?.tenant;
 
+  const brandColor = tenant?.primary_color || "#0284c7";
+  const brandName = tenant?.firm_brand_name || "InvestWell Mint Client Portal";
+
   return (
     <div className="space-y-6">
       {/* Welcome Banner with Dynamic White-Label Firm Branding */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-sky-950/60 to-slate-900 border border-sky-900/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div 
+        className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl"
+        style={{ borderColor: `${brandColor}40`, boxShadow: `0 10px 30px -10px ${brandColor}20` }}
+      >
         <div className="flex items-center gap-4">
           {tenant?.logo_url ? (
             <img 
               src={tenant.logo_url} 
-              alt={tenant.firm_brand_name || "Advisory Firm"} 
-              className="h-12 w-12 rounded-xl object-contain bg-slate-900 border border-sky-500/30 p-1"
+              alt={brandName} 
+              className="h-12 w-12 rounded-xl object-contain bg-slate-900 p-1 border"
+              style={{ borderColor: `${brandColor}50` }}
             />
           ) : (
-            <div className="h-12 w-12 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
-              <Building2 className="h-6 w-6" />
+            <div 
+              className="h-12 w-12 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-md"
+              style={{ backgroundColor: brandColor }}
+            >
+              {brandName.charAt(0)}
             </div>
           )}
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-sky-400">
-                {tenant?.firm_brand_name || "InvestWell Mint Client Portal"}
+              <span 
+                className="text-xs font-bold uppercase tracking-wider"
+                style={{ color: brandColor }}
+              >
+                {brandName}
               </span>
               {tenant?.arn_number && (
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
@@ -213,7 +226,7 @@ export default function ClientDashboard() {
               Welcome back, {userName}
             </h1>
             <p className="mt-0.5 text-xs text-slate-400">
-              Consolidated family net worth & financial planning scorecard
+              Consolidated family net worth &amp; financial planning scorecard
               {advisor?.full_name ? ` • Advisor: ${advisor.full_name}` : ""}
             </p>
           </div>
@@ -222,13 +235,21 @@ export default function ClientDashboard() {
           {clientRecord?.client_id && (
             <Link
               href={`/dashboard/clients/${clientRecord.client_id}/360`}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-sky-500 to-purple-600 hover:from-sky-400 hover:to-purple-500 text-white text-xs font-bold transition shadow-md shadow-purple-500/20"
+              style={{ backgroundColor: brandColor }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-white text-xs font-bold transition shadow-md hover:brightness-110"
             >
               <Pencil className="h-3.5 w-3.5" />
-              <span>View & Edit Complete 360 Profile</span>
+              <span>View &amp; Edit Complete 360 Profile</span>
             </Link>
           )}
-          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
+          <span 
+            className="px-3 py-1 rounded-full text-xs font-semibold border"
+            style={{ 
+              color: brandColor, 
+              borderColor: `${brandColor}40`, 
+              backgroundColor: `${brandColor}15` 
+            }}
+          >
             Risk Profile: {data?.profile?.risk_profile_category || "Moderate"}
           </span>
           <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
@@ -237,7 +258,7 @@ export default function ClientDashboard() {
           <button
             type="button"
             onClick={() => setShowKycModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-950/80 hover:bg-sky-900 text-sky-300 border border-sky-800/80 transition"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition"
           >
             <CreditCard className="h-3.5 w-3.5 text-sky-400" />
             <span>{panDocUrl ? "KYC Document: Uploaded" : "Upload KYC / PAN"}</span>

@@ -150,26 +150,39 @@ export default function AdvisorDashboard() {
     setCasInput(JSON.stringify(sample, null, 2));
   };
 
+  const brandColor = tenant?.primary_color || "#0284c7";
+  const brandName = tenant?.firm_brand_name || "InvestWell Mint • Wealth Console";
+
   return (
     <div className="space-y-6">
       {/* Advisor Header with Dynamic White-Label Firm Branding */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-900/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div 
+        className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl"
+        style={{ borderColor: `${brandColor}40`, boxShadow: `0 10px 30px -10px ${brandColor}20` }}
+      >
         <div className="flex items-center gap-4">
           {tenant?.logo_url ? (
             <img 
               src={tenant.logo_url} 
-              alt={tenant.firm_brand_name || "Advisory Firm"} 
-              className="h-12 w-12 rounded-xl object-contain bg-slate-900 border border-emerald-500/30 p-1"
+              alt={brandName} 
+              className="h-12 w-12 rounded-xl object-contain bg-slate-900 p-1 border"
+              style={{ borderColor: `${brandColor}50` }}
             />
           ) : (
-            <div className="h-12 w-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <Building2 className="h-6 w-6" />
+            <div 
+              className="h-12 w-12 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-md"
+              style={{ backgroundColor: brandColor }}
+            >
+              {brandName.charAt(0)}
             </div>
           )}
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                {tenant?.firm_brand_name || "InvestWell Mint &bull; Wealth Console"}
+              <span 
+                className="text-xs font-bold uppercase tracking-wider"
+                style={{ color: brandColor }}
+              >
+                {brandName}
               </span>
               {tenant?.arn_number && (
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
@@ -183,10 +196,10 @@ export default function AdvisorDashboard() {
               )}
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight">
-              Advisor & MFD Console &bull; {userName}
+              Advisor &amp; MFD Console &bull; {userName}
             </h1>
             <p className="mt-0.5 text-xs text-slate-400">
-              Multi-tenant advisory practice &bull; Client portfolio oversight & automated recommendations
+              Multi-tenant advisory practice &bull; Client portfolio oversight &amp; automated recommendations
             </p>
           </div>
         </div>
@@ -198,16 +211,24 @@ export default function AdvisorDashboard() {
             }}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 shadow-sm transition"
           >
-            <UploadCloud className="h-4 w-4 text-emerald-400" />
+            <UploadCloud className="h-4 w-4" style={{ color: brandColor }} />
             Import CAMS / KFin CAS
           </button>
           <Link
             href="/dashboard/clients/new"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition"
+            style={{ backgroundColor: brandColor }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold text-white shadow-md transition hover:brightness-110"
           >
             + New Client Fact-Find
           </Link>
-          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span 
+            className="px-3 py-1 rounded-full text-xs font-semibold border"
+            style={{ 
+              color: brandColor, 
+              borderColor: `${brandColor}40`, 
+              backgroundColor: `${brandColor}15` 
+            }}
+          >
             MFD Practice Active
           </span>
         </div>

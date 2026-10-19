@@ -109,9 +109,12 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
         throw new Error(data.error || "Authentication failed. Please verify credentials.");
       }
 
-      // Store JWT token locally
+      // Store JWT token and tenant branding locally
       localStorage.setItem("auth_token", data.token);
       localStorage.setItem("user_profile", JSON.stringify(data.user));
+      if (data.tenant) {
+        localStorage.setItem("tenant_branding", JSON.stringify(data.tenant));
+      }
 
       // Dynamic redirect based on returned user role
       if (data.user.role === "SUPER_ADMIN") {
