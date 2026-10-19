@@ -2,6 +2,7 @@ import { NextResponse, connection } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcrypt";
 import { verifyAuthHeader } from "@/lib/auth";
+import { DEFAULT_PLANS } from "@/lib/tenantPlans";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,10 +20,11 @@ export async function GET(req: Request) {
       );
     }
 
-    const [tenantsRes, usersRes, clientProfilesRes] = await Promise.all([
+    const [tenantsRes, usersRes, clientProfilesRes, plansRes] = await Promise.all([
       supabaseAdmin.from("tenants").select("*").order("created_at", { ascending: false }),
       supabaseAdmin.from("users").select("id, tenant_id, role, email, first_name, last_name, is_active"),
       supabaseAdmin.from("client_profiles").select("tenant_id, total_assets, net_worth"),
+      supabaseAdmin.from("plans").select("*"),
     ]);
 
     if (tenantsRes.error) {
@@ -32,6 +34,13 @@ export async function GET(req: Request) {
     const tenants = tenantsRes.data || [];
     const users = usersRes.data || [];
     const clientProfiles = clientProfilesRes.data || [];
+    const dbPlans = plansRes?.data || [];
+
+    const plansMap: Record<string, unknown> = {};
+    dbPlans.forEach((p) => {
+      plansMap[p.id] = p;
+      plansMap[p.slug] = p;
+    });
 
     // Aggregate stats per tenant
     const enrichedTenants = tenants.map((tenant) => {
@@ -46,8 +55,16 @@ export async function GET(req: Request) {
 
       const primaryAdmin = tenantAdmins[0] || null;
 
+      let resolvedPlan = tenant.plan_id ? (plansMap[tenant.plan_id] as typeof DEFAULT_PLANS["growth"]) : null;
+      if (!resolvedPlan) {
+        if (tenant.commission_sharing_active) resolvedPlan = DEFAULT_PLANS.arn_partnership;
+        else if (tenant.subdomain === "apex" || tenant.subdomain === "platform") resolvedPlan = DEFAULT_PLANS.enterprise;
+        else resolvedPlan = DEFAULT_PLANS.growth;
+      }
+
       return {
         ...tenant,
+        plan: resolvedPlan,
         stats: {
           clientCount,
           advisorCount,
@@ -146,6 +163,24 @@ export async function POST(req: Request) {
     const tempPassword = initialPassword?.trim() || `Wealth@${Math.random().toString(36).slice(-6)}!`;
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
+    // Resolve Plan ID
+    const planSlug = body.planSlug || "growth";
+    let planId = body.planId || null;
+    try {
+      const { data: dbPlan } = await supabaseAdmin
+        .from("plans")
+        .select("id")
+        .eq("slug", planSlug)
+        .maybeSingle();
+      if (dbPlan) planId = dbPlan.id;
+    } catch {
+      // Fallback
+    }
+
+    const isArnPartner = Boolean(body.commissionSharingActive || planSlug === "arn_partnership");
+    const expiryDays = isArnPartner ? 365 : 45;
+    const expiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString();
+
     // 1. Create Tenant
     const { data: newTenant, error: tenantErr } = await supabaseAdmin
       .from("tenants")
@@ -161,6 +196,9 @@ export async function POST(req: Request) {
         custom_domain: customDomain ? customDomain.trim() : null,
         logo_url: logoUrl ? logoUrl.trim() : null,
         disclaimer_text: disclaimerText.trim(),
+        plan_id: planId,
+        commission_sharing_active: isArnPartner,
+        subscription_expires_at: expiresAt,
         is_active: true,
       })
       .select()
