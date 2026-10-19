@@ -21,9 +21,13 @@ import {
   MessageSquare,
   Pencil,
   Building2,
+  CreditCard,
+  ShieldCheck,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import AppointmentsManager from "@/components/AppointmentsManager";
+import FileUploader from "@/components/FileUploader";
 
 function formatINR(val: number) {
   if (val >= 10000000) {
@@ -42,8 +46,15 @@ export default function ClientDashboard() {
   const [clientActionInput, setClientActionInput] = useState<{ [id: string]: string }>({});
   const [isSavingAction, setIsSavingAction] = useState<{ [id: string]: boolean }>({});
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [showKycModal, setShowKycModal] = useState(false);
+  const [panDocUrl, setPanDocUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    const savedPan = localStorage.getItem("client_pan_doc_url");
+    if (savedPan) {
+      setPanDocUrl(savedPan);
+    }
+
     const profile = localStorage.getItem("user_profile");
     if (profile) {
       try {
@@ -223,6 +234,14 @@ export default function ClientDashboard() {
           <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
             PAN: {data?.profile?.pan_number || "ABCDE1234F"}
           </span>
+          <button
+            type="button"
+            onClick={() => setShowKycModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-950/80 hover:bg-sky-900 text-sky-300 border border-sky-800/80 transition"
+          >
+            <CreditCard className="h-3.5 w-3.5 text-sky-400" />
+            <span>{panDocUrl ? "KYC Document: Uploaded" : "Upload KYC / PAN"}</span>
+          </button>
         </div>
       </div>
 
@@ -539,6 +558,67 @@ export default function ClientDashboard() {
         title="Scheduled Strategy Calls & Advisor Reviews"
         subtitle="Schedule review calls with your advisor, accept call invites, and view permanent meeting notes."
       />
+
+      {/* Secure KYC & PAN Document Upload Modal */}
+      {showKycModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button
+              onClick={() => setShowKycModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Client KYC & PAN Document Vault</h3>
+                <p className="text-xs text-slate-400">
+                  Files are stored in the private, 256-bit encrypted &apos;client-documents&apos; vault
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <FileUploader
+                purpose="pan_card"
+                currentUrl={panDocUrl}
+                folder={`kyc/${data?.clientRecord?.client_id || data?.profile?.user_id || "client"}`}
+                label="PAN Card / KYC Identification"
+                description="Upload a legible scan of your PAN card or Form 60 (PDF, PNG, JPG up to 15MB). Your advisor will verify this during onboarding."
+                onUploadComplete={({ url }) => {
+                  setPanDocUrl(url);
+                  localStorage.setItem("client_pan_doc_url", url);
+                }}
+                onRemove={() => {
+                  setPanDocUrl(null);
+                  localStorage.removeItem("client_pan_doc_url");
+                }}
+              />
+
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
+                <ShieldAlert className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
+                <span>
+                  Regulatory Compliance: As per SEBI/AMFI mandate, PAN verification is required for mutual fund folio creation and AUA reporting. Only authorized advisors in your tenant firm can inspect this document via secure signed URLs.
+                </span>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowKycModal(false)}
+                  className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shadow-sm"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

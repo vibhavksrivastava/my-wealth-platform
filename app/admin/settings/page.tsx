@@ -14,6 +14,7 @@ import {
   Building2,
   RefreshCw,
 } from "lucide-react";
+import FileUploader from "@/components/FileUploader";
 
 export default function TenantAdminSettingsPage() {
   const [formData, setFormData] = useState({
@@ -249,17 +250,25 @@ export default function TenantAdminSettingsPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
-                    Logo Image URL
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://..."
-                    value={formData.logoUrl}
-                    onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500"
+                <div className="sm:col-span-2">
+                  <FileUploader
+                    purpose="firm_logo"
+                    currentUrl={formData.logoUrl}
+                    label="Advisory Firm Brand Logo"
+                    description="Upload your high-resolution advisory firm logo (PNG, JPG, SVG, WebP up to 5MB). Rendered on client dashboards & reports."
+                    onUploadComplete={({ url }) => setFormData((prev) => ({ ...prev, logoUrl: url }))}
+                    onRemove={() => setFormData((prev) => ({ ...prev, logoUrl: "" }))}
                   />
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-[11px] text-slate-500">Or paste external image URL:</span>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/logo.png"
+                      value={formData.logoUrl}
+                      onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
+                      className="flex-1 px-2.5 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

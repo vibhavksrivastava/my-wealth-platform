@@ -104,3 +104,4 @@ DROP POLICY IF EXISTS "Clients read and update own portfolio" ON public.client_p
 CREATE POLICY "Clients read and update own portfolio"
   ON public.client_portfolios FOR ALL
   USING (client_id = auth.uid());
+
