@@ -92,7 +92,7 @@ export async function GET(req: Request) {
     if (targetTenantId) {
       const { data: t } = await supabaseAdmin
         .from("tenants")
-        .select("id, subdomain, firm_legal_name, firm_brand_name, logo_url, primary_color, disclaimer_text, arn_number, ria_number")
+        .select("id, subdomain, firm_legal_name, firm_brand_name, logo_url, primary_color, secondary_color, theme_mode, disclaimer_text, arn_number, ria_number")
         .eq("id", targetTenantId)
         .maybeSingle();
       tenant = t;

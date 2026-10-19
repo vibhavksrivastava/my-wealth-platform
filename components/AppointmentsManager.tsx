@@ -25,6 +25,7 @@ interface AppointmentsManagerProps {
   userRole: "CLIENT" | "ADVISOR" | "TENANT_ADMIN" | "SUPER_ADMIN" | "STAFF";
   title?: string;
   subtitle?: string;
+  brandColor?: string;
 }
 
 export default function AppointmentsManager({
@@ -33,7 +34,9 @@ export default function AppointmentsManager({
   userRole,
   title = "Review Calls & Strategy Meetings",
   subtitle = "Schedule calls, confirm meeting slots, and review strategic meeting minutes.",
+  brandColor,
 }: AppointmentsManagerProps) {
+  const activeBrandColor = brandColor || "var(--tenant-primary, #0284c7)";
   const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -211,27 +214,27 @@ export default function AppointmentsManager({
         <div
           className={`fixed bottom-6 right-6 z-[60] px-4 py-3 rounded-xl border shadow-2xl flex items-center gap-2.5 text-xs font-semibold ${
             notification.type === "success"
-              ? "bg-slate-900 border-emerald-500/40 text-emerald-400"
-              : "bg-slate-900 border-rose-500/40 text-rose-400"
+              ? "bg-white dark:bg-slate-900 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+              : "bg-white dark:bg-slate-900 border-rose-500/40 text-rose-600 dark:text-rose-400"
           }`}
         >
           {notification.type === "success" ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
           ) : (
-            <AlertCircle className="h-4 w-4 text-rose-400 flex-shrink-0" />
+            <AlertCircle className="h-4 w-4 text-rose-500 flex-shrink-0" />
           )}
           <span>{notification.message}</span>
         </div>
       )}
 
       {/* Header Bar */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-sky-950/40 via-slate-900 to-purple-950/40 border border-sky-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-sky-400" />
-            <h3 className="text-base font-bold text-white tracking-tight">{title}</h3>
+            <Calendar className="h-4 w-4" style={{ color: activeBrandColor }} />
+            <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">{title}</h3>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>
         </div>
 
         <button
@@ -242,7 +245,8 @@ export default function AppointmentsManager({
             setModalError(null);
             setIsScheduleOpen(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold transition shadow-md shadow-sky-500/20 whitespace-nowrap"
+          style={{ backgroundColor: activeBrandColor }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-xs font-bold transition shadow-md hover:brightness-110 whitespace-nowrap"
         >
           <Plus className="h-4 w-4" />
           <span>{userRole === "CLIENT" ? "Request Call with Advisor" : "Schedule Client Review"}</span>
@@ -252,13 +256,13 @@ export default function AppointmentsManager({
       {/* Appointments List */}
       {isLoading ? (
         <div className="py-12 flex flex-col items-center justify-center gap-2 text-slate-400">
-          <Loader2 className="h-6 w-6 animate-spin text-sky-400" />
+          <Loader2 className="h-6 w-6 animate-spin" style={{ color: activeBrandColor }} />
           <span className="text-xs font-medium">Loading scheduled meetings...</span>
         </div>
       ) : appointments.length === 0 ? (
-        <div className="p-8 rounded-xl bg-slate-900/30 border border-slate-800 text-center space-y-2">
-          <Calendar className="h-8 w-8 text-slate-600 mx-auto" />
-          <p className="text-xs text-slate-400">No calls scheduled at the moment.</p>
+        <div className="p-8 rounded-xl bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 text-center space-y-2">
+          <Calendar className="h-8 w-8 text-slate-400 dark:text-slate-600 mx-auto" />
+          <p className="text-xs text-slate-600 dark:text-slate-400">No calls scheduled at the moment.</p>
           <button
             onClick={() => {
               const tomorrow = new Date();
@@ -266,9 +270,9 @@ export default function AppointmentsManager({
               setFormDate(tomorrow.toISOString().split("T")[0]);
               setIsScheduleOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition"
           >
-            <Plus className="h-3.5 w-3.5 text-sky-400" />
+            <Plus className="h-3.5 w-3.5" style={{ color: activeBrandColor }} />
             <span>Schedule First Call</span>
           </button>
         </div>
@@ -300,51 +304,51 @@ export default function AppointmentsManager({
             return (
               <div
                 key={appt.id}
-                className="p-5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-4 hover:border-slate-700 transition"
+                className="p-5 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs transition"
               >
                 {/* Top Row: Title, Date, Time & Status */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2.5">
-                      <h4 className="text-sm font-bold text-white">{appt.title}</h4>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">{appt.title}</h4>
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
                           isConfirmed
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                             : isPending
-                            ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                             : isCompleted
-                            ? "bg-sky-500/10 text-sky-400 border-sky-500/20"
-                            : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                            ? "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20"
+                            : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
                         }`}
                       >
                         {isPending ? "Pending Review" : appt.status}
                       </span>
                     </div>
 
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                       {appt.client_name && (
                         <>
-                          <span className="flex items-center gap-1 font-semibold text-sky-400">
+                          <span className="flex items-center gap-1 font-semibold" style={{ color: activeBrandColor }}>
                             <User className="h-3.5 w-3.5" />
                             {appt.client_name}
                           </span>
                           <span>&bull;</span>
                         </>
                       )}
-                      <span className="flex items-center gap-1 text-slate-300">
-                        <Calendar className="h-3.5 w-3.5 text-sky-400" />
+                      <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                        <Calendar className="h-3.5 w-3.5" style={{ color: activeBrandColor }} />
                         {dateStr}
                       </span>
                       <span>&bull;</span>
-                      <span className="flex items-center gap-1 text-slate-300">
-                        <Clock className="h-3.5 w-3.5 text-purple-400" />
+                      <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                        <Clock className="h-3.5 w-3.5" style={{ color: activeBrandColor }} />
                         {timeStr}
                       </span>
                       <span>&bull;</span>
-                      <span className="text-slate-400">
+                      <span className="text-slate-500 dark:text-slate-400">
                         Initiated by:{" "}
-                        <span className="font-semibold text-slate-300">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
                           {appt.scheduled_by === "CLIENT" ? "Client" : "Advisor"}
                         </span>
                       </span>
@@ -356,7 +360,7 @@ export default function AppointmentsManager({
                     {canAccept && (
                       <button
                         onClick={() => handleUpdateStatus(appt.id, "ACCEPT")}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm shadow-emerald-500/20"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm"
                       >
                         <Check className="h-3.5 w-3.5" />
                         <span>Accept Call</span>
@@ -366,9 +370,9 @@ export default function AppointmentsManager({
                     {!isCompleted && !isCancelled && (
                       <button
                         onClick={() => handleUpdateStatus(appt.id, "COMPLETE")}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition"
                       >
-                        <CheckCircle2 className="h-3.5 w-3.5 text-sky-400" />
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                         <span>Mark Completed</span>
                       </button>
                     )}
@@ -376,7 +380,7 @@ export default function AppointmentsManager({
                     {!isCancelled && !isCompleted && (
                       <button
                         onClick={() => handleUpdateStatus(appt.id, "DECLINE")}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 text-xs font-semibold border border-slate-700 transition"
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950 text-slate-600 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition"
                         title="Cancel or decline this call"
                       >
                         <X className="h-3.5 w-3.5" />
@@ -389,7 +393,7 @@ export default function AppointmentsManager({
                         href={appt.meeting_link}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 text-xs font-bold border border-sky-500/20 transition"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-500/10 dark:hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 text-xs font-bold border border-sky-200 dark:border-sky-500/20 transition"
                       >
                         <Video className="h-3.5 w-3.5" />
                         <span>Join Video Call</span>
@@ -400,11 +404,11 @@ export default function AppointmentsManager({
                 </div>
 
                 {/* Meeting Minutes & Strategic Notes Section */}
-                <div className="pt-3 border-t border-slate-800/80 space-y-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-white">
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-white">
                     <span className="flex items-center gap-1.5">
-                      <FileText className="h-3.5 w-3.5 text-purple-400" />
-                      Strategic Meeting Minutes & Notes (Refer Later)
+                      <FileText className="h-3.5 w-3.5" style={{ color: activeBrandColor }} />
+                      Strategic Meeting Minutes &amp; Notes (Refer Later)
                     </span>
                     <span className="text-[10px] text-slate-500 font-normal">
                       Visible to both Client and Advisor
@@ -412,11 +416,11 @@ export default function AppointmentsManager({
                   </div>
 
                   {appt.notes ? (
-                    <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
                       {appt.notes}
                     </div>
                   ) : (
-                    <div className="p-2.5 rounded-lg bg-slate-950/40 border border-slate-800/60 text-[11px] text-slate-500 italic">
+                    <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/60 text-[11px] text-slate-500 italic">
                       No meeting notes added yet. Use the input below to record strategic takeaways or decisions agreed during the call.
                     </div>
                   )}
@@ -434,12 +438,13 @@ export default function AppointmentsManager({
                         }
                       }}
                       placeholder="Add strategic takeaway or agreement to refer later (e.g., Client agreed to prepay ₹1.5L car loan in Nov)..."
-                      className="flex-1 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-purple-500 transition"
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none transition"
                     />
                     <button
                       onClick={() => handleAddCallNote(appt.id)}
                       disabled={isSavingNote[appt.id]}
-                      className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition flex items-center justify-center gap-1 whitespace-nowrap shadow-sm shadow-purple-500/20"
+                      style={{ backgroundColor: activeBrandColor }}
+                      className="px-3.5 py-1.5 rounded-lg text-white text-xs font-bold transition flex items-center justify-center gap-1 whitespace-nowrap shadow-sm hover:brightness-110"
                     >
                       {isSavingNote[appt.id] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                       <span>Save Note</span>
@@ -455,17 +460,17 @@ export default function AppointmentsManager({
       {/* Schedule Call Modal */}
       {isScheduleOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="w-full max-w-lg rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-sky-400" />
-                <h3 className="text-base font-bold text-white">
+                <Calendar className="h-4 w-4" style={{ color: activeBrandColor }} />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
                   {userRole === "CLIENT" ? "Request Call with Your Advisor" : "Schedule Client Review Call"}
                 </h3>
               </div>
               <button
                 onClick={() => setIsScheduleOpen(false)}
-                className="text-slate-400 hover:text-white transition p-1"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition p-1"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -474,13 +479,13 @@ export default function AppointmentsManager({
             <form onSubmit={handleScheduleCall} className="space-y-4 text-xs">
               {!clientId && userRole !== "CLIENT" && clients && clients.length > 0 && (
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Select Client
                   </label>
                   <select
                     value={selectedClientId}
                     onChange={(e) => setSelectedClientId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 focus:outline-none focus:border-sky-500"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-200 focus:outline-none"
                   >
                     {clients.map((c) => (
                       <option key={c.client_id} value={c.client_id}>
@@ -492,21 +497,21 @@ export default function AppointmentsManager({
               )}
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                  Meeting Title & Purpose
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Meeting Title &amp; Purpose
                 </label>
                 <input
                   type="text"
                   required
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 focus:outline-none focus:border-sky-500"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-200 focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Date
                   </label>
                   <input
@@ -514,11 +519,11 @@ export default function AppointmentsManager({
                     required
                     value={formDate}
                     onChange={(e) => setFormDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 focus:outline-none focus:border-sky-500"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-200 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Start Time
                   </label>
                   <input
@@ -526,17 +531,17 @@ export default function AppointmentsManager({
                     required
                     value={formTime}
                     onChange={(e) => setFormTime(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 focus:outline-none focus:border-sky-500"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-200 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Duration
                   </label>
                   <select
                     value={formDuration}
                     onChange={(e) => setFormDuration(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 focus:outline-none focus:border-sky-500"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-200 focus:outline-none"
                   >
                     <option value="30">30 Mins</option>
                     <option value="45">45 Mins</option>
@@ -546,7 +551,7 @@ export default function AppointmentsManager({
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Meeting Link (Google Meet / Zoom URL)
                 </label>
                 <input
@@ -554,42 +559,43 @@ export default function AppointmentsManager({
                   placeholder="https://meet.google.com/... (auto-generated if left blank)"
                   value={formLink}
                   onChange={(e) => setFormLink(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 focus:outline-none focus:border-sky-500 placeholder:text-slate-600"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-200 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-600"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-                  Agenda & Topics to Discuss
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Agenda &amp; Topics to Discuss
                 </label>
                 <textarea
                   rows={3}
                   value={formNotes}
                   onChange={(e) => setFormNotes(e.target.value)}
                   placeholder="e.g., Review recommendations regarding retirement SIP step-up and tax optimization..."
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 focus:outline-none focus:border-sky-500 placeholder:text-slate-600"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-200 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-600"
                 />
               </div>
 
               {modalError && (
-                <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-2 text-xs animate-in fade-in">
-                  <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+                <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 flex items-center gap-2 text-xs animate-in fade-in">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
                   <span>{modalError}</span>
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsScheduleOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold"
+                  className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-white font-bold transition shadow-md shadow-sky-500/20"
+                  style={{ backgroundColor: activeBrandColor }}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-white font-bold transition shadow-md hover:brightness-110"
                 >
                   {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Calendar className="h-3.5 w-3.5" />}
                   <span>{userRole === "CLIENT" ? "Send Call Request" : "Confirm Schedule"}</span>

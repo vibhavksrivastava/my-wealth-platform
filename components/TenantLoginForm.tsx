@@ -55,6 +55,38 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
   const brandName = tenant?.firm_brand_name || "WealthOS Platform";
   const brandColor = tenant?.primary_color || "#0284c7"; // Default sky-600
   const isCustomTenant = Boolean(tenant && tenant.subdomain && tenant.subdomain !== "platform");
+  const currentKey = (subdomain || tenant?.subdomain || "").toLowerCase().trim();
+
+  const demoUsers = {
+    zenith9186: {
+      name: "Zenith Wealth",
+      color: "#0284c7",
+      client: "kabir@zenith9186.com",
+      advisor: "ssharma@zenith9186.com",
+      admin: "admin@zenith9186.com",
+    },
+    aasinvestment: {
+      name: "AAS Investment",
+      color: "#059669",
+      client: "vikram@aasinvestment.com",
+      advisor: "mpandey@aasinvestment.com",
+      admin: "abachhan@aasinvestment.com",
+    },
+    apex: {
+      name: "Apex Wealth Partners",
+      color: "#7c3aed",
+      client: "vibhav@example.com",
+      advisor: "pallavi@example.com",
+      admin: "admin@example.com",
+    },
+    platform: {
+      name: "Platform HQ",
+      color: "#f59e0b",
+      client: "vibhav@example.com",
+      advisor: "pallavi@example.com",
+      admin: "superadmin@unifiedwealth.com",
+    },
+  };
 
   const roleMeta = {
     CLIENT: {
@@ -269,48 +301,114 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
           </div>
 
           {/* Quick Demo Autofill Helpers */}
-          <div className="mb-4 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
-            <span className="text-slate-600 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-wider pl-1">
-              Test Logins:
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("CLIENT");
-                  setEmail("vibhav@example.com");
-                  setPassword("Password123!");
-                  setErrorMessage(null);
-                }}
-                className="px-2 py-0.5 rounded bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-300 border border-sky-500/30 transition font-medium text-[10px]"
-              >
-                Client Demo
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("ADVISOR");
-                  setEmail("pallavi@example.com");
-                  setPassword("Password123!");
-                  setErrorMessage(null);
-                }}
-                className="px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 transition font-medium text-[10px]"
-              >
-                Advisor Demo
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("ADMIN");
-                  setEmail("admin@example.com");
-                  setPassword("Password123!");
-                  setErrorMessage(null);
-                }}
-                className="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 transition font-medium text-[10px]"
-              >
-                Admin Demo
-              </button>
+          <div className="mb-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-2 text-[11px]">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-600 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-wider">
+                1-Click Test Logins:
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono">Password: Password123!</span>
             </div>
+
+            {/* If on a specific tenant subdomain, show credentials for that tenant */}
+            {currentKey && ["zenith9186", "aasinvestment", "apex"].includes(currentKey) ? (
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const t = demoUsers[currentKey as keyof typeof demoUsers];
+                    setActiveTab("CLIENT");
+                    setEmail(t.client);
+                    setPassword("Password123!");
+                    setErrorMessage(null);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-300 border border-sky-500/30 transition font-medium text-[10px]"
+                >
+                  Client Demo ({demoUsers[currentKey as keyof typeof demoUsers].client})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const t = demoUsers[currentKey as keyof typeof demoUsers];
+                    setActiveTab("ADVISOR");
+                    setEmail(t.advisor);
+                    setPassword("Password123!");
+                    setErrorMessage(null);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 transition font-medium text-[10px]"
+                >
+                  Advisor Demo ({demoUsers[currentKey as keyof typeof demoUsers].advisor})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const t = demoUsers[currentKey as keyof typeof demoUsers];
+                    setActiveTab("ADMIN");
+                    setEmail(t.admin);
+                    setPassword("Password123!");
+                    setErrorMessage(null);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 transition font-medium text-[10px]"
+                >
+                  Admin Demo
+                </button>
+              </div>
+            ) : (
+              /* Root Platform Login: Allow choosing which tenant practice to test */
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("ADVISOR");
+                    setEmail("ssharma@zenith9186.com");
+                    setPassword("Password123!");
+                    setErrorMessage(null);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/30 transition text-left text-[10px] flex items-center justify-between"
+                >
+                  <span>🔵 Zenith (Advisor)</span>
+                  <span className="font-mono text-[9px]">Blue</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("ADVISOR");
+                    setEmail("mpandey@aasinvestment.com");
+                    setPassword("Password123!");
+                    setErrorMessage(null);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 transition text-left text-[10px] flex items-center justify-between"
+                >
+                  <span>🟢 AAS Inv (Advisor)</span>
+                  <span className="font-mono text-[9px]">Green</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("ADVISOR");
+                    setEmail("pallavi@example.com");
+                    setPassword("Password123!");
+                    setErrorMessage(null);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 transition text-left text-[10px] flex items-center justify-between"
+                >
+                  <span>🟣 Apex (Advisor)</span>
+                  <span className="font-mono text-[9px]">Purple</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("ADMIN");
+                    setEmail("superadmin@unifiedwealth.com");
+                    setPassword("Password123!");
+                    setErrorMessage(null);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 transition text-left text-[10px] flex items-center justify-between"
+                >
+                  <span>🟡 Platform SuperAdmin</span>
+                  <span className="font-mono text-[9px]">Gold</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Form Card */}

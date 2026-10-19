@@ -26,7 +26,7 @@ export async function GET(req: Request) {
     if (headerSubdomain && headerSubdomain !== "platform" && headerSubdomain !== "www") {
       const { data: t } = await supabaseAdmin
         .from("tenants")
-        .select("id, subdomain, firm_legal_name, firm_brand_name, logo_url, primary_color, secondary_color, disclaimer_text, arn_number, ria_number")
+        .select("id, subdomain, firm_legal_name, firm_brand_name, logo_url, primary_color, secondary_color, disclaimer_text, arn_number, ria_number, theme_mode")
         .eq("subdomain", headerSubdomain.toLowerCase().trim())
         .maybeSingle();
       tenantFromSubdomain = t;
@@ -96,7 +96,7 @@ export async function GET(req: Request) {
     if (!tenant && activeTenantId) {
       const { data: t } = await supabaseAdmin
         .from("tenants")
-        .select("id, subdomain, firm_legal_name, firm_brand_name, logo_url, primary_color, secondary_color, disclaimer_text, arn_number, ria_number")
+        .select("id, subdomain, firm_legal_name, firm_brand_name, logo_url, primary_color, secondary_color, disclaimer_text, arn_number, ria_number, theme_mode")
         .eq("id", activeTenantId)
         .maybeSingle();
       tenant = t;

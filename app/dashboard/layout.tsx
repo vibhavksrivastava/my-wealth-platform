@@ -42,10 +42,24 @@ export default function DashboardLayout({
     theme_mode?: string;
   } | null>(null);
 
+  const syncTenantBranding = () => {
+    try {
+      const tenantStr = localStorage.getItem("tenant_branding");
+      if (tenantStr) {
+        const parsed = JSON.parse(tenantStr);
+        setTenant(parsed);
+        if (parsed.theme_mode === "dark") {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
     const profileStr = localStorage.getItem("user_profile");
-    const tenantStr = localStorage.getItem("tenant_branding");
 
     if (!token || !profileStr) {
       router.push("/login");
@@ -55,18 +69,26 @@ export default function DashboardLayout({
     try {
       const parsed = JSON.parse(profileStr);
       setUser(parsed);
-      if (tenantStr) {
-        setTenant(JSON.parse(tenantStr));
-      }
+      syncTenantBranding();
     } catch {
       router.push("/login");
     }
+
+    const handleStorageUpdate = () => syncTenantBranding();
+    window.addEventListener("storage", handleStorageUpdate);
+    window.addEventListener("tenant_branding_updated", handleStorageUpdate);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageUpdate);
+      window.removeEventListener("tenant_branding_updated", handleStorageUpdate);
+    };
   }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_profile");
     localStorage.removeItem("tenant_branding");
+    document.documentElement.classList.remove("dark");
     router.push("/login");
   };
 

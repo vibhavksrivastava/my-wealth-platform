@@ -73,6 +73,10 @@ export default function ClientDashboard() {
         .then((res) => res.json())
         .then((json) => {
           setData(json);
+          if (json?.tenant) {
+            localStorage.setItem("tenant_branding", JSON.stringify(json.tenant));
+            window.dispatchEvent(new Event("tenant_branding_updated"));
+          }
         })
         .catch(console.error)
         .finally(() => setIsLoading(false));
@@ -189,7 +193,7 @@ export default function ClientDashboard() {
     <div className="space-y-6">
       {/* Welcome Banner with Dynamic White-Label Firm Branding */}
       <div 
-        className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl"
+        className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md dark:shadow-xl transition"
         style={{ borderColor: `${brandColor}40`, boxShadow: `0 10px 30px -10px ${brandColor}20` }}
       >
         <div className="flex items-center gap-4">
@@ -197,7 +201,7 @@ export default function ClientDashboard() {
             <img 
               src={tenant.logo_url} 
               alt={brandName} 
-              className="h-12 w-12 rounded-xl object-contain bg-slate-900 p-1 border"
+              className="h-12 w-12 rounded-xl object-contain bg-white dark:bg-slate-950 p-1 border border-slate-200 dark:border-slate-800"
               style={{ borderColor: `${brandColor}50` }}
             />
           ) : (
@@ -217,15 +221,15 @@ export default function ClientDashboard() {
                 {brandName}
               </span>
               {tenant?.arn_number && (
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                   ARN: {tenant.arn_number}
                 </span>
               )}
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
               Welcome back, {userName}
             </h1>
-            <p className="mt-0.5 text-xs text-slate-400">
+            <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
               Consolidated family net worth &amp; financial planning scorecard
               {advisor?.full_name ? ` • Advisor: ${advisor.full_name}` : ""}
             </p>
@@ -236,7 +240,7 @@ export default function ClientDashboard() {
             <Link
               href={`/dashboard/clients/${clientRecord.client_id}/360`}
               style={{ backgroundColor: brandColor }}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-white text-xs font-bold transition shadow-md hover:brightness-110"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-white text-xs font-bold transition shadow-md hover:brightness-110 active:scale-95"
             >
               <Pencil className="h-3.5 w-3.5" />
               <span>View &amp; Edit Complete 360 Profile</span>
@@ -252,65 +256,73 @@ export default function ClientDashboard() {
           >
             Risk Profile: {data?.profile?.risk_profile_category || "Moderate"}
           </span>
-          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
             PAN: {data?.profile?.pan_number || "ABCDE1234F"}
           </span>
           <button
             type="button"
             onClick={() => setShowKycModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
           >
-            <CreditCard className="h-3.5 w-3.5 text-sky-400" />
+            <CreditCard className="h-3.5 w-3.5" style={{ color: brandColor }} />
             <span>{panDocUrl ? "KYC Document: Uploaded" : "Upload KYC / PAN"}</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards with Dynamic Tenant Accents */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/50">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Total Net Worth</span>
-            <Wallet className="h-4 w-4 text-sky-400" />
+        <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
+          <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider">Total Net Worth</span>
+            <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColor}15` }}>
+              <Wallet className="h-4 w-4" style={{ color: brandColor }} />
+            </div>
           </div>
-          <div className="text-2xl font-bold text-white">{formatINR(netWorth)}</div>
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400">
+          <div className="text-2xl font-bold text-slate-900 dark:text-white">{formatINR(netWorth)}</div>
+          <div className="mt-2 flex items-center gap-1.5 text-xs font-medium" style={{ color: brandColor }}>
             <ArrowUpRight className="h-3.5 w-3.5" />
             <span>Assets minus Liabilities</span>
           </div>
         </div>
 
-        <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/50">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Gross Assets</span>
-            <TrendingUp className="h-4 w-4 text-emerald-400" />
+        <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
+          <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider">Gross Assets</span>
+            <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColor}15` }}>
+              <TrendingUp className="h-4 w-4" style={{ color: brandColor }} />
+            </div>
           </div>
-          <div className="text-2xl font-bold text-white">{formatINR(totalAssets)}</div>
-          <div className="mt-2 text-xs text-slate-400">
+          <div className="text-2xl font-bold text-slate-900 dark:text-white">{formatINR(totalAssets)}</div>
+          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
             {assetsList.length} registered asset categories
           </div>
         </div>
 
-        <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/50">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Total Liabilities</span>
-            <PieChart className="h-4 w-4 text-rose-400" />
+        <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
+          <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider">Total Liabilities</span>
+            <div className="p-2 rounded-lg bg-rose-500/10">
+              <PieChart className="h-4 w-4 text-rose-500" />
+            </div>
           </div>
-          <div className="text-2xl font-bold text-rose-400">{formatINR(totalLiabilities)}</div>
-          <div className="mt-2 text-xs text-slate-400">
+          <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">{formatINR(totalLiabilities)}</div>
+          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
             {liabilitiesList.length} outstanding loan facilities
           </div>
         </div>
 
-        <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/50">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Assigned Advisor</span>
-            <Calendar className="h-4 w-4 text-purple-400" />
+        <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
+          <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider">Assigned Advisor</span>
+            <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColor}15` }}>
+              <Calendar className="h-4 w-4" style={{ color: brandColor }} />
+            </div>
           </div>
-          <div className="text-base font-bold text-white">
+          <div className="text-base font-bold text-slate-900 dark:text-white">
             {advisor ? `${advisor.first_name} ${advisor.last_name}` : "Pooja Verma"}
           </div>
-          <div className="mt-2 text-xs text-purple-300">
+          <div className="mt-2 text-xs font-medium" style={{ color: brandColor }}>
             {advisor?.email || "advisor@example.com"}
           </div>
         </div>
@@ -339,30 +351,35 @@ export default function ClientDashboard() {
       {/* Assets & Liabilities Detailed Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Assets Breakdown */}
-        <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/40">
-          <h2 className="text-base font-bold text-white mb-4 flex items-center justify-between">
+        <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center justify-between">
             <span className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-emerald-400" />
+              <TrendingUp className="h-4 w-4" style={{ color: brandColor }} />
               Assets Breakdown
             </span>
-            <span className="text-xs font-normal text-slate-400">Total: {formatINR(totalAssets)}</span>
+            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Total: {formatINR(totalAssets)}</span>
           </h2>
           <div className="space-y-3">
             {assetsList.map((asset: any) => (
               <div
                 key={asset.asset_id}
-                className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-center justify-between"
+                className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between"
               >
                 <div>
-                  <div className="text-xs font-semibold text-white">{asset.description || asset.asset_category}</div>
-                  <div className="text-[11px] text-slate-400">{asset.asset_category}</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{asset.description || asset.asset_category}</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">{asset.asset_category}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs font-bold text-emerald-400">
+                  <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                     {formatINR(Number(asset.current_market_value))}
                   </div>
                   {asset.is_liquid && (
-                    <span className="text-[10px] text-sky-400 font-medium">Liquid</span>
+                    <span 
+                      className="text-[10px] font-medium"
+                      style={{ color: brandColor }}
+                    >
+                      Liquid
+                    </span>
                   )}
                 </div>
               </div>
@@ -371,31 +388,31 @@ export default function ClientDashboard() {
         </div>
 
         {/* Liabilities Breakdown */}
-        <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/40">
-          <h2 className="text-base font-bold text-white mb-4 flex items-center justify-between">
+        <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center justify-between">
             <span className="flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 text-rose-400" />
-              Liabilities & EMIs
+              <ShieldAlert className="h-4 w-4 text-rose-500" />
+              Liabilities &amp; EMIs
             </span>
-            <span className="text-xs font-normal text-slate-400">Total: {formatINR(totalLiabilities)}</span>
+            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Total: {formatINR(totalLiabilities)}</span>
           </h2>
           <div className="space-y-3">
             {liabilitiesList.map((liab: any) => (
               <div
                 key={liab.liability_id}
-                className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-center justify-between"
+                className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between"
               >
                 <div>
-                  <div className="text-xs font-semibold text-white">{liab.liability_type}</div>
-                  <div className="text-[11px] text-slate-400">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{liab.liability_type}</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     Lender: {liab.lender_name || "Bank"} &bull; {liab.tenure_remaining_months} mos remaining
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs font-bold text-rose-400">
+                  <div className="text-xs font-bold text-rose-600 dark:text-rose-400">
                     {formatINR(Number(liab.outstanding_principal))}
                   </div>
-                  <div className="text-[11px] text-slate-400">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     EMI: ₹{Number(liab.monthly_emi).toLocaleString("en-IN")}/mo
                   </div>
                 </div>
@@ -407,24 +424,27 @@ export default function ClientDashboard() {
 
       {/* Advisor Action Plan & Recommendations */}
       {suggestionsList.length > 0 && (
-        <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-950/30 via-slate-900 to-sky-950/30 border border-purple-900/30 space-y-4">
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+              <div 
+                className="h-8 w-8 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
+              >
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-white tracking-tight">
-                  Advisor Action Plan & Recommendations
+                <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                  Advisor Action Plan &amp; Recommendations
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Custom advisory guidance and agreed portfolio execution steps.
                 </p>
               </div>
             </div>
 
             {actionFeedback && (
-              <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
                 {actionFeedback}
               </span>
             )}
@@ -435,36 +455,44 @@ export default function ClientDashboard() {
               const recs = plan.recommended_investments || [];
               const targetClientId = plan.client_id || data?.clientRecord?.client_id;
               return (
-                <div key={plan.id} className="p-5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-4">
+                <div key={plan.id} className="p-5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                      <span 
+                        className="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase border"
+                        style={{ backgroundColor: `${brandColor}15`, color: brandColor, borderColor: `${brandColor}30` }}
+                      >
                         {plan.status}
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
                         Submitted: {new Date(plan.suggestion_date).toLocaleDateString("en-IN", { dateStyle: "medium" })}
                       </span>
                     </div>
                   </div>
 
                   {plan.advisor_notes && (
-                    <div className="p-3.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs text-slate-200 italic leading-relaxed">
+                    <div className="p-3.5 rounded-lg bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-200 italic leading-relaxed">
                       &ldquo;{plan.advisor_notes}&rdquo;
                     </div>
                   )}
 
                   {recs.length > 0 && (
                     <div className="space-y-2">
-                      <span className="text-[11px] font-bold uppercase text-slate-400">Recommended Steps:</span>
+                      <span className="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400">Recommended Steps:</span>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                         {recs.map((r: any, idx: number) => (
-                          <div key={idx} className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1">
+                          <div key={idx} className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-white">{r.title}</span>
-                              <span className="text-[10px] text-purple-400 font-semibold">{r.priority}</span>
+                              <span className="font-bold text-slate-900 dark:text-white">{r.title}</span>
+                              <span 
+                                className="text-[10px] font-semibold"
+                                style={{ color: brandColor }}
+                              >
+                                {r.priority}
+                              </span>
                             </div>
-                            <p className="text-[11px] text-slate-400">{r.suggestedAction}</p>
-                            <p className="text-[11px] text-emerald-400 font-medium">Outcome: {r.expectedImpact}</p>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400">{r.suggestedAction}</p>
+                            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Outcome: {r.expectedImpact}</p>
                           </div>
                         ))}
                       </div>
@@ -472,11 +500,11 @@ export default function ClientDashboard() {
                   )}
 
                   {/* Comments & Execution Discussion Log for Client */}
-                  <div className="pt-2 border-t border-slate-800/80 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-bold text-white">
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-white">
                       <span className="flex items-center gap-1.5">
-                        <MessageSquare className="h-3.5 w-3.5 text-purple-400" />
-                        Comments & Execution Log (Visible to Your Advisor)
+                        <MessageSquare className="h-3.5 w-3.5" style={{ color: brandColor }} />
+                        Comments &amp; Execution Log (Visible to Your Advisor)
                       </span>
                       <span className="text-[10px] text-slate-500 font-normal">
                         Add questions to discuss in meetings or record what you did
@@ -484,11 +512,11 @@ export default function ClientDashboard() {
                     </div>
 
                     {plan.client_action_notes ? (
-                      <div className="p-3.5 rounded-lg bg-slate-900/90 border border-slate-800 text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
+                      <div className="p-3.5 rounded-lg bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
                         {plan.client_action_notes}
                       </div>
                     ) : (
-                      <div className="p-2.5 rounded-lg bg-slate-900/40 border border-slate-800/60 text-[11px] text-slate-500 italic">
+                      <div className="p-2.5 rounded-lg bg-slate-100/70 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 text-[11px] text-slate-500 italic">
                         No comments or actions recorded yet. You can add questions or notes below for your advisor to review.
                       </div>
                     )}
@@ -505,14 +533,15 @@ export default function ClientDashboard() {
                           }
                         }}
                         placeholder="Add a comment/question for your advisor, or log an action you completed..."
-                        className="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-purple-500"
+                        className="flex-1 px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none"
                       />
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => handlePostClientComment(plan.id, targetClientId)}
                           disabled={isSavingAction[plan.id]}
-                          className="px-3.5 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition flex items-center justify-center gap-1 whitespace-nowrap shadow-sm shadow-purple-500/20"
+                          style={{ backgroundColor: brandColor }}
+                          className="px-3.5 py-2 rounded-lg text-white text-xs font-bold transition flex items-center justify-center gap-1 whitespace-nowrap shadow-sm hover:brightness-110"
                           title="Post a question or comment to discuss during meetings"
                         >
                           {isSavingAction[plan.id] ? <Loader2 className="h-3 w-3 animate-spin" /> : <MessageSquare className="h-3.5 w-3.5" />}
@@ -541,28 +570,31 @@ export default function ClientDashboard() {
       {/* Target Financial Goals & Appointments */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Financial Goals */}
-        <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/40">
-          <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-sky-400" />
+        <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 shadow-xs">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <Clock className="h-4 w-4" style={{ color: brandColor }} />
             Financial Goals Roadmap
           </h2>
           <div className="space-y-3">
             {goalsList.map((goal: any) => (
               <div
                 key={goal.goal_id}
-                className="p-3.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-center justify-between"
+                className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between"
               >
                 <div>
-                  <div className="text-xs font-semibold text-white">{goal.goal_name}</div>
-                  <div className="text-[11px] text-slate-400">
+                  <div className="text-xs font-semibold text-slate-900 dark:text-white">{goal.goal_name}</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
                     Target Year: {goal.target_year} &bull; Priority: {goal.priority || "High"}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs font-bold text-white">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">
                     {formatINR(Number(goal.target_amount_today))}
                   </div>
-                  <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                  <span 
+                    className="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-semibold border"
+                    style={{ backgroundColor: `${brandColor}15`, color: brandColor, borderColor: `${brandColor}30` }}
+                  >
                     Active Target
                   </span>
                 </div>
@@ -578,26 +610,30 @@ export default function ClientDashboard() {
         userRole="CLIENT"
         title="Scheduled Strategy Calls & Advisor Reviews"
         subtitle="Schedule review calls with your advisor, accept call invites, and view permanent meeting notes."
+        brandColor={brandColor}
       />
 
       {/* Secure KYC & PAN Document Upload Modal */}
       {showKycModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
             <button
               onClick={() => setShowKycModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white transition"
             >
               <X className="h-5 w-5" />
             </button>
 
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400">
+              <div 
+                className="p-2.5 rounded-xl border"
+                style={{ backgroundColor: `${brandColor}15`, borderColor: `${brandColor}30`, color: brandColor }}
+              >
                 <ShieldCheck className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">Client KYC & PAN Document Vault</h3>
-                <p className="text-xs text-slate-400">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Client KYC &amp; PAN Document Vault</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Files are stored in the private, 256-bit encrypted &apos;client-documents&apos; vault
                 </p>
               </div>
@@ -620,8 +656,8 @@ export default function ClientDashboard() {
                 }}
               />
 
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
-                <ShieldAlert className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 flex items-start gap-2">
+                <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" style={{ color: brandColor }} />
                 <span>
                   Regulatory Compliance: As per SEBI/AMFI mandate, PAN verification is required for mutual fund folio creation and AUA reporting. Only authorized advisors in your tenant firm can inspect this document via secure signed URLs.
                 </span>
@@ -631,7 +667,8 @@ export default function ClientDashboard() {
                 <button
                   type="button"
                   onClick={() => setShowKycModal(false)}
-                  className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shadow-sm"
+                  style={{ backgroundColor: brandColor }}
+                  className="px-4 py-2 rounded-lg text-white text-xs font-bold transition shadow-sm hover:brightness-110"
                 >
                   Done
                 </button>
