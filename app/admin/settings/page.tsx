@@ -17,6 +17,8 @@ import {
   Lock,
   ArrowUpRight,
   Zap,
+  Sun,
+  Moon,
 } from "lucide-react";
 import FileUploader from "@/components/FileUploader";
 
@@ -49,6 +51,7 @@ export default function TenantAdminSettingsPage() {
     logoUrl: "",
     primaryColor: "#0284c7",
     secondaryColor: "#0f172a",
+    themeMode: "light" as "light" | "dark",
     customDomain: "",
     disclaimerText: "",
     subdomain: "",
@@ -87,6 +90,7 @@ export default function TenantAdminSettingsPage() {
           logoUrl: t.logo_url || "",
           primaryColor: t.primary_color || "#0284c7",
           secondaryColor: t.secondary_color || "#0f172a",
+          themeMode: (t.theme_mode === "dark" ? "dark" : "light") as "light" | "dark",
           customDomain: t.custom_domain || "",
           disclaimerText: t.disclaimer_text || "",
           subdomain: t.subdomain || "",
@@ -366,6 +370,50 @@ export default function TenantAdminSettingsPage() {
                           className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-amber-500"
                         />
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Portal Theme Mode Selector */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                      Default Portal Theme Mode
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, themeMode: "light" })}
+                        className={`p-3 rounded-xl border flex items-center gap-3 transition text-left ${
+                          formData.themeMode === "light"
+                            ? "bg-amber-500/15 border-amber-500 text-white font-bold shadow-md shadow-amber-500/10"
+                            : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400">
+                          <Sun className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold">Light Mode Canvas</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">Crisp, high-contrast white aesthetic</div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, themeMode: "dark" })}
+                        className={`p-3 rounded-xl border flex items-center gap-3 transition text-left ${
+                          formData.themeMode === "dark"
+                            ? "bg-amber-500/15 border-amber-500 text-white font-bold shadow-md shadow-amber-500/10"
+                            : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        <div className="p-2 rounded-lg bg-sky-500/20 text-sky-400">
+                          <Moon className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold">Dark Mode Canvas</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">Deep slate institutional theme</div>
+                        </div>
+                      </button>
                     </div>
                   </div>
 

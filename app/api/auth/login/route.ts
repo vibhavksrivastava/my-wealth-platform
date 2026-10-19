@@ -112,7 +112,7 @@ export async function POST(req: Request) {
     if (user.tenant_id) {
       const { data: tenant } = await supabaseAdmin
         .from("tenants")
-        .select("id, subdomain, firm_brand_name, tenant_type, primary_color, logo_url, is_active, subscription_expires_at, commission_sharing_active")
+        .select("id, subdomain, firm_brand_name, tenant_type, primary_color, secondary_color, theme_mode, logo_url, is_active, subscription_expires_at, commission_sharing_active")
         .eq("id", user.tenant_id)
         .maybeSingle();
 

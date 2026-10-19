@@ -31,6 +31,7 @@ export interface TenantBranding {
   arn_number?: string | null;
   ria_number?: string | null;
   is_active?: boolean;
+  theme_mode?: "light" | "dark" | string | null;
 }
 
 interface TenantLoginFormProps {
@@ -137,13 +138,15 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
     }
   };
 
+  const isDark = tenant?.theme_mode === "dark";
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-sky-500 selection:text-white font-sans">
+    <div className={`${isDark ? "dark" : ""} min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-sky-500 selection:text-white font-sans transition-colors duration-200`}>
       {/* Top Header */}
-      <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-slate-200 dark:border-slate-900 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group">
           {tenant?.logo_url && !logoFailed ? (
-            <div className="h-9 px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center">
+            <div className="h-9 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center">
               <img
                 src={tenant.logo_url}
                 alt={brandName}
@@ -160,7 +163,7 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
             </div>
           )}
           <div>
-            <span className="font-bold text-base text-white tracking-tight block">
+            <span className="font-bold text-base text-slate-900 dark:text-white tracking-tight block">
               {brandName}
             </span>
             {tenant?.subdomain && (
@@ -173,13 +176,13 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
 
         <div className="flex items-center gap-3">
           {tenant?.arn_number && (
-            <span className="hidden sm:inline-flex px-2 py-0.5 rounded text-[10px] font-mono bg-slate-900 text-slate-400 border border-slate-800">
+            <span className="hidden sm:inline-flex px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
               ARN-{tenant.arn_number}
             </span>
           )}
           <Link
             href="/"
-            className="text-xs text-slate-400 hover:text-white transition font-medium"
+            className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition font-medium"
           >
             &larr; Platform Overview
           </Link>
@@ -193,7 +196,7 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
           {/* Tenant Branding Card Header */}
           <div className="text-center mb-6">
             {tenant?.logo_url && !logoFailed ? (
-              <div className="inline-flex p-3 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl mb-3">
+              <div className="inline-flex p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-md mb-3">
                 <img
                   src={tenant.logo_url}
                   alt={brandName}
@@ -210,10 +213,10 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
               </div>
             )}
             
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
               {isCustomTenant ? `${brandName}` : "Sign In to WealthOS"}
             </h1>
-            <p className="mt-1 text-xs text-slate-400 max-w-sm mx-auto">
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
               {isCustomTenant 
                 ? `Authorized Client & Advisor Access Portal`
                 : "Multi-tenant unified wealth management console"}
@@ -221,7 +224,7 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
           </div>
 
           {/* Role Selection Tabs */}
-          <div className="flex bg-slate-900/90 border border-slate-800 p-1 rounded-xl mb-4 shadow-inner">
+          <div className="flex bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-1 rounded-xl mb-4 shadow-inner">
             <button
               type="button"
               onClick={() => { setActiveTab("CLIENT"); setErrorMessage(null); }}
@@ -229,7 +232,7 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold transition ${
                 activeTab === "CLIENT"
                   ? "text-white shadow-sm"
-                  : "text-slate-400 hover:text-slate-200"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
               }`}
             >
               <User className="h-3.5 w-3.5" />
@@ -242,7 +245,7 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold transition ${
                 activeTab === "ADVISOR"
                   ? "text-white shadow-sm"
-                  : "text-slate-400 hover:text-slate-200"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
               }`}
             >
               <Briefcase className="h-3.5 w-3.5" />
@@ -256,7 +259,7 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold transition ${
                   activeTab === "ADMIN"
                     ? "text-white shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 }`}
               >
                 <ShieldCheck className="h-3.5 w-3.5" />
@@ -266,8 +269,8 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
           </div>
 
           {/* Quick Demo Autofill Helpers */}
-          <div className="mb-4 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
-            <span className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider pl-1">
+          <div className="mb-4 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
+            <span className="text-slate-600 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-wider pl-1">
               Test Logins:
             </span>
             <div className="flex flex-wrap gap-1.5">
@@ -279,7 +282,7 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
                   setPassword("Password123!");
                   setErrorMessage(null);
                 }}
-                className="px-2 py-0.5 rounded bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 transition font-medium text-[10px]"
+                className="px-2 py-0.5 rounded bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-300 border border-sky-500/30 transition font-medium text-[10px]"
               >
                 Client Demo
               </button>
@@ -291,7 +294,7 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
                   setPassword("Password123!");
                   setErrorMessage(null);
                 }}
-                className="px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition font-medium text-[10px]"
+                className="px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 transition font-medium text-[10px]"
               >
                 Advisor Demo
               </button>
@@ -303,7 +306,7 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
                   setPassword("Password123!");
                   setErrorMessage(null);
                 }}
-                className="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition font-medium text-[10px]"
+                className="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 transition font-medium text-[10px]"
               >
                 Admin Demo
               </button>
@@ -311,7 +314,7 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
           </div>
 
           {/* Form Card */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl dark:shadow-2xl backdrop-blur-sm">
             <div className="mb-6">
               <span 
                 style={{ color: brandColor, borderColor: `${brandColor}40`, backgroundColor: `${brandColor}15` }}
@@ -319,10 +322,10 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
               >
                 {roleMeta[activeTab].badge}
               </span>
-              <h2 className="text-lg font-bold text-white tracking-tight">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                 {roleMeta[activeTab].title}
               </h2>
-              <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                 {roleMeta[activeTab].subtitle}
               </p>
             </div>
@@ -349,11 +352,11 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
                   <input
                     type="email"
                     required
@@ -364,37 +367,37 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
                         ? "investor@example.com"
                         : "advisor@firm.com"
                     }
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 transition"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-sky-500 transition"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                     Password
                   </label>
                   <Link
                     href="/forgot-password"
-                    className="text-[11px] text-sky-400 hover:text-sky-300 transition"
+                    className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline transition"
                   >
                     Forgot password?
                   </Link>
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
                   <input
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 transition"
+                    className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-sky-500 transition"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-slate-500 hover:text-slate-300 transition"
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -423,18 +426,18 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
             </form>
 
             {/* Quick Helper Links */}
-            <div className="mt-6 pt-5 border-t border-slate-800/80 text-center text-xs text-slate-400">
+            <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
               {activeTab === "CLIENT" ? (
                 <p>
                   First time accessing your portfolio?{" "}
-                  <span className="text-slate-300 font-medium">
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">
                     Contact {brandName} for onboarding credentials.
                   </span>
                 </p>
               ) : (
                 <p>
                   Need advisor or agency onboarding?{" "}
-                  <Link href="/#demo" className="text-sky-400 hover:underline">
+                  <Link href="/#demo" className="text-sky-600 dark:text-sky-400 hover:underline">
                     Contact platform administrator
                   </Link>
                 </p>
@@ -445,19 +448,19 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
       </main>
 
       {/* Regulatory Disclaimer & Firm Footer */}
-      <footer className="border-t border-slate-900 py-6 px-6 bg-slate-950/60 backdrop-blur-md">
+      <footer className="border-t border-slate-200 dark:border-slate-900 py-6 px-6 bg-white/60 dark:bg-slate-950/60 backdrop-blur-md">
         <div className="max-w-4xl mx-auto text-center space-y-2">
           {tenant?.disclaimer_text ? (
-            <p className="text-[11px] text-slate-400 leading-relaxed max-w-2xl mx-auto">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-2xl mx-auto">
               {tenant.disclaimer_text}
             </p>
           ) : (
-            <p className="text-[11px] text-slate-500 leading-relaxed max-w-2xl mx-auto">
+            <p className="text-[11px] text-slate-500 dark:text-slate-500 leading-relaxed max-w-2xl mx-auto">
               Mutual fund investments are subject to market risks. Please read all scheme-related documents carefully before investing. Past performance is not an indicator of future returns.
             </p>
           )}
 
-          <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-500 pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 pt-2">
             <span>&copy; {new Date().getFullYear()} {brandName}. All rights reserved.</span>
             {tenant?.arn_number && (
               <span>&bull; AMFI Registration: ARN-{tenant.arn_number}</span>

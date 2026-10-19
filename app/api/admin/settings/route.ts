@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 
     const { data: tenant, error } = await supabaseAdmin
       .from("tenants")
-      .select("id, subdomain, firm_legal_name, firm_brand_name, tenant_type, arn_number, ria_number, logo_url, favicon_url, primary_color, secondary_color, custom_domain, disclaimer_text, is_active, created_at, plan_id, commission_sharing_active, subscription_expires_at")
+      .select("id, subdomain, firm_legal_name, firm_brand_name, tenant_type, arn_number, ria_number, logo_url, favicon_url, primary_color, secondary_color, custom_domain, disclaimer_text, is_active, created_at, plan_id, commission_sharing_active, subscription_expires_at, theme_mode")
       .eq("id", session.tenantId)
       .maybeSingle();
 
@@ -62,6 +62,7 @@ export async function PATCH(req: Request) {
       logoUrl,
       primaryColor,
       secondaryColor,
+      themeMode,
       customDomain,
       disclaimerText,
     } = body;
@@ -73,7 +74,8 @@ export async function PATCH(req: Request) {
     const isUpdatingWhiteLabel =
       logoUrl !== undefined ||
       primaryColor !== undefined ||
-      secondaryColor !== undefined;
+      secondaryColor !== undefined ||
+      themeMode !== undefined;
 
     if (isUpdatingWhiteLabel && !hasWhiteLabel) {
       return NextResponse.json(
@@ -109,6 +111,7 @@ export async function PATCH(req: Request) {
       if (logoUrl !== undefined) updates.logo_url = logoUrl ? logoUrl.trim() : null;
       if (primaryColor) updates.primary_color = primaryColor.trim();
       if (secondaryColor) updates.secondary_color = secondaryColor.trim();
+      if (themeMode) updates.theme_mode = themeMode === "dark" ? "dark" : "light";
     }
 
     if (hasCustomDomain && customDomain !== undefined) {

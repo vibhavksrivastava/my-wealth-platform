@@ -68,6 +68,19 @@ export function middleware(req: NextRequest) {
   }
   requestHeaders.set("x-tenant-host", host);
 
+  // If a tenant subdomain is detected and accessing root path, rewrite to tenant portal route
+  if (subdomain && url.pathname === "/") {
+    const rewriteUrl = new URL(`/${subdomain}`, req.url);
+    const response = NextResponse.rewrite(rewriteUrl, {
+      request: {
+        headers: requestHeaders,
+      },
+    });
+    response.headers.set("x-tenant-subdomain", subdomain);
+    response.cookies.set("tenant_subdomain", subdomain, { path: "/", httpOnly: false });
+    return response;
+  }
+
   // Forward the enriched request headers
   const response = NextResponse.next({
     request: {
