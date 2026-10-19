@@ -34,8 +34,17 @@ interface TeamUser {
   created_at: string;
 }
 
+interface SeatCapacity {
+  canAddSeat: boolean;
+  currentSeats: number;
+  maxSeats: number;
+  planName: string;
+  planSlug: string;
+}
+
 export default function TenantAdminUsersPage() {
   const [users, setUsers] = useState<TeamUser[]>([]);
+  const [seatCapacity, setSeatCapacity] = useState<SeatCapacity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,6 +90,9 @@ export default function TenantAdminUsersPage() {
 
       const json = await res.json();
       setUsers(json.users || []);
+      if (json.seatCapacity) {
+        setSeatCapacity(json.seatCapacity);
+      }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -258,6 +270,46 @@ export default function TenantAdminUsersPage() {
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {/* Plan Seat Usage Overview */}
+      {seatCapacity && (
+        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-white uppercase tracking-wider">
+                Plan Seat Capacity: {seatCapacity.currentSeats} of {seatCapacity.maxSeats} Active Seats Used
+              </span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                {seatCapacity.planName}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">
+              {seatCapacity.canAddSeat
+                ? `You have ${seatCapacity.maxSeats - seatCapacity.currentSeats} available seat(s) remaining for sub-advisors or operations staff.`
+                : `Seat limit reached for your ${seatCapacity.planName}. Upgrade your subscription tier to provision additional advisors.`}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-4 w-full sm:w-auto">
+            <div className="w-32 bg-slate-800 h-2 rounded-full overflow-hidden hidden sm:block">
+              <div
+                className={`h-full ${
+                  seatCapacity.currentSeats >= seatCapacity.maxSeats ? "bg-rose-500" : "bg-amber-400"
+                }`}
+                style={{
+                  width: `${Math.min(100, (seatCapacity.currentSeats / seatCapacity.maxSeats) * 100)}%`,
+                }}
+              />
+            </div>
+            <Link
+              href="/admin/billing"
+              className="px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-300 transition whitespace-nowrap shadow-sm"
+            >
+              Manage Seats
+            </Link>
+          </div>
         </div>
       )}
 
@@ -476,6 +528,27 @@ export default function TenantAdminUsersPage() {
               </div>
             ) : (
               <form onSubmit={handleCreateUser} className="space-y-3.5">
+                {seatCapacity && !seatCapacity.canAddSeat && (
+                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-300">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-amber-400" />
+                    <div className="flex-1">
+                      <div className="font-bold uppercase tracking-wider">Plan Seat Limit Reached</div>
+                      <div className="text-slate-300 mt-0.5">
+                        Your current plan ({seatCapacity.planName}) allows up to {seatCapacity.maxSeats} active seat(s). All {seatCapacity.currentSeats} seats are currently assigned.
+                      </div>
+                      <div className="mt-2">
+                        <Link
+                          href="/admin/billing"
+                          onClick={() => setIsAddModalOpen(false)}
+                          className="inline-flex items-center gap-1 font-bold text-amber-400 hover:text-amber-300 underline"
+                        >
+                          Upgrade your plan to unlock more advisor seats →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
@@ -582,7 +655,7 @@ export default function TenantAdminUsersPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={isCreatingUser}
+                    disabled={isCreatingUser || Boolean(seatCapacity && !seatCapacity.canAddSeat)}
                     className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 disabled:opacity-50"
                   >
                     {isCreatingUser ? (

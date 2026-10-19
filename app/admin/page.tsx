@@ -16,6 +16,7 @@ import {
   AlertCircle,
   ChevronRight,
   Layers,
+  Clock,
 } from "lucide-react";
 
 interface FirmData {
@@ -27,6 +28,8 @@ interface FirmData {
     arn_number: string | null;
     ria_number: string | null;
     primary_color: string;
+    subscription_expires_at?: string | null;
+    commission_sharing_active?: boolean;
   };
   kpis: {
     totalAUM: number;
@@ -152,6 +155,43 @@ export default function TenantAdminDashboardPage() {
           <span>{error}</span>
         </div>
       )}
+
+      {/* 15-Day Subscription Expiry Warning Banner */}
+      {(() => {
+        if (!data?.tenant?.subscription_expires_at || data?.tenant?.commission_sharing_active) return null;
+        const expiresAt = new Date(data.tenant.subscription_expires_at);
+        const daysLeft = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        if (daysLeft > 15 || daysLeft <= 0) return null;
+
+        return (
+          <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-slate-900 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 mt-0.5">
+                <Clock className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-amber-300 uppercase tracking-wide">
+                  Upcoming Renewal: {daysLeft} Days Remaining
+                </div>
+                <div className="text-xs text-slate-300 mt-0.5">
+                  Your firm's subscription expires on{" "}
+                  <strong className="text-white">
+                    {expiresAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                  </strong>
+                  . Renew now to avoid any interruption in advisor portal access or white-label styling.
+                </div>
+              </div>
+            </div>
+            <Link
+              href="/admin/billing"
+              className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition flex items-center gap-1.5 shadow whitespace-nowrap"
+            >
+              <span>Renew Subscription</span>
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        );
+      })()}
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

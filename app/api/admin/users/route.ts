@@ -2,6 +2,7 @@ import { NextResponse, connection } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcrypt";
 import { verifyAuthHeader } from "@/lib/auth";
+import { checkTenantSeatCapacity } from "@/lib/tenantPlans";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,7 +48,13 @@ export async function GET(req: Request) {
       clientCount: advisorClientCounts[u.id] || 0,
     }));
 
-    return NextResponse.json({ users: enrichedUsers });
+    // Calculate seat usage for this firm
+    const seatCapacity = await checkTenantSeatCapacity(session.tenantId);
+
+    return NextResponse.json({
+      users: enrichedUsers,
+      seatCapacity,
+    });
   } catch (error) {
     console.error("Tenant Admin Users GET Error:", error);
     return NextResponse.json({ error: "Failed to load team users." }, { status: 500 });
@@ -77,6 +84,19 @@ export async function POST(req: Request) {
 
     const cleanEmail = email.toLowerCase().trim();
     const assignedRole = ["ADVISOR", "STAFF", "TENANT_ADMIN"].includes(role) ? role : "ADVISOR";
+
+    // Enforce Plan Seat Limits before adding new team members
+    const seatCapacity = await checkTenantSeatCapacity(session.tenantId);
+    if (!seatCapacity.canAddSeat) {
+      return NextResponse.json(
+        {
+          error: `Seat limit reached for your ${seatCapacity.planName} (${seatCapacity.currentSeats}/${seatCapacity.maxSeats} active seats used). Please upgrade your plan in Billing & Plans to add more sub-advisors.`,
+          code: "SEAT_LIMIT_REACHED",
+          seatCapacity,
+        },
+        { status: 403 }
+      );
+    }
 
     // Check if email already exists
     const { data: existingUser } = await supabaseAdmin
@@ -118,11 +138,14 @@ export async function POST(req: Request) {
       );
     }
 
+    const updatedSeats = await checkTenantSeatCapacity(session.tenantId);
+
     return NextResponse.json({
       success: true,
       message: `${assignedRole} account created successfully.`,
       user: newUser,
       temporaryPassword: initialPassword,
+      seatCapacity: updatedSeats,
     });
   } catch (error) {
     console.error("Tenant Admin Users POST Error:", error);
@@ -132,4 +155,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

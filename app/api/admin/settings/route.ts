@@ -1,6 +1,7 @@
 import { NextResponse, connection } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyAuthHeader } from "@/lib/auth";
+import { getTenantPlan, checkTenantFeature } from "@/lib/tenantPlans";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,7 +21,7 @@ export async function GET(req: Request) {
 
     const { data: tenant, error } = await supabaseAdmin
       .from("tenants")
-      .select("id, subdomain, firm_legal_name, firm_brand_name, tenant_type, arn_number, ria_number, logo_url, favicon_url, primary_color, secondary_color, custom_domain, disclaimer_text, is_active, created_at")
+      .select("id, subdomain, firm_legal_name, firm_brand_name, tenant_type, arn_number, ria_number, logo_url, favicon_url, primary_color, secondary_color, custom_domain, disclaimer_text, is_active, created_at, plan_id, commission_sharing_active, subscription_expires_at")
       .eq("id", session.tenantId)
       .maybeSingle();
 
@@ -28,7 +29,13 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Tenant settings not found." }, { status: 404 });
     }
 
-    return NextResponse.json({ tenant });
+    // Resolve tenant plan details & feature flags
+    const { plan } = await getTenantPlan(session.tenantId);
+
+    return NextResponse.json({ 
+      tenant,
+      plan,
+    });
   } catch (error) {
     console.error("Tenant Admin Settings GET Error:", error);
     return NextResponse.json({ error: "Failed to load firm settings." }, { status: 500 });
@@ -59,6 +66,35 @@ export async function PATCH(req: Request) {
       disclaimerText,
     } = body;
 
+    // Check plan permission for white-labeling features
+    const hasWhiteLabel = await checkTenantFeature(session.tenantId, "white_label");
+    const hasCustomDomain = await checkTenantFeature(session.tenantId, "custom_domain");
+
+    const isUpdatingWhiteLabel =
+      logoUrl !== undefined ||
+      primaryColor !== undefined ||
+      secondaryColor !== undefined;
+
+    if (isUpdatingWhiteLabel && !hasWhiteLabel) {
+      return NextResponse.json(
+        {
+          error: "White-label branding is locked on your current plan. Please upgrade to the Growth Plan to upload custom logos and modify color schemes.",
+          code: "PLAN_RESTRICTION_WHITE_LABEL",
+        },
+        { status: 403 }
+      );
+    }
+
+    if (customDomain && !hasCustomDomain) {
+      return NextResponse.json(
+        {
+          error: "Custom hostnames require the Enterprise Wealth Firm plan.",
+          code: "PLAN_RESTRICTION_CUSTOM_DOMAIN",
+        },
+        { status: 403 }
+      );
+    }
+
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
@@ -67,10 +103,18 @@ export async function PATCH(req: Request) {
     if (firmLegalName) updates.firm_legal_name = firmLegalName.trim();
     if (arnNumber !== undefined) updates.arn_number = arnNumber ? arnNumber.trim() : null;
     if (riaNumber !== undefined) updates.ria_number = riaNumber ? riaNumber.trim() : null;
-    if (logoUrl !== undefined) updates.logo_url = logoUrl ? logoUrl.trim() : null;
-    if (primaryColor) updates.primary_color = primaryColor.trim();
-    if (secondaryColor) updates.secondary_color = secondaryColor.trim();
-    if (customDomain !== undefined) updates.custom_domain = customDomain ? customDomain.trim() : null;
+    
+    // Only apply branding updates if plan allows
+    if (hasWhiteLabel) {
+      if (logoUrl !== undefined) updates.logo_url = logoUrl ? logoUrl.trim() : null;
+      if (primaryColor) updates.primary_color = primaryColor.trim();
+      if (secondaryColor) updates.secondary_color = secondaryColor.trim();
+    }
+
+    if (hasCustomDomain && customDomain !== undefined) {
+      updates.custom_domain = customDomain ? customDomain.trim() : null;
+    }
+
     if (disclaimerText !== undefined) updates.disclaimer_text = disclaimerText ? disclaimerText.trim() : null;
 
     const { data: updatedTenant, error } = await supabaseAdmin
@@ -84,10 +128,13 @@ export async function PATCH(req: Request) {
       throw error || new Error("Failed to update tenant settings.");
     }
 
+    const { plan } = await getTenantPlan(session.tenantId);
+
     return NextResponse.json({
       success: true,
       message: "Firm branding and compliance settings updated.",
       tenant: updatedTenant,
+      plan,
     });
   } catch (error) {
     console.error("Tenant Admin Settings PATCH Error:", error);
@@ -97,4 +144,3 @@ export async function PATCH(req: Request) {
     );
   }
 }
-

@@ -14,6 +14,7 @@ import {
   Briefcase,
   ChevronRight,
   TrendingUp,
+  Receipt,
 } from "lucide-react";
 
 interface UserProfile {
@@ -101,6 +102,12 @@ export default function TenantAdminLayout({
       label: "Firm Settings",
       href: "/admin/settings",
       icon: Settings,
+      exact: true,
+    },
+    {
+      label: "Billing & Plans",
+      href: "/admin/billing",
+      icon: Receipt,
       exact: true,
     },
   ];

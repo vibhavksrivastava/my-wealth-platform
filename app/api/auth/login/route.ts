@@ -107,15 +107,46 @@ export async function POST(req: Request) {
       }
     }
 
-    // Fetch Tenant Branding Info
+    // Fetch Tenant Branding & Validate Lifecycle (Active + Subscription Expiry)
     let tenantData = null;
     if (user.tenant_id) {
       const { data: tenant } = await supabaseAdmin
         .from("tenants")
-        .select("id, firm_brand_name, tenant_type, primary_color, logo_url")
+        .select("id, subdomain, firm_brand_name, tenant_type, primary_color, logo_url, is_active, subscription_expires_at, commission_sharing_active")
         .eq("id", user.tenant_id)
         .maybeSingle();
-      tenantData = tenant;
+
+      if (tenant) {
+        tenantData = tenant;
+
+        // SUPER_ADMIN is exempt from tenant deactivation or expiry
+        if (user.role !== ROLES.SUPER_ADMIN) {
+          if (tenant.is_active === false) {
+            return NextResponse.json(
+              { error: "This advisory firm account has been deactivated. Please contact support." },
+              { status: 403 }
+            );
+          }
+
+          // Subscription Expiry Check (bypassed if commission_sharing_active is true)
+          const isArnPartner = Boolean(tenant.commission_sharing_active);
+          if (!isArnPartner && tenant.subscription_expires_at) {
+            const expiresAt = new Date(tenant.subscription_expires_at).getTime();
+            if (Date.now() > expiresAt) {
+              return NextResponse.json(
+                {
+                  error: `Subscription Expired: The platform subscription for ${tenant.firm_brand_name} has expired. Please renew your plan to restore advisor and client portal access.`,
+                  code: "SUBSCRIPTION_EXPIRED",
+                  subscriptionExpired: true,
+                  renewalUrl: `/renew-account?tenant=${tenant.subdomain}`,
+                  tenantSubdomain: tenant.subdomain,
+                },
+                { status: 403 }
+              );
+            }
+          }
+        }
+      }
     }
 
     // Generate Session JWT

@@ -78,10 +78,14 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
     },
   };
 
+  const [subscriptionExpired, setSubscriptionExpired] = useState(false);
+  const [renewalUrl, setRenewalUrl] = useState<string>("/renew-account");
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
+    setSubscriptionExpired(false);
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -98,6 +102,10 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.subscriptionExpired) {
+          setSubscriptionExpired(true);
+          if (data.renewalUrl) setRenewalUrl(data.renewalUrl);
+        }
         throw new Error(data.error || "Authentication failed. Please verify credentials.");
       }
 
@@ -317,9 +325,22 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
             </div>
 
             {errorMessage && (
-              <div className="mb-5 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-2.5 text-xs text-red-400">
-                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                <span>{errorMessage}</span>
+              <div className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 space-y-2 text-xs text-red-400">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <span>{errorMessage}</span>
+                </div>
+                {subscriptionExpired && (
+                  <div className="pt-2 border-t border-red-500/20 flex justify-end">
+                    <Link
+                      href={renewalUrl}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition shadow"
+                    >
+                      <span>Renew Subscription Now</span>
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 
@@ -350,12 +371,12 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
                     Password
                   </label>
-                  <a
-                    href="#forgot"
+                  <Link
+                    href="/forgot-password"
                     className="text-[11px] text-sky-400 hover:text-sky-300 transition"
                   >
                     Forgot password?
-                  </a>
+                  </Link>
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
