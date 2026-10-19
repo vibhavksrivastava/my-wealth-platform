@@ -196,3 +196,4 @@ export async function ensureStorageBuckets(): Promise<{
 
   return { publicAssets: true, clientDocuments: true };
 }
+

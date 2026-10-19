@@ -14,7 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_for_local_dev";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, portalType } = await req.json();
+    const { email, password, portalType, tenantSubdomain } = await req.json();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -84,6 +84,24 @@ export async function POST(req: Request) {
       if (portalType === "ADMIN" && ![ROLES.TENANT_ADMIN].includes(user.role)) {
         return NextResponse.json(
           { error: "Access denied. Administrative rights required." },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Subdomain Tenant Isolation Validation
+    if (tenantSubdomain && tenantSubdomain !== "platform" && user.role !== ROLES.SUPER_ADMIN) {
+      const { data: targetTenant } = await supabaseAdmin
+        .from("tenants")
+        .select("id, firm_brand_name")
+        .eq("subdomain", tenantSubdomain.toLowerCase().trim())
+        .maybeSingle();
+
+      if (targetTenant && user.tenant_id && user.tenant_id !== targetTenant.id) {
+        return NextResponse.json(
+          { 
+            error: `Access Denied: This account is registered with another advisory firm, not ${targetTenant.firm_brand_name}. Please log in via your firm's designated URL.` 
+          },
           { status: 403 }
         );
       }
