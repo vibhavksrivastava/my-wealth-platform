@@ -87,13 +87,44 @@ export default function TenantAdminSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [selectedTenantSlug, setSelectedTenantSlug] = useState<string>("");
 
-  const fetchSettings = async () => {
+  useEffect(() => {
+    try {
+      const profileStr = localStorage.getItem("user_profile");
+      if (profileStr) {
+        const profile = JSON.parse(profileStr);
+        if (profile.role === "SUPER_ADMIN") {
+          setIsSuperAdmin(true);
+        }
+      }
+    } catch {}
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const tenantParam = urlParams.get("tenant") || urlParams.get("subdomain");
+    if (tenantParam) {
+      setSelectedTenantSlug(tenantParam.toLowerCase().trim());
+    } else {
+      // Default to platform if on localhost root or superadmin
+      try {
+        const profileStr = localStorage.getItem("user_profile");
+        if (profileStr && JSON.parse(profileStr).role === "SUPER_ADMIN") {
+          setSelectedTenantSlug("platform");
+        }
+      } catch {}
+    }
+  }, []);
+
+  const fetchSettings = async (overrideTenant?: string) => {
     setIsLoading(true);
     setError(null);
     try {
       const token = localStorage.getItem("auth_token");
-      const res = await fetch("/api/admin/settings", {
+      const targetSlug = overrideTenant !== undefined ? overrideTenant : selectedTenantSlug;
+      const queryStr = targetSlug ? `?tenant=${encodeURIComponent(targetSlug)}` : "";
+
+      const res = await fetch(`/api/admin/settings${queryStr}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -125,7 +156,7 @@ export default function TenantAdminSettingsPage() {
 
       // Fetch dedicated tenant integration credentials and masked env vars
       try {
-        const configRes = await fetch("/api/admin/tenant-config", {
+        const configRes = await fetch(`/api/admin/tenant-config${queryStr}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (configRes.ok) {
@@ -148,7 +179,7 @@ export default function TenantAdminSettingsPage() {
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+  }, [selectedTenantSlug]);
 
   const hasWhiteLabel = plan ? Boolean(plan.features?.white_label) : true;
   const hasCustomDomain = plan ? Boolean(plan.features?.custom_domain) : false;
@@ -161,7 +192,9 @@ export default function TenantAdminSettingsPage() {
 
     try {
       const token = localStorage.getItem("auth_token");
-      const res = await fetch("/api/admin/settings", {
+      const queryStr = selectedTenantSlug ? `?tenant=${encodeURIComponent(selectedTenantSlug)}` : "";
+
+      const res = await fetch(`/api/admin/settings${queryStr}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -178,7 +211,7 @@ export default function TenantAdminSettingsPage() {
       // Also update tenant config and encrypted env vars
       const hasAnyEnvInput = Object.values(envVars).some((v) => v.trim() !== "");
       if (hasAnyEnvInput || formData.customDomain) {
-        await fetch("/api/admin/tenant-config", {
+        await fetch(`/api/admin/tenant-config${queryStr}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -259,7 +292,7 @@ export default function TenantAdminSettingsPage() {
           </Link>
 
           <button
-            onClick={fetchSettings}
+            onClick={() => fetchSettings()}
             disabled={isLoading}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition"
           >
@@ -268,6 +301,53 @@ export default function TenantAdminSettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* SuperAdmin Multi-Tenant Practice Switcher */}
+      {isSuperAdmin && (
+        <div className="p-3.5 rounded-xl bg-slate-900/90 border border-amber-500/30 flex flex-wrap items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-amber-400" />
+            <div>
+              <div className="text-xs font-bold text-white flex items-center gap-2">
+                <span>SuperAdmin Practice Switcher</span>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-amber-500/20 text-amber-300">
+                  Global Access
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-400">
+                Switch between Platform HQ and any tenant advisory firm to manage their branding &amp; credentials.
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            {[
+              { slug: "platform", name: "🟡 Platform HQ" },
+              { slug: "zenith9186", name: "🔵 Zenith Wealth" },
+              { slug: "aasinvestment", name: "🟢 AAS Investment" },
+              { slug: "apex", name: "🟣 Apex Partners" },
+            ].map((firm) => (
+              <button
+                key={firm.slug}
+                type="button"
+                onClick={() => {
+                  setSelectedTenantSlug(firm.slug);
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("tenant", firm.slug);
+                  window.history.replaceState({}, "", url.toString());
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                  (selectedTenantSlug || "platform") === firm.slug
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-sm"
+                    : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800 hover:bg-slate-900"
+                }`}
+              >
+                <span>{firm.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">

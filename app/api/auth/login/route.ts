@@ -24,10 +24,25 @@ export async function POST(req: Request) {
     }
 
     let lookupEmail = email.toLowerCase().trim();
+    const sub = (tenantSubdomain || "").toLowerCase().trim();
+
     if (lookupEmail === "superadmin") lookupEmail = "superadmin@unifiedwealth.com";
-    if (lookupEmail === "admin") lookupEmail = "admin@example.com";
-    if (lookupEmail === "advisor") lookupEmail = "pallavi@example.com";
-    if (lookupEmail === "client") lookupEmail = "vibhav@example.com";
+    if (lookupEmail === "admin") {
+      if (sub === "zenith9186") lookupEmail = "admin@zenith9186.com";
+      else if (sub === "aasinvestment") lookupEmail = "abachhan@aasinvestment.com";
+      else if (sub === "apex") lookupEmail = "admin@example.com";
+      else lookupEmail = "superadmin@unifiedwealth.com"; // Default for root platform / localhost:3000
+    }
+    if (lookupEmail === "advisor") {
+      if (sub === "zenith9186") lookupEmail = "ssharma@zenith9186.com";
+      else if (sub === "aasinvestment") lookupEmail = "mpandey@aasinvestment.com";
+      else lookupEmail = "pallavi@example.com";
+    }
+    if (lookupEmail === "client") {
+      if (sub === "zenith9186") lookupEmail = "kabir@zenith9186.com";
+      else if (sub === "aasinvestment") lookupEmail = "vikram@aasinvestment.com";
+      else lookupEmail = "vibhav@example.com";
+    }
 
     // Query user record securely over HTTPS via Supabase API
     const { data: user, error: userError } = await supabaseAdmin

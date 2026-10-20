@@ -18,9 +18,34 @@ export async function GET(req: Request) {
       );
     }
 
+    const { searchParams } = new URL(req.url);
+    const requestedTenant = searchParams.get("tenant") || searchParams.get("tenantId") || searchParams.get("subdomain");
+
+    let targetTenantId = session.tenantId;
+
+    if (session.role === "SUPER_ADMIN" && requestedTenant) {
+      const cleanReq = requestedTenant.toLowerCase().trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanReq);
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      let query = supabaseAdmin.from("tenants").select("id");
+      if (isUuid) {
+        query = query.or(`id.eq.${cleanReq},subdomain.eq.${cleanReq}`);
+      } else {
+        query = query.eq("subdomain", cleanReq);
+      }
+      const { data: target } = await query.maybeSingle();
+      if (target) {
+        targetTenantId = target.id;
+      }
+    }
+
     // Fetch full server config including encrypted env vars
     const serverConfig = (await getTenantConfig(
-      { tenantId: session.tenantId },
+      { tenantId: targetTenantId },
       { includeDecryptedEnv: true }
     )) as TenantServerConfig | null;
 
@@ -100,6 +125,31 @@ export async function PUT(req: Request) {
       );
     }
 
+    const { searchParams } = new URL(req.url);
+    const requestedTenant = searchParams.get("tenant") || searchParams.get("tenantId") || searchParams.get("subdomain");
+
+    let targetTenantId = session.tenantId;
+
+    if (session.role === "SUPER_ADMIN" && requestedTenant) {
+      const cleanReq = requestedTenant.toLowerCase().trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanReq);
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      let query = supabaseAdmin.from("tenants").select("id");
+      if (isUuid) {
+        query = query.or(`id.eq.${cleanReq},subdomain.eq.${cleanReq}`);
+      } else {
+        query = query.eq("subdomain", cleanReq);
+      }
+      const { data: target } = await query.maybeSingle();
+      if (target) {
+        targetTenantId = target.id;
+      }
+    }
+
     const body = await req.json();
     const { customDomain, branding, envVars, featuresOverride } = body;
 
@@ -119,7 +169,7 @@ export async function PUT(req: Request) {
       }
     }
 
-    const updateResult = await updateTenantConfig(session.tenantId, {
+    const updateResult = await updateTenantConfig(targetTenantId, {
       customDomain,
       branding,
       envVars: sanitizedEnvVars,
@@ -135,7 +185,7 @@ export async function PUT(req: Request) {
 
     // Return fresh updated config
     const updated = await getTenantConfig(
-      { tenantId: session.tenantId },
+      { tenantId: targetTenantId },
       { includeDecryptedEnv: false }
     );
 

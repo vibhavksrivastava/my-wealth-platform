@@ -19,10 +19,31 @@ export async function GET(req: Request) {
       );
     }
 
+    const { searchParams } = new URL(req.url);
+    const requestedTenant = searchParams.get("tenant") || searchParams.get("tenantId") || searchParams.get("subdomain");
+
+    let targetTenantId = session.tenantId;
+
+    // SUPER_ADMIN can inspect any tenant practice or Platform HQ
+    if (session.role === "SUPER_ADMIN" && requestedTenant) {
+      const cleanReq = requestedTenant.toLowerCase().trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanReq);
+      let query = supabaseAdmin.from("tenants").select("id");
+      if (isUuid) {
+        query = query.or(`id.eq.${cleanReq},subdomain.eq.${cleanReq}`);
+      } else {
+        query = query.eq("subdomain", cleanReq);
+      }
+      const { data: target } = await query.maybeSingle();
+      if (target) {
+        targetTenantId = target.id;
+      }
+    }
+
     let { data: tenant, error } = await supabaseAdmin
       .from("tenants")
       .select("id, subdomain, firm_legal_name, firm_brand_name, tenant_type, arn_number, ria_number, logo_url, favicon_url, primary_color, secondary_color, custom_domain, disclaimer_text, is_active, created_at, plan_id, commission_sharing_active, subscription_expires_at, theme_mode")
-      .eq("id", session.tenantId)
+      .eq("id", targetTenantId)
       .maybeSingle();
 
     // Fallback if plan_id, commission_sharing_active, or subscription_expires_at columns do not exist yet
@@ -30,7 +51,7 @@ export async function GET(req: Request) {
       const fallbackQuery = await supabaseAdmin
         .from("tenants")
         .select("id, subdomain, firm_legal_name, firm_brand_name, tenant_type, arn_number, ria_number, logo_url, favicon_url, primary_color, secondary_color, custom_domain, disclaimer_text, is_active, created_at, theme_mode")
-        .eq("id", session.tenantId)
+        .eq("id", targetTenantId)
         .maybeSingle();
       tenant = fallbackQuery.data as any;
       error = fallbackQuery.error;
@@ -42,7 +63,7 @@ export async function GET(req: Request) {
     }
 
     // Resolve tenant plan details & feature flags
-    const { plan } = await getTenantPlan(session.tenantId);
+    const { plan } = await getTenantPlan(targetTenantId);
 
     return NextResponse.json({ 
       tenant,
@@ -65,6 +86,26 @@ export async function PATCH(req: Request) {
       );
     }
 
+    const { searchParams } = new URL(req.url);
+    const requestedTenant = searchParams.get("tenant") || searchParams.get("tenantId") || searchParams.get("subdomain");
+
+    let targetTenantId = session.tenantId;
+
+    if (session.role === "SUPER_ADMIN" && requestedTenant) {
+      const cleanReq = requestedTenant.toLowerCase().trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanReq);
+      let query = supabaseAdmin.from("tenants").select("id");
+      if (isUuid) {
+        query = query.or(`id.eq.${cleanReq},subdomain.eq.${cleanReq}`);
+      } else {
+        query = query.eq("subdomain", cleanReq);
+      }
+      const { data: target } = await query.maybeSingle();
+      if (target) {
+        targetTenantId = target.id;
+      }
+    }
+
     const body = await req.json();
     const {
       firmBrandName,
@@ -80,8 +121,8 @@ export async function PATCH(req: Request) {
     } = body;
 
     // Check plan permission for white-labeling features
-    const hasWhiteLabel = await checkTenantFeature(session.tenantId, "white_label");
-    const hasCustomDomain = await checkTenantFeature(session.tenantId, "custom_domain");
+    const hasWhiteLabel = await checkTenantFeature(targetTenantId, "white_label");
+    const hasCustomDomain = await checkTenantFeature(targetTenantId, "custom_domain");
 
     const isUpdatingWhiteLabel =
       logoUrl !== undefined ||
@@ -135,7 +176,7 @@ export async function PATCH(req: Request) {
     const { data: updatedTenant, error } = await supabaseAdmin
       .from("tenants")
       .update(updates)
-      .eq("id", session.tenantId)
+      .eq("id", targetTenantId)
       .select()
       .single();
 
@@ -143,7 +184,7 @@ export async function PATCH(req: Request) {
       throw error || new Error("Failed to update tenant settings.");
     }
 
-    const { plan } = await getTenantPlan(session.tenantId);
+    const { plan } = await getTenantPlan(targetTenantId);
 
     return NextResponse.json({
       success: true,
