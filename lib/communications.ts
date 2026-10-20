@@ -358,6 +358,84 @@ export async function sendEmail(options: SendEmailOptions): Promise<DispatchResu
       };
     } catch (err: unknown) {
       console.error("[Email Dispatch Error via SendGrid]:", err);
+      return {
+        success: false,
+        channel: "EMAIL",
+        recipient: to,
+        messageId: `sg-err-${Date.now()}`,
+        delivered: false,
+        simulated: false,
+        error: err instanceof Error ? err.message : "SendGrid delivery failure",
+      };
+    }
+  }
+
+  // 2c. Custom Outbound SMTP (Nodemailer: Gmail, SendGrid SMTP, Zoho, AWS SES)
+  let smtpHost = process.env.SMTP_HOST;
+  let smtpPort = Number(process.env.SMTP_PORT || 587);
+  let smtpUser = process.env.SMTP_USER;
+  let smtpPassword = process.env.SMTP_PASSWORD;
+
+  if (tenantId) {
+    try {
+      const config = (await getTenantConfig(
+        { tenantId },
+        { includeDecryptedEnv: true }
+      )) as TenantServerConfig | null;
+      if (config?.env?.SMTP_HOST) smtpHost = config.env.SMTP_HOST;
+      if (config?.env?.SMTP_PORT) smtpPort = Number(config.env.SMTP_PORT || 587);
+      if (config?.env?.SMTP_USER) smtpUser = config.env.SMTP_USER;
+      if (config?.env?.SMTP_PASSWORD) smtpPassword = config.env.SMTP_PASSWORD;
+      if (config?.env?.SMTP_FROM_EMAIL) sender = config.env.SMTP_FROM_EMAIL;
+    } catch (err) {
+      console.warn("Could not load tenant SMTP env vars:", err);
+    }
+  }
+
+  if (smtpHost && smtpUser && smtpPassword) {
+    try {
+      const nodemailer = await import("nodemailer");
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPassword,
+        },
+      });
+
+      const info = await transporter.sendMail({
+        from: sender,
+        to,
+        subject,
+        html,
+        text: text || html.replace(/<[^>]*>?/gm, ""),
+        replyTo,
+      });
+
+      return {
+        success: true,
+        channel: "EMAIL",
+        recipient: to,
+        messageId: info.messageId || `smtp-${Date.now()}`,
+        delivered: true,
+        simulated: false,
+        details: {
+          response: info.response,
+        },
+      };
+    } catch (err: unknown) {
+      console.error("[Email Dispatch Error via SMTP]:", err);
+      return {
+        success: false,
+        channel: "EMAIL",
+        recipient: to,
+        messageId: `smtp-err-${Date.now()}`,
+        delivered: false,
+        simulated: false,
+        error: err instanceof Error ? err.message : "SMTP delivery failure",
+      };
     }
   }
 
@@ -373,7 +451,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<DispatchResu
     delivered: true,
     simulated: true,
     details: {
-      note: "Live email credentials (RESEND_API_KEY or SENDGRID_API_KEY) not configured. Logged to console.",
+      note: "Live email credentials (RESEND_API_KEY, SENDGRID_API_KEY, or Outbound SMTP) not configured. Logged to console.",
     },
   };
 }
@@ -427,6 +505,9 @@ export async function sendSms(options: SendSmsOptions): Promise<DispatchResult> 
 
       const data = await res.json();
       if (!res.ok) {
+        if (data.code === 572006) {
+          throw new Error("Twilio Trial Restriction: Trial accounts can only send predefined verification SMS templates to Indian numbers (+91). Custom SMS requires an upgraded Twilio account or Indian DLT sender.");
+        }
         throw new Error(data.message || "Twilio SMS API error");
       }
 

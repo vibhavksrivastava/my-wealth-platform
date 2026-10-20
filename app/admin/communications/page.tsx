@@ -429,16 +429,57 @@ export default function CommunicationsDashboardPage() {
 
           {/* Dispatch Server Response Card */}
           {lastResult && (
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-emerald-500/30 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Message Dispatched Successfully</span>
+            <div
+              className={`p-4 rounded-xl space-y-2 border ${
+                lastResult.success
+                  ? lastResult.simulated
+                    ? "bg-amber-950/30 border-amber-500/30 text-amber-200"
+                    : "bg-emerald-950/30 border-emerald-500/30 text-emerald-200"
+                  : "bg-red-950/30 border-red-500/30 text-red-200"
+              }`}
+            >
+              <div className="flex items-center gap-2 text-xs font-bold">
+                {lastResult.success ? (
+                  lastResult.simulated ? (
+                    <>
+                      <AlertCircle className="h-4 w-4 text-amber-400" />
+                      <span className="text-amber-400">Message Simulated (No live gateway credentials configured)</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                      <span className="text-emerald-400">Live Gateway Dispatched Successfully</span>
+                    </>
+                  )
+                ) : (
+                  <>
+                    <AlertCircle className="h-4 w-4 text-red-400" />
+                    <span className="text-red-400">Gateway Dispatch Failed</span>
+                  </>
+                )}
               </div>
               <div className="text-[11px] text-slate-300 font-mono space-y-1 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                <div>Channel: {lastResult.channel as string}</div>
-                <div>Recipient: {lastResult.recipient as string}</div>
-                <div>Message ID: {lastResult.messageId as string}</div>
-                <div>Mode: {lastResult.simulated ? "Simulated Safe Mode" : "Live Gateway Provider"}</div>
+                <div>Channel: {String(lastResult.channel || selectedChannel)}</div>
+                <div>Recipient: {String(lastResult.recipient || recipient)}</div>
+                {lastResult.messageId && <div>Message ID: {String(lastResult.messageId)}</div>}
+                <div>
+                  Mode:{" "}
+                  {lastResult.simulated
+                    ? "Simulated (Logs to server console)"
+                    : lastResult.success
+                    ? "Live Gateway Provider"
+                    : "Failed"}
+                </div>
+                {lastResult.error && (
+                  <div className="text-red-400 pt-1 border-t border-slate-800 font-sans text-xs">
+                    Error: {String(lastResult.error)}
+                  </div>
+                )}
+                {(lastResult.details as Record<string, any>)?.note && (
+                  <div className="text-amber-300 pt-1 border-t border-slate-800 font-sans text-xs">
+                    Note: {String((lastResult.details as Record<string, any>).note)}
+                  </div>
+                )}
               </div>
             </div>
           )}
