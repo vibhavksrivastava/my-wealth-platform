@@ -110,11 +110,20 @@ export async function POST(req: Request) {
     // Fetch Tenant Branding & Validate Lifecycle (Active + Subscription Expiry)
     let tenantData = null;
     if (user.tenant_id) {
-      const { data: tenant } = await supabaseAdmin
+      let { data: tenant, error: tenantErr } = await supabaseAdmin
         .from("tenants")
         .select("id, subdomain, firm_brand_name, tenant_type, primary_color, secondary_color, theme_mode, logo_url, is_active, subscription_expires_at, commission_sharing_active")
         .eq("id", user.tenant_id)
         .maybeSingle();
+
+      if (tenantErr) {
+        const fallback = await supabaseAdmin
+          .from("tenants")
+          .select("id, subdomain, firm_brand_name, tenant_type, primary_color, secondary_color, theme_mode, logo_url, is_active")
+          .eq("id", user.tenant_id)
+          .maybeSingle();
+        tenant = fallback.data as any;
+      }
 
       if (tenant) {
         tenantData = tenant;

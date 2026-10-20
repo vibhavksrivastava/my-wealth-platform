@@ -121,11 +121,21 @@ export async function getTenantPlan(tenantId: string): Promise<{
   const supabase = getAdminClient();
 
   // Try fetching tenant with plan_id
-  const { data: tenant, error } = await supabase
+  let { data: tenant, error } = await supabase
     .from("tenants")
     .select("id, subdomain, firm_brand_name, arn_number, commission_sharing_active, subscription_expires_at, is_active, plan_id")
     .eq("id", tenantId)
     .maybeSingle();
+
+  // If column error occurred (e.g. plan_id does not exist yet), fall back to base tenant columns
+  if (error) {
+    const fallback = await supabase
+      .from("tenants")
+      .select("id, subdomain, firm_brand_name, arn_number, is_active")
+      .eq("id", tenantId)
+      .maybeSingle();
+    tenant = fallback.data as any;
+  }
 
   // Fallback defaults
   const fallbackTenant = {

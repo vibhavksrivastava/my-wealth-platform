@@ -24,9 +24,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized dispatch request." }, { status: 401 });
     }
 
-    const { data: tenants, error } = await supabaseAdmin
+    let { data: tenants, error } = await supabaseAdmin
       .from("tenants")
       .select("id, subdomain, firm_brand_name, arn_number, is_active, subscription_expires_at, commission_sharing_active");
+
+    if (error) {
+      const fallback = await supabaseAdmin
+        .from("tenants")
+        .select("id, subdomain, firm_brand_name, arn_number, is_active");
+      tenants = (fallback.data || []) as any;
+      error = fallback.error;
+    }
 
     if (error) throw error;
 

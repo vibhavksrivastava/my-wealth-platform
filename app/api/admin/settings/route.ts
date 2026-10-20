@@ -19,13 +19,25 @@ export async function GET(req: Request) {
       );
     }
 
-    const { data: tenant, error } = await supabaseAdmin
+    let { data: tenant, error } = await supabaseAdmin
       .from("tenants")
       .select("id, subdomain, firm_legal_name, firm_brand_name, tenant_type, arn_number, ria_number, logo_url, favicon_url, primary_color, secondary_color, custom_domain, disclaimer_text, is_active, created_at, plan_id, commission_sharing_active, subscription_expires_at, theme_mode")
       .eq("id", session.tenantId)
       .maybeSingle();
 
+    // Fallback if plan_id, commission_sharing_active, or subscription_expires_at columns do not exist yet
+    if (error) {
+      const fallbackQuery = await supabaseAdmin
+        .from("tenants")
+        .select("id, subdomain, firm_legal_name, firm_brand_name, tenant_type, arn_number, ria_number, logo_url, favicon_url, primary_color, secondary_color, custom_domain, disclaimer_text, is_active, created_at, theme_mode")
+        .eq("id", session.tenantId)
+        .maybeSingle();
+      tenant = fallbackQuery.data as any;
+      error = fallbackQuery.error;
+    }
+
     if (error || !tenant) {
+      console.error("Tenant Admin Settings GET Query Error:", error);
       return NextResponse.json({ error: "Tenant settings not found." }, { status: 404 });
     }
 

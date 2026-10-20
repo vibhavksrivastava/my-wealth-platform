@@ -98,7 +98,8 @@ export default function TenantAdminSettingsPage() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to load firm settings.");
+        const errorJson = await res.json().catch(() => null);
+        throw new Error(errorJson?.error || "Failed to load firm settings.");
       }
 
       const json = await res.json();
