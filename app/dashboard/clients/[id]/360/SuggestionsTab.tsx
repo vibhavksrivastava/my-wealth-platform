@@ -448,6 +448,15 @@ export default function SuggestionsTab({
                   </span>
                 </div>
 
+                {findings.goals.monthlyCapacityGap && findings.goals.monthlyCapacityGap > 0 ? (
+                  <div className="mb-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-300 flex items-center justify-between">
+                    <span>Cash Flow Capacity Deficit:</span>
+                    <span className="font-bold text-amber-400 font-mono">
+                      -{formatINR(findings.goals.monthlyCapacityGap)}/mo
+                    </span>
+                  </div>
+                ) : null}
+
                 <div className="grid grid-cols-2 gap-2 text-xs mb-3">
                   <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/60">
                     <span className="text-[10px] text-slate-400 uppercase">Goal Health Score</span>
@@ -529,7 +538,9 @@ export default function SuggestionsTab({
                   : "bg-sky-500/10 text-sky-400 border-sky-500/20";
 
               const categoryBadge =
-                rec.category === "SIP_STEP_UP"
+                rec.category === "GOAL_REALIGNMENT"
+                  ? "Goal Realignment"
+                  : rec.category === "SIP_STEP_UP"
                   ? "SIP Step-Up"
                   : rec.category === "DEBT_RESTRUCTURING"
                   ? "Debt Prepayment"

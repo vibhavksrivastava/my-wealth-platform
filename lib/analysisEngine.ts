@@ -68,13 +68,17 @@ export interface GoalFeasibilityDiagnostic {
   totalInflatedTarget: number;
   totalProjectedCorpus: number;
   totalShortfall: number;
+  totalMonthlyRequiredSip: number;
+  monthlySurplus: number;
+  monthlyCapacityGap: number;
+  capacityStatus: "AFFORDABLE" | "DEFICIT";
   goals: GoalDiagnosticItem[];
   findings: string[];
 }
 
 export interface RecommendedAction {
   id: string;
-  category: "SIP_STEP_UP" | "DEBT_RESTRUCTURING" | "ASSET_REBALANCING" | "EMERGENCY_RESERVE" | "TAX_OPTIMIZATION";
+  category: "SIP_STEP_UP" | "DEBT_RESTRUCTURING" | "ASSET_REBALANCING" | "EMERGENCY_RESERVE" | "TAX_OPTIMIZATION" | "GOAL_REALIGNMENT";
   priority: "HIGH" | "MEDIUM" | "LOW";
   title: string;
   rationale: string;
@@ -267,7 +271,7 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
   }
 
   // -------------------------------------------------------------
-  // 3. GOAL FEASIBILITY & GAP ANALYSIS
+  // 3. GOAL FEASIBILITY & GAP ANALYSIS (PRIORITIZED SURPLUS WATERFALL)
   // -------------------------------------------------------------
   const goalItems: GoalDiagnosticItem[] = [];
   let totalInflatedTarget = 0;
@@ -276,31 +280,114 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
   let onTrackCount = 0;
   let gapCount = 0;
 
-  for (const g of goals) {
-    const targetAmt = Number(g.target_amount || 0);
+  // Priority mapping weights: HIGH first, then MEDIUM, then LOW
+  const priorityWeight: Record<string, number> = {
+    HIGH: 3,
+    High: 3,
+    high: 3,
+    MEDIUM: 2,
+    Medium: 2,
+    medium: 2,
+    LOW: 1,
+    Low: 1,
+    low: 1,
+  };
+
+  // Sort goals by priority, then by target year (shorter horizon first)
+  const sortedGoals = [...goals].sort((a, b) => {
+    const pA = priorityWeight[String(a.priority)] || 2;
+    const pB = priorityWeight[String(b.priority)] || 2;
+    if (pA !== pB) return pB - pA;
+    const yA = Number(a.target_year || 9999);
+    const yB = Number(b.target_year || 9999);
+    return yA - yB;
+  });
+
+  // 1. Prepare each goal's gross future requirements and required monthly SIP
+  const preparedGoals = sortedGoals.map((g) => {
+    // Support target_amount_today (schema column) with fallback to target_amount
+    const targetAmt = Number(g.target_amount_today ?? g.target_amount ?? 0);
     const targetYr = Number(g.target_year || currentYear + 5);
     const yearsRem = Math.max(1, targetYr - currentYear);
 
-    const infRate = g.inflation_rate !== undefined && g.inflation_rate !== null ? Number(g.inflation_rate) : 6.0;
+    // Normalize inflation rate: if stored as 0.06 decimal, convert to 6.0 percentage
+    let infRate = 6.0;
+    if (g.expected_inflation_rate !== undefined && g.expected_inflation_rate !== null) {
+      const val = Number(g.expected_inflation_rate);
+      infRate = val <= 0.25 ? val * 100 : val;
+    } else if (g.inflation_rate !== undefined && g.inflation_rate !== null) {
+      const val = Number(g.inflation_rate);
+      infRate = val <= 0.25 ? val * 100 : val;
+    }
+
     const expReturn = g.expected_return_rate !== undefined && g.expected_return_rate !== null ? Number(g.expected_return_rate) : 11.0;
 
-    // Inflated future value of target
+    // Compounded future value of target
     const inflatedTarget = Math.round(targetAmt * Math.pow(1 + infRate / 100, yearsRem));
 
-    // Current corpus growth
+    // Compounded growth of existing dedicated corpus
     const allocatedCorpus = Number(g.current_corpus_allocated || 0);
-    const futureValCorpus = allocatedCorpus * Math.pow(1 + expReturn / 100, yearsRem);
+    const futureValCorpus = Math.round(allocatedCorpus * Math.pow(1 + expReturn / 100, yearsRem));
 
-    // Current ongoing SIP future value
-    const currentSip = Number(g.monthly_required_sip || 0);
-    const futureValSip = calculateSipFutureValue(currentSip, expReturn, yearsRem);
+    // Shortfall without additional monthly contributions
+    const grossShortfall = Math.max(0, inflatedTarget - futureValCorpus);
 
-    const projectedCorpus = Math.round(futureValCorpus + futureValSip);
-    const shortfall = Math.max(0, inflatedTarget - projectedCorpus);
-    const fundedPct = inflatedTarget > 0 ? Math.min(100, Math.round((projectedCorpus / inflatedTarget) * 100)) : 100;
+    // Monthly SIP required to bridge this goal's shortfall
+    const requiredSip = grossShortfall > 0
+      ? (Number(g.monthly_required_sip) || calculateRequiredMonthlySIP(grossShortfall, expReturn, yearsRem))
+      : 0;
+
+    return {
+      raw: g,
+      goalId: g.goal_id,
+      goalName: g.goal_name || "Financial Goal",
+      targetYear: targetYr,
+      yearsRemaining: yearsRem,
+      priority: g.priority || "High",
+      targetAmount: targetAmt,
+      inflationRate: infRate,
+      expectedReturnRate: expReturn,
+      inflatedTargetAmount: inflatedTarget,
+      currentAllocatedCorpus: allocatedCorpus,
+      futureValCorpus,
+      grossShortfall,
+      requiredSip,
+    };
+  });
+
+  // Calculate total monthly required SIP across all family goals vs net monthly cash flow surplus
+  const totalMonthlyRequiredSip = preparedGoals.reduce((sum, g) => sum + g.requiredSip, 0);
+  const totalMonthlySurplus = Math.max(0, netMonthlySurplus);
+  const monthlyCapacityGap = Math.max(0, totalMonthlyRequiredSip - totalMonthlySurplus);
+  const capacityStatus: "AFFORDABLE" | "DEFICIT" = monthlyCapacityGap > 0 ? "DEFICIT" : "AFFORDABLE";
+
+  // 2. Waterfall the household's available surplus across prioritized goals
+  let remainingSurplus = totalMonthlySurplus;
+
+  for (const pg of preparedGoals) {
+    // How much monthly SIP can be allocated to this goal given remaining surplus?
+    const allocatableSip = Math.min(pg.requiredSip, Math.max(0, remainingSurplus));
+    remainingSurplus = Math.max(0, remainingSurplus - allocatableSip);
+
+    // Unfunded monthly SIP for this goal
+    const unfundedMonthlySip = Math.max(0, pg.requiredSip - allocatableSip);
+
+    // Projected future value of the allocatable SIP
+    const achievableFutureValSip = calculateSipFutureValue(allocatableSip, pg.expectedReturnRate, pg.yearsRemaining);
+
+    // Realistic total projected corpus given available cash flows
+    const projectedCorpus = Math.round(pg.futureValCorpus + achievableFutureValSip);
+
+    // Actual realistic shortfall
+    const shortfall = Math.max(0, pg.inflatedTargetAmount - projectedCorpus);
+
+    // Funded percentage
+    const fundedPct = pg.inflatedTargetAmount > 0
+      ? Math.min(100, Math.round((projectedCorpus / pg.inflatedTargetAmount) * 100))
+      : 100;
 
     let feasibilityStatus: "ON_TRACK" | "MODERATE_GAP" | "CRITICAL_GAP" = "ON_TRACK";
-    if (fundedPct >= 90) {
+    if (fundedPct >= 90 && unfundedMonthlySip === 0) {
       feasibilityStatus = "ON_TRACK";
       onTrackCount++;
     } else if (fundedPct >= 60) {
@@ -311,38 +398,36 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
       gapCount++;
     }
 
-    const additionalSip = shortfall > 0 ? calculateRequiredMonthlySIP(shortfall, expReturn, yearsRem) : 0;
-
     let summary = "";
     if (feasibilityStatus === "ON_TRACK") {
-      summary = `Goal is fully funded (${fundedPct}% projected coverage by ${targetYr}). Continue current investment allocation.`;
+      summary = `Goal is fully affordable & funded (${fundedPct}% projected coverage by ${pg.targetYear}) via ₹${Math.round(allocatableSip).toLocaleString("en-IN")}/mo surplus allocation.`;
     } else if (feasibilityStatus === "MODERATE_GAP") {
-      summary = `Moderate shortfall of ₹${Math.round(shortfall).toLocaleString("en-IN")}. Recommend an additional SIP of ₹${additionalSip.toLocaleString("en-IN")}/month.`;
+      summary = `Moderate shortfall of ₹${Math.round(shortfall).toLocaleString("en-IN")}. Current surplus funds ₹${Math.round(allocatableSip).toLocaleString("en-IN")}/mo; requires an additional ₹${Math.round(unfundedMonthlySip).toLocaleString("en-IN")}/mo.`;
     } else {
-      summary = `Critical funding gap of ₹${Math.round(shortfall).toLocaleString("en-IN")} (${fundedPct}% funded). Requires urgent SIP step-up of ₹${additionalSip.toLocaleString("en-IN")}/mo or asset reallocation.`;
+      summary = `Funding gap of ₹${Math.round(shortfall).toLocaleString("en-IN")} (${fundedPct}% funded). Constrained by monthly surplus: requires additional ₹${Math.round(unfundedMonthlySip).toLocaleString("en-IN")}/mo or timeline extension.`;
     }
 
-    totalInflatedTarget += inflatedTarget;
+    totalInflatedTarget += pg.inflatedTargetAmount;
     totalProjectedCorpus += projectedCorpus;
     totalShortfall += shortfall;
 
     goalItems.push({
-      goalId: g.goal_id,
-      goalName: g.goal_name || "Financial Goal",
-      targetYear: targetYr,
-      yearsRemaining: yearsRem,
-      priority: g.priority || "MEDIUM",
-      targetAmount: targetAmt,
-      inflationRate: infRate,
-      expectedReturnRate: expReturn,
-      inflatedTargetAmount: inflatedTarget,
-      currentAllocatedCorpus: allocatedCorpus,
+      goalId: pg.goalId,
+      goalName: pg.goalName,
+      targetYear: pg.targetYear,
+      yearsRemaining: pg.yearsRemaining,
+      priority: pg.priority,
+      targetAmount: pg.targetAmount,
+      inflationRate: pg.inflationRate,
+      expectedReturnRate: pg.expectedReturnRate,
+      inflatedTargetAmount: pg.inflatedTargetAmount,
+      currentAllocatedCorpus: pg.currentAllocatedCorpus,
       projectedCorpus,
       shortfall,
       fundedPercentage: fundedPct,
       feasibilityStatus,
-      currentMonthlySIP: currentSip,
-      additionalMonthlySipRequired: additionalSip,
+      currentMonthlySIP: allocatableSip,
+      additionalMonthlySipRequired: unfundedMonthlySip,
       recommendationSummary: summary,
     });
   }
@@ -359,8 +444,13 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
     goalFindings.push("No active financial goals configured. Recommend establishing core goals (e.g. Retirement, Contingency, Education).");
   } else {
     goalFindings.push(
-      `Evaluated ${goals.length} life goals: ${onTrackCount} on-track, ${gapCount} facing funding shortfalls against inflation-adjusted targets.`
+      `Evaluated ${goals.length} life goals: ${onTrackCount} on-track, ${gapCount} facing funding shortfalls under current cash flow capacity.`
     );
+    if (monthlyCapacityGap > 0) {
+      goalFindings.push(
+        `Cash Flow Capacity Alert: Cumulative required SIPs (₹${Math.round(totalMonthlyRequiredSip).toLocaleString("en-IN")}/mo) exceed monthly net surplus (₹${Math.round(totalMonthlySurplus).toLocaleString("en-IN")}/mo) by ₹${Math.round(monthlyCapacityGap).toLocaleString("en-IN")}/month.`
+      );
+    }
     if (totalShortfall > 0) {
       goalFindings.push(
         `Total cumulative goal shortfall across all time horizons stands at ₹${Math.round(totalShortfall).toLocaleString("en-IN")}.`
@@ -388,7 +478,11 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
     summaryHighlights.push("Priority: Fortify liquid emergency reserves to safeguard against income disruptions.");
   }
 
-  if (gapCount > 0) {
+  if (monthlyCapacityGap > 0) {
+    summaryHighlights.push(
+      `Goal Cash Flow Gap: Required SIPs (₹${(totalMonthlyRequiredSip / 100000).toFixed(2)} L/mo) exceed monthly surplus (₹${(totalMonthlySurplus / 100000).toFixed(2)} L/mo) by ₹${Math.round(monthlyCapacityGap).toLocaleString("en-IN")}/mo. Trade-offs or income expansion needed.`
+    );
+  } else if (gapCount > 0) {
     summaryHighlights.push(`${gapCount} goal(s) require active SIP step-ups or asset rebalancing to beat long-term inflation.`);
   }
 
@@ -450,7 +544,33 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
     });
   }
 
-  // Rec 3: Goal-Oriented SIP Step-ups
+  // Rec 3A: Cash Flow Capacity Deficit & Goal Prioritization Trade-off
+  if (monthlyCapacityGap > 0) {
+    const onTrackGoals = goalItems.filter((g) => g.feasibilityStatus === "ON_TRACK");
+    const gapGoals = goalItems.filter((g) => g.feasibilityStatus !== "ON_TRACK");
+    const primaryGoalName = onTrackGoals[0]?.goalName || "Core Priority Goal";
+    const constrainedGoalName = gapGoals[0]?.goalName || "Secondary Goal";
+
+    recommendations.push({
+      id: "rec-cashflow-goal-capacity-gap",
+      category: "GOAL_REALIGNMENT",
+      priority: "HIGH",
+      title: `Cash Flow Capacity Deficit: Required SIPs (₹${(totalMonthlyRequiredSip / 100000).toFixed(2)} L/mo) Exceed Surplus (₹${(totalMonthlySurplus / 100000).toFixed(2)} L/mo)`,
+      rationale: `The household has a net monthly surplus of ₹${Math.round(totalMonthlySurplus).toLocaleString("en-IN")}/mo, but concurrently funding all ${goals.length} goals demands ₹${Math.round(totalMonthlyRequiredSip).toLocaleString("en-IN")}/mo in monthly SIPs. This creates an immediate monthly cash flow deficit of ₹${Math.round(monthlyCapacityGap).toLocaleString("en-IN")}/mo. Under current household income, only "${primaryGoalName}" can be fully funded from cash flows, leaving "${constrainedGoalName}" severely underfunded.`,
+      suggestedAction: `To achieve both goals, the household must choose one or more adjustments: (1) Increase household salary/business income by at least ₹${Math.round(monthlyCapacityGap).toLocaleString("en-IN")}/mo, (2) Reduce discretionary monthly living expenses, (3) Extend the target year for "${constrainedGoalName}" to lower the monthly SIP burden, or (4) Rationalize the target goal amount today.`,
+      actionDetails: {
+        instrumentType: "Comprehensive Goal Rebalancing & Cash Flow Optimization",
+        currentAmount: totalMonthlySurplus,
+        recommendedAmount: totalMonthlyRequiredSip,
+        targetInstrument: `Fully fund ${primaryGoalName} (₹${Math.round(onTrackGoals[0]?.currentMonthlySIP || 0).toLocaleString("en-IN")}/mo), then realign ${constrainedGoalName}`,
+        potentialBenefit: `Protects core family priorities from shortfall while establishing an achievable, non-deficit savings roadmap.`,
+        tenureYears: gapGoals[0]?.yearsRemaining || 10,
+      },
+      expectedImpact: `Closes the ₹${Math.round(monthlyCapacityGap).toLocaleString("en-IN")}/month cash flow gap and aligns lifestyle targets with real household earnings.`,
+    });
+  }
+
+  // Rec 3B: Goal-Oriented SIP Step-ups
   const goalsWithGaps = goalItems
     .filter((g) => g.feasibilityStatus !== "ON_TRACK" && g.additionalMonthlySipRequired > 0)
     .sort((a, b) => {
@@ -574,6 +694,10 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
       totalInflatedTarget,
       totalProjectedCorpus,
       totalShortfall,
+      totalMonthlyRequiredSip,
+      monthlySurplus: totalMonthlySurplus,
+      monthlyCapacityGap,
+      capacityStatus,
       goals: goalItems,
       findings: goalFindings,
     },
