@@ -12,8 +12,10 @@ import {
   Layers,
   Clock 
 } from "lucide-react";
+import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 
 export default function AdminDashboard() {
+  const { terms } = useFirmBranding();
   const [userName, setUserName] = useState("Administrator");
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -101,14 +103,14 @@ export default function AdminDashboard() {
 
         <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/50">
           <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Tenant Type</span>
+            <span className="text-xs font-medium uppercase tracking-wider">Practice Type</span>
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
           </div>
           <div className="text-xl font-bold text-emerald-400">
-            {tenant?.tenant_type || "MFD"} License
+            {terms.shortTitle} License
           </div>
           <div className="mt-2 text-xs text-slate-400">
-            SEBI Regulatory Fence Active
+            {terms.complianceTerm} Active
           </div>
         </div>
 
@@ -184,7 +186,7 @@ export default function AdminDashboard() {
             </div>
             <div className="flex justify-between py-2.5 border-b border-slate-800">
               <span className="text-slate-400">Regulatory Classification</span>
-              <span className="text-sky-400 font-semibold">{tenant?.tenant_type || "MFD"} (Mutual Fund Distributor)</span>
+              <span className="text-sky-400 font-semibold">{terms.shortTitle} ({terms.entityTitle})</span>
             </div>
             <div className="flex justify-between py-2.5 border-b border-slate-800">
               <span className="text-slate-400">Row-Level Security (RLS)</span>

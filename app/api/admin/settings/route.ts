@@ -42,11 +42,11 @@ export async function GET(req: Request) {
 
     let { data: tenant, error } = await supabaseAdmin
       .from("tenants")
-      .select("id, subdomain, firm_legal_name, firm_brand_name, tenant_type, arn_number, ria_number, logo_url, favicon_url, primary_color, secondary_color, custom_domain, disclaimer_text, is_active, created_at, plan_id, commission_sharing_active, subscription_expires_at, theme_mode")
+      .select("id, subdomain, firm_legal_name, firm_brand_name, tenant_type, firm_type, arn_number, ria_number, logo_url, favicon_url, primary_color, secondary_color, custom_domain, disclaimer_text, is_active, created_at, plan_id, commission_sharing_active, subscription_expires_at, theme_mode")
       .eq("id", targetTenantId)
       .maybeSingle();
 
-    // Fallback if plan_id, commission_sharing_active, or subscription_expires_at columns do not exist yet
+    // Fallback if firm_type, plan_id, commission_sharing_active, or subscription_expires_at columns do not exist yet
     if (error) {
       const fallbackQuery = await supabaseAdmin
         .from("tenants")
@@ -62,11 +62,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Tenant settings not found." }, { status: 404 });
     }
 
+    // Normalize firm_type with tenant_type fallback
+    const resolvedTenant = {
+      ...tenant,
+      firm_type: (tenant as any).firm_type || (tenant as any).tenant_type || "MFD",
+    };
+
     // Resolve tenant plan details & feature flags
     const { plan } = await getTenantPlan(targetTenantId);
 
     return NextResponse.json({ 
-      tenant,
+      tenant: resolvedTenant,
       plan,
     });
   } catch (error) {
@@ -112,6 +118,7 @@ export async function PATCH(req: Request) {
       firmLegalName,
       arnNumber,
       riaNumber,
+      firmType,
       logoUrl,
       primaryColor,
       secondaryColor,
@@ -158,6 +165,10 @@ export async function PATCH(req: Request) {
     if (firmLegalName) updates.firm_legal_name = firmLegalName.trim();
     if (arnNumber !== undefined) updates.arn_number = arnNumber ? arnNumber.trim() : null;
     if (riaNumber !== undefined) updates.ria_number = riaNumber ? riaNumber.trim() : null;
+    if (firmType && ["MFD", "RIA", "BOTH"].includes(firmType)) {
+      updates.tenant_type = firmType;
+      updates.firm_type = firmType;
+    }
     
     // Only apply branding updates if plan allows
     if (hasWhiteLabel) {
@@ -173,23 +184,41 @@ export async function PATCH(req: Request) {
 
     if (disclaimerText !== undefined) updates.disclaimer_text = disclaimerText ? disclaimerText.trim() : null;
 
-    const { data: updatedTenant, error } = await supabaseAdmin
+    let { data: updatedTenant, error } = await supabaseAdmin
       .from("tenants")
       .update(updates)
       .eq("id", targetTenantId)
       .select()
       .single();
 
+    // If firm_type column does not exist yet in PostgreSQL schema, retry without it
+    if (error && (error.message?.includes("firm_type") || (error as any).code === "42703")) {
+      delete updates.firm_type;
+      const retry = await supabaseAdmin
+        .from("tenants")
+        .update(updates)
+        .eq("id", targetTenantId)
+        .select()
+        .single();
+      updatedTenant = retry.data;
+      error = retry.error;
+    }
+
     if (error || !updatedTenant) {
       throw error || new Error("Failed to update tenant settings.");
     }
+
+    const resolvedUpdatedTenant = {
+      ...updatedTenant,
+      firm_type: (updatedTenant as any).firm_type || (updatedTenant as any).tenant_type || "MFD",
+    };
 
     const { plan } = await getTenantPlan(targetTenantId);
 
     return NextResponse.json({
       success: true,
       message: "Firm branding and compliance settings updated.",
-      tenant: updatedTenant,
+      tenant: resolvedUpdatedTenant,
       plan,
     });
   } catch (error) {

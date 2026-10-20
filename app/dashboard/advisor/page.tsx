@@ -20,6 +20,7 @@ import {
   Sparkles
 } from "lucide-react";
 import AppointmentsManager from "@/components/AppointmentsManager";
+import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 
 function formatINR(val: number) {
   if (val >= 10000000) {
@@ -32,6 +33,7 @@ function formatINR(val: number) {
 }
 
 export default function AdvisorDashboard() {
+  const { terms, isRia, setFirmType } = useFirmBranding();
   const [userName, setUserName] = useState("Advisor");
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,6 +71,10 @@ export default function AdvisorDashboard() {
             setSelectedClientId(json.clients[0].client_id);
           }
           if (json?.tenant) {
+            const ft = json.tenant.firm_type || json.tenant.tenant_type;
+            if (ft && ["MFD", "RIA", "BOTH"].includes(String(ft).toUpperCase())) {
+              setFirmType(String(ft).toUpperCase() as any);
+            }
             localStorage.setItem("tenant_branding", JSON.stringify(json.tenant));
             window.dispatchEvent(new Event("tenant_branding_updated"));
           }
@@ -200,10 +206,10 @@ export default function AdvisorDashboard() {
               )}
             </div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Advisor &amp; MFD Console &bull; {userName}
+              {terms.dashboardHeader} &bull; {userName}
             </h1>
             <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
-              Multi-tenant advisory practice &bull; Client portfolio oversight &amp; automated recommendations
+              {terms.entityTitle} Practice &bull; Client portfolio oversight &amp; {terms.serviceLabel}
             </p>
           </div>
         </div>
@@ -233,7 +239,7 @@ export default function AdvisorDashboard() {
               backgroundColor: `${brandColor}15` 
             }}
           >
-            MFD Practice Active
+            {terms.roleBadge}
           </span>
         </div>
       </div>
@@ -267,7 +273,7 @@ export default function AdvisorDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
           <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Practice AUM</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">{terms.aumLabel}</span>
             <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColor}15` }}>
               <Briefcase className="h-4 w-4" style={{ color: brandColor }} />
             </div>
@@ -288,7 +294,7 @@ export default function AdvisorDashboard() {
           </div>
           <div className="text-2xl font-bold text-slate-900 dark:text-white">{formatINR(metrics.totalNetWorth)}</div>
           <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            Net equity under advisory
+            Net equity under {isRia ? "fiduciary advisory" : "distribution care"}
           </div>
         </div>
 
@@ -326,7 +332,7 @@ export default function AdvisorDashboard() {
           <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center justify-between">
             <span className="flex items-center gap-2">
               <Users className="h-4 w-4" style={{ color: brandColor }} />
-              Client Planning Records
+              {terms.clientHeading}
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400">{clients.length} Total</span>
           </h2>
@@ -335,7 +341,7 @@ export default function AdvisorDashboard() {
               <div className="py-12 px-4 rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs">
                 <Users className="h-8 w-8 mx-auto mb-2 text-slate-400 dark:text-slate-600" />
                 <p className="font-semibold text-slate-700 dark:text-slate-300">
-                  No client planning records for {brandName} yet.
+                  No {terms.clientHeading.toLowerCase()} for {brandName} yet.
                 </p>
                 <p className="mt-1 text-[11px] text-slate-500">
                   Click &ldquo;+ New Client Fact-Find&rdquo; above to onboard your first household profile.

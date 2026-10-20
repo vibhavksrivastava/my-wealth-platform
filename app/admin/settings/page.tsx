@@ -26,8 +26,10 @@ import {
   Mail,
   Server,
   ShieldCheck,
+  Scale,
 } from "lucide-react";
 import FileUploader from "@/components/FileUploader";
+import { useFirmBranding, type FirmType } from "@/lib/context/FirmBrandingContext";
 
 interface PlanInfo {
   id: string;
@@ -50,11 +52,13 @@ interface PlanInfo {
 }
 
 export default function TenantAdminSettingsPage() {
+  const { setFirmType: setGlobalFirmType } = useFirmBranding();
   const [formData, setFormData] = useState({
     firmBrandName: "",
     firmLegalName: "",
     arnNumber: "",
     riaNumber: "",
+    firmType: "MFD" as FirmType,
     logoUrl: "",
     primaryColor: "#0284c7",
     secondaryColor: "#0f172a",
@@ -144,6 +148,7 @@ export default function TenantAdminSettingsPage() {
           firmLegalName: t.firm_legal_name || "",
           arnNumber: t.arn_number || "",
           riaNumber: t.ria_number || "",
+          firmType: ((t.firm_type || t.tenant_type || "MFD") as string).toUpperCase() as FirmType,
           logoUrl: t.logo_url || "",
           primaryColor: t.primary_color || "#0284c7",
           secondaryColor: t.secondary_color || "#0f172a",
@@ -232,9 +237,29 @@ export default function TenantAdminSettingsPage() {
         });
       }
 
-      setSuccessMessage("Firm white-label branding and dedicated API integrations updated successfully.");
+      setSuccessMessage("Firm practice model, white-label branding, and dedicated API integrations updated successfully.");
       if (data.plan) {
         setPlan(data.plan);
+      }
+
+      // Propagate the updated practice model to global React Context & persistent storage
+      if (formData.firmType) {
+        setGlobalFirmType(formData.firmType);
+        try {
+          localStorage.setItem("wealthos_firm_type", formData.firmType);
+          const existing = localStorage.getItem("tenant_branding");
+          if (existing) {
+            const parsed = JSON.parse(existing);
+            parsed.firm_type = formData.firmType;
+            parsed.tenant_type = formData.firmType;
+            parsed.firm_brand_name = formData.firmBrandName;
+            parsed.primary_color = formData.primaryColor;
+            parsed.secondary_color = formData.secondaryColor;
+            parsed.theme_mode = formData.themeMode;
+            localStorage.setItem("tenant_branding", JSON.stringify(parsed));
+          }
+          window.dispatchEvent(new Event("tenant_branding_updated"));
+        } catch {}
       }
       // Re-fetch to refresh masked integration statuses
       await fetchSettings();
@@ -428,6 +453,90 @@ export default function TenantAdminSettingsPage() {
                     onChange={(e) => setFormData({ ...formData, riaNumber: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-amber-500"
                   />
+                  <p className="text-[10px] text-slate-500 mt-1">Used for fiduciary advisory contracts &amp; client fee billing.</p>
+                </div>
+              </div>
+
+              {/* Dynamic Practice Model Selector */}
+              <div className="pt-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Scale className="h-4 w-4 text-amber-400" />
+                    Regulatory Practice Model &amp; Nomenclature
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    Mode: {formData.firmType}
+                  </span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, firmType: "MFD" })}
+                    className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                      formData.firmType === "MFD"
+                        ? "bg-amber-500/15 border-amber-500 text-white shadow-lg shadow-amber-500/10"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xs font-bold text-white flex items-center justify-between">
+                        <span>Mutual Fund Distributor</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold">MFD</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                        Execution &amp; distribution focus. UI terminology highlights ARN, Distribution AUM, and BSE StAR MF routing.
+                      </p>
+                    </div>
+                    <div className="mt-2.5 pt-2 border-t border-slate-800/80 text-[10px] text-amber-400 font-medium">
+                      &bull; Commission &amp; Brokerage Model
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, firmType: "RIA" })}
+                    className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                      formData.firmType === "RIA"
+                        ? "bg-sky-500/15 border-sky-500 text-white shadow-lg shadow-sky-500/10"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xs font-bold text-white flex items-center justify-between">
+                        <span>Registered Investment Advisor</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono font-bold">RIA</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                        SEBI fiduciary advisory focus. UI terminology highlights INA registration, Advisory Portfolios, and Fee Models.
+                      </p>
+                    </div>
+                    <div className="mt-2.5 pt-2 border-t border-slate-800/80 text-[10px] text-sky-400 font-medium">
+                      &bull; Fee-Only / Advisory Retainer
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, firmType: "BOTH" })}
+                    className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                      formData.firmType === "BOTH"
+                        ? "bg-purple-500/15 border-purple-500 text-white shadow-lg shadow-purple-500/10"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xs font-bold text-white flex items-center justify-between">
+                        <span>Hybrid (MFD + RIA)</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono font-bold">HYBRID</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                        Dual practice. The layout automatically adapts based on the logged-in user&apos;s individual role (Advisors vs Execution staff).
+                      </p>
+                    </div>
+                    <div className="mt-2.5 pt-2 border-t border-slate-800/80 text-[10px] text-purple-400 font-medium">
+                      &bull; Dynamic Role-Based Adaptation
+                    </div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -929,6 +1038,18 @@ export default function TenantAdminSettingsPage() {
               </span>
             </div>
 
+            {/* Dynamic Practice Model Badge in Preview */}
+            <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[10px]">
+              <span className="text-slate-400">Operating Model:</span>
+              <span className="font-bold uppercase text-amber-400 font-mono">
+                {formData.firmType === "MFD"
+                  ? "MFD Practice (AMFI)"
+                  : formData.firmType === "RIA"
+                  ? "SEBI RIA (INA)"
+                  : "Hybrid (MFD + RIA)"}
+              </span>
+            </div>
+
             {/* Mock Navigation Pill */}
             <div className="flex gap-2">
               <span
@@ -947,7 +1068,9 @@ export default function TenantAdminSettingsPage() {
 
             {/* Mock Card */}
             <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800/80 space-y-1.5">
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Net Worth</div>
+              <div className="text-[10px] text-slate-400 uppercase font-semibold">
+                {formData.firmType === "RIA" ? "Advisory Assets Under Care" : "Total Practice AUM"}
+              </div>
               <div className="text-base font-black text-white">₹3,15,24,886</div>
               <div
                 className="h-1 rounded-full w-2/3"
@@ -955,9 +1078,9 @@ export default function TenantAdminSettingsPage() {
               />
             </div>
 
-            {/* Universal BSE StAR MF Notice */}
+            {/* Regulatory Compliance Indicator */}
             <div className="p-2 rounded bg-slate-900/80 border border-slate-800 text-[10px] text-emerald-400 flex items-center justify-between">
-              <span>BSE StAR MF Order Routing:</span>
+              <span>{formData.firmType === "RIA" ? "SEBI RIA Compliance:" : "AMFI BSE StAR Routing:"}</span>
               <span className="font-mono font-bold uppercase">Active &amp; Ready</span>
             </div>
 

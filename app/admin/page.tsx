@@ -18,6 +18,7 @@ import {
   Layers,
   Clock,
 } from "lucide-react";
+import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 
 interface FirmData {
   tenant: {
@@ -56,6 +57,7 @@ interface FirmData {
 }
 
 export default function TenantAdminDashboardPage() {
+  const { terms } = useFirmBranding();
   const [data, setData] = useState<FirmData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -119,9 +121,9 @@ export default function TenantAdminDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-900 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">Firm Control Center</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">{terms.portalTitle}</h1>
             <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              Firm Admin
+              {terms.shortTitle} Admin
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
@@ -198,7 +200,7 @@ export default function TenantAdminDashboardPage() {
         {/* Total Firm AUM */}
         <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-5 hover:border-slate-700 transition">
           <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Firm Total AUM</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">{terms.aumLabel}</span>
             <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <TrendingUp className="h-4 w-4" />
             </div>
@@ -215,7 +217,7 @@ export default function TenantAdminDashboardPage() {
         {/* Active Clients */}
         <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-5 hover:border-slate-700 transition">
           <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Active Clients</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">{terms.clientHeading}</span>
             <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
               <Users className="h-4 w-4" />
             </div>

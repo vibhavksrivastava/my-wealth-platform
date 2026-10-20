@@ -18,6 +18,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { TenantConfigProvider } from "@/lib/tenant-config";
+import { FirmBrandingProvider, type FirmType } from "@/lib/context/FirmBrandingContext";
 
 interface UserProfile {
   id: string;
@@ -38,6 +39,7 @@ export default function TenantAdminLayout({
   const [user, setUser] = useState<UserProfile | null>(null);
   const [firmName, setFirmName] = useState<string>("Firm Administration");
   const [primaryColor, setPrimaryColor] = useState<string>("#0284c7");
+  const [firmType, setFirmType] = useState<FirmType>("MFD");
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
@@ -66,6 +68,10 @@ export default function TenantAdminLayout({
             setFirmName(data.tenant.firm_brand_name || "Firm Administration");
             if (data.tenant.primary_color) {
               setPrimaryColor(data.tenant.primary_color);
+            }
+            const ft = data.tenant.firm_type || data.tenant.tenant_type;
+            if (ft && ["MFD", "RIA", "BOTH"].includes(String(ft).toUpperCase())) {
+              setFirmType(String(ft).toUpperCase() as FirmType);
             }
           }
         })
@@ -122,7 +128,8 @@ export default function TenantAdminLayout({
 
   return (
     <TenantConfigProvider>
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
+      <FirmBrandingProvider firmType={firmType} userRole={user?.role}>
+        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
       {/* Top Header */}
       <header className="border-b border-slate-900 bg-slate-950/90 backdrop-blur-md sticky top-0 z-50 px-6 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-6">
@@ -222,6 +229,7 @@ export default function TenantAdminLayout({
         </Suspense>
       </main>
       </div>
+      </FirmBrandingProvider>
     </TenantConfigProvider>
   );
 }
