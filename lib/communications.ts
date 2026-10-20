@@ -18,6 +18,8 @@ export interface SendWhatsAppOptions {
   text?: string;
   mediaUrl?: string; // Optional PDF or report attachment
   tenantId?: string; // Optional tenant ID for tenant-level WhatsApp credentials
+  contentSid?: string; // Twilio Content API template SID (e.g. HXfe5ab5f00277942d4d4200328b4d403c)
+  contentVariables?: Record<string, string>; // Dynamic variables for Twilio Content template
 }
 
 export interface SendEmailOptions {
@@ -148,7 +150,8 @@ export async function sendWhatsAppMessage(options: SendWhatsAppOptions): Promise
   let twilioWhatsAppSender =
     process.env.TWILIO_WHATSAPP_NUMBER ||
     process.env.TWILIO_PHONE_NUMBER ||
-    "+14155238886"; // Twilio official WhatsApp Sandbox Number
+    "+17372508034";
+  let resolvedContentSid = options.contentSid || process.env.TWILIO_CONTENT_SID;
 
   if (tenantId) {
     try {
@@ -160,6 +163,7 @@ export async function sendWhatsAppMessage(options: SendWhatsAppOptions): Promise
       if (config?.env?.TWILIO_AUTH_TOKEN) twilioToken = config.env.TWILIO_AUTH_TOKEN;
       if (config?.env?.TWILIO_WHATSAPP_NUMBER) twilioWhatsAppSender = config.env.TWILIO_WHATSAPP_NUMBER;
       else if (config?.env?.TWILIO_PHONE_NUMBER) twilioWhatsAppSender = config.env.TWILIO_PHONE_NUMBER;
+      if (config?.env?.TWILIO_CONTENT_SID && !options.contentSid) resolvedContentSid = config.env.TWILIO_CONTENT_SID;
     } catch (err) {
       console.warn("Could not load tenant Twilio WhatsApp env vars:", err);
     }
@@ -175,17 +179,24 @@ export async function sendWhatsAppMessage(options: SendWhatsAppOptions): Promise
         ? cleanPhone
         : `whatsapp:${cleanPhone.startsWith("+") ? cleanPhone : `+${cleanPhone}`}`;
 
-      const messageContent =
-        text ||
-        (templateParams && templateParams.length > 0
-          ? templateParams.join("\n")
-          : "WealthOS Notification");
-
       const formBody = new URLSearchParams({
         From: normalizedFrom,
         To: normalizedTo,
-        Body: messageContent,
       });
+
+      if (resolvedContentSid) {
+        formBody.append("ContentSid", resolvedContentSid);
+        if (options.contentVariables) {
+          formBody.append("ContentVariables", JSON.stringify(options.contentVariables));
+        }
+      } else {
+        const messageContent =
+          text ||
+          (templateParams && templateParams.length > 0
+            ? templateParams.join("\n")
+            : "WealthOS Notification");
+        formBody.append("Body", messageContent);
+      }
 
       if (mediaUrl) {
         formBody.append("MediaUrl", mediaUrl);
@@ -205,6 +216,9 @@ export async function sendWhatsAppMessage(options: SendWhatsAppOptions): Promise
 
       const data = await res.json();
       if (!res.ok) {
+        if (data.code === 21654) {
+          throw new Error("Twilio WhatsApp requires an approved ContentSid template. Please specify a ContentSid (e.g. HXfe5ab5f00277942d4d4200328b4d403c).");
+        }
         throw new Error(data.message || `Twilio WhatsApp error (${data.code || res.status})`);
       }
 

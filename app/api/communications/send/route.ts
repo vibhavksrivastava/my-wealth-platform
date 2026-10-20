@@ -20,7 +20,17 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { channel, recipient, message, subject, html, templateName, templateParams } = body;
+    const {
+      channel,
+      recipient,
+      message,
+      subject,
+      html,
+      templateName,
+      templateParams,
+      contentSid,
+      contentVariables,
+    } = body;
 
     if (!channel || !recipient) {
       return NextResponse.json(
@@ -39,6 +49,8 @@ export async function POST(req: Request) {
           templateName,
           templateParams,
           tenantId: session.tenantId,
+          contentSid,
+          contentVariables,
         });
         break;
 
