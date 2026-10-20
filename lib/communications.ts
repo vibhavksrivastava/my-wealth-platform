@@ -142,6 +142,95 @@ export async function sendWhatsAppMessage(options: SendWhatsAppOptions): Promise
     }
   }
 
+  // 1b. Twilio WhatsApp API Integration
+  let twilioSid = process.env.TWILIO_ACCOUNT_SID;
+  let twilioToken = process.env.TWILIO_AUTH_TOKEN;
+  let twilioWhatsAppSender =
+    process.env.TWILIO_WHATSAPP_NUMBER ||
+    process.env.TWILIO_PHONE_NUMBER ||
+    "+14155238886"; // Twilio official WhatsApp Sandbox Number
+
+  if (tenantId) {
+    try {
+      const config = (await getTenantConfig(
+        { tenantId },
+        { includeDecryptedEnv: true }
+      )) as TenantServerConfig | null;
+      if (config?.env?.TWILIO_ACCOUNT_SID) twilioSid = config.env.TWILIO_ACCOUNT_SID;
+      if (config?.env?.TWILIO_AUTH_TOKEN) twilioToken = config.env.TWILIO_AUTH_TOKEN;
+      if (config?.env?.TWILIO_WHATSAPP_NUMBER) twilioWhatsAppSender = config.env.TWILIO_WHATSAPP_NUMBER;
+      else if (config?.env?.TWILIO_PHONE_NUMBER) twilioWhatsAppSender = config.env.TWILIO_PHONE_NUMBER;
+    } catch (err) {
+      console.warn("Could not load tenant Twilio WhatsApp env vars:", err);
+    }
+  }
+
+  if (twilioSid && twilioToken) {
+    try {
+      const auth = Buffer.from(`${twilioSid}:${twilioToken}`).toString("base64");
+      const normalizedFrom = twilioWhatsAppSender.startsWith("whatsapp:")
+        ? twilioWhatsAppSender
+        : `whatsapp:${twilioWhatsAppSender.startsWith("+") ? twilioWhatsAppSender : `+${twilioWhatsAppSender}`}`;
+      const normalizedTo = cleanPhone.startsWith("whatsapp:")
+        ? cleanPhone
+        : `whatsapp:${cleanPhone.startsWith("+") ? cleanPhone : `+${cleanPhone}`}`;
+
+      const messageContent =
+        text ||
+        (templateParams && templateParams.length > 0
+          ? templateParams.join("\n")
+          : "WealthOS Notification");
+
+      const formBody = new URLSearchParams({
+        From: normalizedFrom,
+        To: normalizedTo,
+        Body: messageContent,
+      });
+
+      if (mediaUrl) {
+        formBody.append("MediaUrl", mediaUrl);
+      }
+
+      const res = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${auth}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: formBody.toString(),
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || `Twilio WhatsApp error (${data.code || res.status})`);
+      }
+
+      return {
+        success: true,
+        channel: "WHATSAPP",
+        recipient: cleanPhone,
+        messageId: data.sid || `tw-wa-${Date.now()}`,
+        delivered: true,
+        simulated: false,
+        details: data,
+      };
+    } catch (err: unknown) {
+      console.error("[Twilio WhatsApp Dispatch Error]:", err);
+      return {
+        success: false,
+        channel: "WHATSAPP",
+        recipient: cleanPhone,
+        messageId: `tw-wa-err-${Date.now()}`,
+        delivered: false,
+        simulated: false,
+        error: err instanceof Error ? err.message : "Twilio WhatsApp delivery failure",
+      };
+    }
+  }
+
   // Graceful simulation mode (Development / Zero-friction onboarding)
   console.log(`[SIMULATED WHATSAPP] To: ${cleanPhone} | Template: ${templateName || "custom_text"}`);
   console.log(`Message Body: ${text || (templateParams ? templateParams.join(" | ") : "N/A")}`);
@@ -338,10 +427,23 @@ export async function sendSms(options: SendSmsOptions): Promise<DispatchResult> 
       };
     } catch (err: unknown) {
       console.error("[SMS Dispatch Error via Twilio]:", err);
+      return {
+        success: false,
+        channel: "SMS",
+        recipient: cleanPhone,
+        messageId: `sms-err-${Date.now()}`,
+        delivered: false,
+        simulated: false,
+        error: err instanceof Error ? err.message : "Twilio SMS delivery failure",
+      };
     }
   }
 
   // Graceful simulation mode
+  const note = twilioSid && twilioToken && !twilioPhone
+    ? "Twilio Account SID & Auth Token are verified, but TWILIO_PHONE_NUMBER is not set. Assign a phone number in your Twilio Console and configure it in Settings to send live SMS."
+    : "Live SMS credentials (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER) not configured. Logged to console.";
+
   console.log(`[SIMULATED SMS] To: ${cleanPhone} | DLT Template: ${dltTemplateId || "DLT_DEFAULT"}`);
   console.log(`Message Body: ${message}`);
 
@@ -353,7 +455,7 @@ export async function sendSms(options: SendSmsOptions): Promise<DispatchResult> 
     delivered: true,
     simulated: true,
     details: {
-      note: "Live SMS credentials (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) not configured. Logged to console.",
+      note,
     },
   };
 }
