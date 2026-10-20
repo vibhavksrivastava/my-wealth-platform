@@ -1,36 +1,24 @@
 import { createClient } from "@supabase/supabase-js";
 import { decryptEnvMap, encryptEnvMap } from "./crypto";
+import type {
+  TenantBranding,
+  TenantPublicConfig,
+  TenantServerConfig,
+} from "./types";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export * from "./types";
 
-export interface TenantBranding {
-  logoUrl: string | null;
-  primaryColor: string;
-  secondaryColor: string;
-  themeMode: "light" | "dark";
-  disclaimerText: string | null;
-  firmBrandName: string;
-}
-
-export interface TenantPublicConfig {
-  tenantId: string;
-  subdomain: string;
-  firmBrandName: string;
-  firmLegalName: string | null;
-  customDomain: string | null;
-  branding: TenantBranding;
-  features: Record<string, boolean>;
-  planSlug?: string;
-  commissionSharingActive: boolean;
-  isActive: boolean;
-}
-
-export interface TenantServerConfig extends TenantPublicConfig {
-  env: Record<string, string>; // Decrypted secrets (only provided on server-side requests)
-  encryptedEnvVars: Record<string, string>;
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    throw new Error(
+      "Missing Supabase credentials for server-side tenant configuration resolver."
+    );
+  }
+  return createClient(url, key);
 }
 
 interface CacheEntry {
@@ -99,6 +87,8 @@ export async function getTenantConfig(
   }
 
   try {
+    const supabaseAdmin = getSupabaseAdmin();
+
     // 1. Resolve Tenant record
     let tenantQuery = supabaseAdmin
       .from("tenants")
@@ -242,6 +232,8 @@ export async function updateTenantConfig(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
+
     // 1. Fetch current encrypted vars to allow partial updates
     const { data: existingSettings } = await supabaseAdmin
       .from("tenant_settings")

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
-import type { TenantPublicConfig, TenantBranding } from "./server";
+import type { TenantPublicConfig, TenantBranding } from "./types";
 
 interface TenantConfigContextValue {
   tenant: TenantPublicConfig | null;

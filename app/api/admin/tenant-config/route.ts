@@ -1,6 +1,10 @@
 import { NextResponse, connection } from "next/server";
 import { verifyAuthHeader } from "@/lib/auth";
-import { getTenantConfig, updateTenantConfig, TenantServerConfig } from "@/lib/tenant-config";
+import {
+  getTenantConfig,
+  updateTenantConfig,
+  type TenantServerConfig,
+} from "@/lib/tenant-config/server";
 import { maskSecret } from "@/lib/tenant-config/crypto";
 
 export async function GET(req: Request) {

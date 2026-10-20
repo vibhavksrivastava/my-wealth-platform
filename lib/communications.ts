@@ -4,7 +4,10 @@
  * and DLT-compliant SMS (Twilio/MSG91/Kaleyra) for Indian Wealth Management & MFD compliance.
  */
 
-import { getTenantConfig, TenantServerConfig } from "@/lib/tenant-config";
+import {
+  getTenantConfig,
+  type TenantServerConfig,
+} from "@/lib/tenant-config/server";
 
 export type Channel = "WHATSAPP" | "EMAIL" | "SMS";
 
