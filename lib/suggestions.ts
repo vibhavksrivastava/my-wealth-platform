@@ -1,9 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export type SuggestionStatus = "DRAFT" | "SUBMITTED_TO_CLIENT" | "ACKNOWLEDGED" | "IN_PROGRESS";
 

@@ -1,14 +1,10 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase";
 import TenantLoginForm, { type TenantBranding } from "@/components/TenantLoginForm";
 
 // Supabase client for Server Component lookups
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 interface LoginPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

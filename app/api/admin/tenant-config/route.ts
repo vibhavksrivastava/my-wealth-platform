@@ -26,11 +26,7 @@ export async function GET(req: Request) {
     if (session.role === "SUPER_ADMIN" && requestedTenant) {
       const cleanReq = requestedTenant.toLowerCase().trim();
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanReq);
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+      const { supabaseAdmin } = await import("@/lib/supabase");
       let query = supabaseAdmin.from("tenants").select("id");
       if (isUuid) {
         query = query.or(`id.eq.${cleanReq},subdomain.eq.${cleanReq}`);
@@ -133,11 +129,7 @@ export async function PUT(req: Request) {
     if (session.role === "SUPER_ADMIN" && requestedTenant) {
       const cleanReq = requestedTenant.toLowerCase().trim();
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanReq);
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+      const { supabaseAdmin } = await import("@/lib/supabase");
       let query = supabaseAdmin.from("tenants").select("id");
       if (isUuid) {
         query = query.or(`id.eq.${cleanReq},subdomain.eq.${cleanReq}`);

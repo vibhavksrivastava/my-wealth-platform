@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase";
 import { ROLE_PERMISSIONS, ROLES, type Role } from "@/lib/permissions";
 
 // Initialize Supabase Admin Client using HTTPS (Bypasses raw TCP/SASL issues completely)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_for_local_dev";
 

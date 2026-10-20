@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export interface PlanFeatures {
   white_label: boolean;
@@ -97,10 +97,7 @@ export const DEFAULT_PLANS: Record<string, PlanRecord> = {
 };
 
 const getAdminClient = () => {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return supabaseAdmin;
 };
 
 /**

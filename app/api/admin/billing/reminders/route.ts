@@ -1,11 +1,7 @@
 import { NextResponse, connection } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 /**
  * Automated Cron / Webhook Endpoint for 7-day, 1-day, and expiration WhatsApp & SMS notifications.

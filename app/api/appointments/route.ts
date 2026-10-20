@@ -1,12 +1,8 @@
 import { NextResponse, connection } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
 import { getAppointments, createAppointment, updateAppointment, AppointmentStatus } from "@/lib/appointments";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 /**
  * Resolves the client user ID (users.id) and advisor user ID (users.id)

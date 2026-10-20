@@ -1,7 +1,7 @@
 import React, { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase";
 import { 
   ShieldCheck, 
   ArrowRight, 
@@ -13,10 +13,6 @@ import {
 } from "lucide-react";
 
 // Initialize Supabase admin client for server-side lookups
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export interface TenantRecord {
   id: string;
