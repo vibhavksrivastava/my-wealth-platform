@@ -19,6 +19,13 @@ import {
   Zap,
   Sun,
   Moon,
+  Key,
+  Eye,
+  EyeOff,
+  MessageSquare,
+  Mail,
+  Server,
+  ShieldCheck,
 } from "lucide-react";
 import FileUploader from "@/components/FileUploader";
 
@@ -56,6 +63,24 @@ export default function TenantAdminSettingsPage() {
     disclaimerText: "",
     subdomain: "",
   });
+
+  const [envVars, setEnvVars] = useState({
+    WHATSAPP_API_TOKEN: "",
+    WHATSAPP_PHONE_NUMBER_ID: "",
+    SMTP_HOST: "",
+    SMTP_PORT: "587",
+    SMTP_USER: "",
+    SMTP_PASSWORD: "",
+    SMTP_FROM_EMAIL: "",
+    TWILIO_ACCOUNT_SID: "",
+    TWILIO_AUTH_TOKEN: "",
+    TWILIO_PHONE_NUMBER: "",
+  });
+
+  const [maskedIntegrations, setMaskedIntegrations] = useState<
+    Record<string, { isConfigured: boolean; maskedValue: string }>
+  >({});
+  const [revealedFields, setRevealedFields] = useState<Record<string, boolean>>({});
 
   const [plan, setPlan] = useState<PlanInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,6 +121,19 @@ export default function TenantAdminSettingsPage() {
           subdomain: t.subdomain || "",
         });
       }
+
+      // Fetch dedicated tenant integration credentials and masked env vars
+      try {
+        const configRes = await fetch("/api/admin/tenant-config", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (configRes.ok) {
+          const configJson = await configRes.json();
+          if (configJson.integrations) {
+            setMaskedIntegrations(configJson.integrations);
+          }
+        }
+      } catch {}
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -136,10 +174,36 @@ export default function TenantAdminSettingsPage() {
         throw new Error(data.error || "Failed to save settings.");
       }
 
-      setSuccessMessage("Firm white-label branding and compliance settings updated successfully.");
+      // Also update tenant config and encrypted env vars
+      const hasAnyEnvInput = Object.values(envVars).some((v) => v.trim() !== "");
+      if (hasAnyEnvInput || formData.customDomain) {
+        await fetch("/api/admin/tenant-config", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            customDomain: formData.customDomain,
+            branding: {
+              firmBrandName: formData.firmBrandName,
+              logoUrl: formData.logoUrl,
+              primaryColor: formData.primaryColor,
+              secondaryColor: formData.secondaryColor,
+              themeMode: formData.themeMode,
+              disclaimerText: formData.disclaimerText,
+            },
+            envVars,
+          }),
+        });
+      }
+
+      setSuccessMessage("Firm white-label branding and dedicated API integrations updated successfully.");
       if (data.plan) {
         setPlan(data.plan);
       }
+      // Re-fetch to refresh masked integration statuses
+      await fetchSettings();
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -479,6 +543,247 @@ export default function TenantAdminSettingsPage() {
                   onChange={(e) => setFormData({ ...formData, disclaimerText: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500"
                 />
+              </div>
+            </div>
+
+            {/* Tenant-Level Environment Variables & API Keys (Encrypted at Rest) */}
+            <div className="border-t border-slate-800 pt-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Key className="h-4 w-4 text-emerald-400" />
+                    Dedicated Tenant API Keys &amp; Integrations
+                  </h2>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Configure your firm&apos;s dedicated WhatsApp Business account, Twilio SMS, or custom SMTP gateway. All secrets are encrypted at rest with AES-256-GCM.
+                  </p>
+                </div>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 whitespace-nowrap">
+                  <ShieldCheck className="h-3 w-3" />
+                  AES-256 Encrypted
+                </span>
+              </div>
+
+              {/* WhatsApp Business API */}
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <MessageSquare className="h-3.5 w-3.5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white">Meta WhatsApp Cloud API</h4>
+                      <p className="text-[10px] text-slate-400">Send automated CAS ingestion alerts, portfolio reviews, and meeting reminders from your firm&apos;s own WhatsApp number.</p>
+                    </div>
+                  </div>
+                  {maskedIntegrations["WHATSAPP_API_TOKEN"]?.isConfigured ? (
+                    <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Active</span>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Platform Default</span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                      WhatsApp Phone Number ID
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 109876543210987"
+                      value={envVars.WHATSAPP_PHONE_NUMBER_ID}
+                      onChange={(e) => setEnvVars({ ...envVars, WHATSAPP_PHONE_NUMBER_ID: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-semibold text-slate-300">
+                        System User Access Token
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setRevealedFields(p => ({ ...p, wa: !p.wa }))}
+                        className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1"
+                      >
+                        {revealedFields.wa ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                        <span>{revealedFields.wa ? "Hide" : "Show"}</span>
+                      </button>
+                    </div>
+                    <input
+                      type={revealedFields.wa ? "text" : "password"}
+                      placeholder={maskedIntegrations["WHATSAPP_API_TOKEN"]?.isConfigured ? "•••••••• (Encrypted at rest)" : "EAAGm0PX..."}
+                      value={envVars.WHATSAPP_API_TOKEN}
+                      onChange={(e) => setEnvVars({ ...envVars, WHATSAPP_API_TOKEN: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom SMTP / Email Gateway */}
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                      <Mail className="h-3.5 w-3.5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white">Custom Transactional SMTP / Email</h4>
+                      <p className="text-[10px] text-slate-400">Dispatch client statements and fact-find links using your own advisory email domain (e.g. notifications@zenithwealth.com).</p>
+                    </div>
+                  </div>
+                  {maskedIntegrations["SMTP_HOST"]?.isConfigured ? (
+                    <span className="text-[10px] font-semibold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">Active</span>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Platform Default</span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                      SMTP Host
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="smtp.sendgrid.net / smtp.office365.com"
+                      value={envVars.SMTP_HOST}
+                      onChange={(e) => setEnvVars({ ...envVars, SMTP_HOST: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                      SMTP Port
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="587"
+                      value={envVars.SMTP_PORT}
+                      onChange={(e) => setEnvVars({ ...envVars, SMTP_PORT: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                      From Email Address
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="advisory@yourfirm.com"
+                      value={envVars.SMTP_FROM_EMAIL}
+                      onChange={(e) => setEnvVars({ ...envVars, SMTP_FROM_EMAIL: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                      SMTP Username / API Key
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="apikey / user@yourfirm.com"
+                      value={envVars.SMTP_USER}
+                      onChange={(e) => setEnvVars({ ...envVars, SMTP_USER: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-semibold text-slate-300">
+                        SMTP Password / Secret
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setRevealedFields(p => ({ ...p, smtp: !p.smtp }))}
+                        className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1"
+                      >
+                        {revealedFields.smtp ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                        <span>{revealedFields.smtp ? "Hide" : "Show"}</span>
+                      </button>
+                    </div>
+                    <input
+                      type={revealedFields.smtp ? "text" : "password"}
+                      placeholder={maskedIntegrations["SMTP_PASSWORD"]?.isConfigured ? "•••••••• (Encrypted at rest)" : "Enter SMTP password..."}
+                      value={envVars.SMTP_PASSWORD}
+                      onChange={(e) => setEnvVars({ ...envVars, SMTP_PASSWORD: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Twilio SMS Gateway */}
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                      <Server className="h-3.5 w-3.5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white">Twilio SMS Gateway</h4>
+                      <p className="text-[10px] text-slate-400">Optional custom Twilio credentials for DLT SMS broadcasts.</p>
+                    </div>
+                  </div>
+                  {maskedIntegrations["TWILIO_ACCOUNT_SID"]?.isConfigured ? (
+                    <span className="text-[10px] font-semibold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Active</span>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Platform Default</span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                      Twilio Account SID
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      value={envVars.TWILIO_ACCOUNT_SID}
+                      onChange={(e) => setEnvVars({ ...envVars, TWILIO_ACCOUNT_SID: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-semibold text-slate-300">
+                        Auth Token
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setRevealedFields(p => ({ ...p, twilio: !p.twilio }))}
+                        className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1"
+                      >
+                        {revealedFields.twilio ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                        <span>{revealedFields.twilio ? "Hide" : "Show"}</span>
+                      </button>
+                    </div>
+                    <input
+                      type={revealedFields.twilio ? "text" : "password"}
+                      placeholder={maskedIntegrations["TWILIO_AUTH_TOKEN"]?.isConfigured ? "•••••••• (Encrypted at rest)" : "Twilio Auth Token..."}
+                      value={envVars.TWILIO_AUTH_TOKEN}
+                      onChange={(e) => setEnvVars({ ...envVars, TWILIO_AUTH_TOKEN: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                      Sender Phone Number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="+1234567890"
+                      value={envVars.TWILIO_PHONE_NUMBER}
+                      onChange={(e) => setEnvVars({ ...envVars, TWILIO_PHONE_NUMBER: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

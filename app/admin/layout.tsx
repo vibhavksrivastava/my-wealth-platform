@@ -17,6 +17,7 @@ import {
   Receipt,
   MessageSquare,
 } from "lucide-react";
+import { TenantConfigProvider } from "@/lib/tenant-config";
 
 interface UserProfile {
   id: string;
@@ -120,7 +121,8 @@ export default function TenantAdminLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
+    <TenantConfigProvider>
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
       {/* Top Header */}
       <header className="border-b border-slate-900 bg-slate-950/90 backdrop-blur-md sticky top-0 z-50 px-6 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-6">
@@ -219,7 +221,8 @@ export default function TenantAdminLayout({
           {children}
         </Suspense>
       </main>
-    </div>
+      </div>
+    </TenantConfigProvider>
   );
 }
 

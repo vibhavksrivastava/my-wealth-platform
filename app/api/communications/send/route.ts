@@ -38,6 +38,7 @@ export async function POST(req: Request) {
           text: message,
           templateName,
           templateParams,
+          tenantId: session.tenantId,
         });
         break;
 
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
           subject,
           html: html || `<p>${message}</p>`,
           text: message,
+          tenantId: session.tenantId,
         });
         break;
 
@@ -57,6 +59,7 @@ export async function POST(req: Request) {
         result = await sendSms({
           to: recipient,
           message: message || "WealthOS notification",
+          tenantId: session.tenantId,
         });
         break;
 

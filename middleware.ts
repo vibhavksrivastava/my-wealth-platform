@@ -65,8 +65,13 @@ export function middleware(req: NextRequest) {
     requestHeaders.set("x-tenant-subdomain", subdomain);
   } else {
     requestHeaders.delete("x-tenant-subdomain");
+    // If not a subdomain or local root, it may be an MFD custom domain (e.g. client.zenithwealth.com)
+    if (hostname !== "localhost" && hostname !== "127.0.0.1" && !hostname.endsWith(".localhost")) {
+      requestHeaders.set("x-tenant-custom-domain", hostname);
+    }
   }
   requestHeaders.set("x-tenant-host", host);
+  requestHeaders.set("x-tenant-hostname", hostname);
 
   // If a tenant subdomain is detected and accessing root path, rewrite to tenant portal route
   if (subdomain && url.pathname === "/") {

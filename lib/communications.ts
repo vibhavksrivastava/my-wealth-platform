@@ -4,6 +4,8 @@
  * and DLT-compliant SMS (Twilio/MSG91/Kaleyra) for Indian Wealth Management & MFD compliance.
  */
 
+import { getTenantConfig, TenantServerConfig } from "@/lib/tenant-config";
+
 export type Channel = "WHATSAPP" | "EMAIL" | "SMS";
 
 export interface SendWhatsAppOptions {
@@ -12,6 +14,7 @@ export interface SendWhatsAppOptions {
   templateParams?: string[];
   text?: string;
   mediaUrl?: string; // Optional PDF or report attachment
+  tenantId?: string; // Optional tenant ID for tenant-level WhatsApp credentials
 }
 
 export interface SendEmailOptions {
@@ -21,12 +24,14 @@ export interface SendEmailOptions {
   text?: string;
   from?: string;
   replyTo?: string;
+  tenantId?: string; // Optional tenant ID for tenant-level SMTP/email credentials
 }
 
 export interface SendSmsOptions {
   to: string;
   message: string;
   dltTemplateId?: string; // TRAI Indian DLT Template Registration ID
+  tenantId?: string; // Optional tenant ID for tenant-level Twilio/SMS credentials
 }
 
 export interface DispatchResult {
@@ -45,11 +50,29 @@ export interface DispatchResult {
  * Falls back to simulation log if credentials are not configured in environment.
  */
 export async function sendWhatsAppMessage(options: SendWhatsAppOptions): Promise<DispatchResult> {
-  const { to, text, templateName, templateParams, mediaUrl } = options;
+  const { to, text, templateName, templateParams, mediaUrl, tenantId } = options;
   const cleanPhone = to.replace(/[^0-9+]/g, "");
 
-  const token = process.env.WHATSAPP_API_TOKEN || process.env.META_WA_TOKEN;
-  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  let token = process.env.WHATSAPP_API_TOKEN || process.env.META_WA_TOKEN;
+  let phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+  // Resolve tenant-level WhatsApp credentials if available
+  if (tenantId) {
+    try {
+      const config = (await getTenantConfig(
+        { tenantId },
+        { includeDecryptedEnv: true }
+      )) as TenantServerConfig | null;
+      if (config?.env?.WHATSAPP_API_TOKEN) {
+        token = config.env.WHATSAPP_API_TOKEN;
+      }
+      if (config?.env?.WHATSAPP_PHONE_NUMBER_ID) {
+        phoneId = config.env.WHATSAPP_PHONE_NUMBER_ID;
+      }
+    } catch (err) {
+      console.warn("Could not load tenant WhatsApp env vars, falling back to global:", err);
+    }
+  }
 
   // Real Meta WhatsApp Cloud API Integration
   if (token && phoneId) {
@@ -139,11 +162,25 @@ export async function sendWhatsAppMessage(options: SendWhatsAppOptions): Promise
  * 2. EMAIL ENGINE: Sends transactional emails via Resend / SendGrid / Custom SMTP
  */
 export async function sendEmail(options: SendEmailOptions): Promise<DispatchResult> {
-  const { to, subject, html, text, from, replyTo } = options;
-  const sender = from || process.env.EMAIL_FROM || "WealthOS Platform <notifications@wealthos.com>";
+  const { to, subject, html, text, from, replyTo, tenantId } = options;
+  let sender = from || process.env.EMAIL_FROM || "WealthOS Platform <notifications@wealthos.com>";
 
-  const resendApiKey = process.env.RESEND_API_KEY;
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  let resendApiKey = process.env.RESEND_API_KEY;
+  let sendgridApiKey = process.env.SENDGRID_API_KEY;
+
+  if (tenantId) {
+    try {
+      const config = (await getTenantConfig(
+        { tenantId },
+        { includeDecryptedEnv: true }
+      )) as TenantServerConfig | null;
+      if (config?.env?.RESEND_API_KEY) resendApiKey = config.env.RESEND_API_KEY;
+      if (config?.env?.SENDGRID_API_KEY) sendgridApiKey = config.env.SENDGRID_API_KEY;
+      if (config?.env?.SMTP_FROM_EMAIL) sender = config.env.SMTP_FROM_EMAIL;
+    } catch (err) {
+      console.warn("Could not load tenant email env vars, falling back to global:", err);
+    }
+  }
 
   // Real Resend Integration
   if (resendApiKey) {
@@ -239,12 +276,26 @@ export async function sendEmail(options: SendEmailOptions): Promise<DispatchResu
  * 3. SMS ENGINE: Sends DLT-compliant SMS via Twilio / MSG91 / Kaleyra
  */
 export async function sendSms(options: SendSmsOptions): Promise<DispatchResult> {
-  const { to, message, dltTemplateId } = options;
+  const { to, message, dltTemplateId, tenantId } = options;
   const cleanPhone = to.replace(/[^0-9+]/g, "");
 
-  const twilioSid = process.env.TWILIO_ACCOUNT_SID;
-  const twilioToken = process.env.TWILIO_AUTH_TOKEN;
-  const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+  let twilioSid = process.env.TWILIO_ACCOUNT_SID;
+  let twilioToken = process.env.TWILIO_AUTH_TOKEN;
+  let twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+
+  if (tenantId) {
+    try {
+      const config = (await getTenantConfig(
+        { tenantId },
+        { includeDecryptedEnv: true }
+      )) as TenantServerConfig | null;
+      if (config?.env?.TWILIO_ACCOUNT_SID) twilioSid = config.env.TWILIO_ACCOUNT_SID;
+      if (config?.env?.TWILIO_AUTH_TOKEN) twilioToken = config.env.TWILIO_AUTH_TOKEN;
+      if (config?.env?.TWILIO_PHONE_NUMBER) twilioPhone = config.env.TWILIO_PHONE_NUMBER;
+    } catch (err) {
+      console.warn("Could not load tenant SMS env vars, falling back to global:", err);
+    }
+  }
 
   // Real Twilio SMS Integration
   if (twilioSid && twilioToken && twilioPhone) {
