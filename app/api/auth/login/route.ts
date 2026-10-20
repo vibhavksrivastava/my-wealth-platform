@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { supabaseAdmin } from "@/lib/supabase";
 import { ROLE_PERMISSIONS, ROLES, type Role } from "@/lib/permissions";
-
-// Initialize Supabase Admin Client using HTTPS (Bypasses raw TCP/SASL issues completely)
 
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_for_local_dev";
 
@@ -16,6 +14,20 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Email and password are required." },
         { status: 400 }
+      );
+    }
+
+    // Verify Supabase environment variables are properly populated in runtime
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const isConfigured = supabaseUrl && !supabaseUrl.includes("placeholder-project.supabase.co");
+    if (!isConfigured) {
+      console.error("Supabase environment variables missing in runtime.");
+      return NextResponse.json(
+        { 
+          error: "Database connection not configured. Please add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your Vercel Project Settings -> Environment Variables, and redeploy.",
+          missingEnv: true
+        },
+        { status: 500 }
       );
     }
 
@@ -50,7 +62,10 @@ export async function POST(req: Request) {
     if (userError) {
       console.error("Auth User Query Error:", userError);
       return NextResponse.json(
-        { error: "Database error during authentication." },
+        { 
+          error: `Database authentication query failed: ${userError.message || "Unable to reach database."}`,
+          details: userError.message
+        },
         { status: 500 }
       );
     }
@@ -202,10 +217,13 @@ export async function POST(req: Request) {
       },
       tenant: tenantData,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Auth Login Route Error:", error);
     return NextResponse.json(
-      { error: "Internal server error during authentication." },
+      { 
+        error: error?.message || "Internal server error during authentication.",
+        details: error?.stack || String(error)
+      },
       { status: 500 }
     );
   }

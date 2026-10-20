@@ -1,7 +1,7 @@
 import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import crypto from "crypto";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 
 export async function POST(req: Request) {

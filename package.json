@@ -11,7 +11,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
     "@types/nodemailer": "^8.0.2",
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.57.0",
     "next": "16.4.1",
@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
-    "@types/bcrypt": "^6.0.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/pg": "^8.23.1",

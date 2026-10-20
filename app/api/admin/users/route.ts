@@ -1,6 +1,6 @@
 import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { verifyAuthHeader } from "@/lib/auth";
 import { checkTenantSeatCapacity } from "@/lib/tenantPlans";
 
