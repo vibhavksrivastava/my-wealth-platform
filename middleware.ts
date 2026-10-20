@@ -24,6 +24,10 @@ const RESERVED_SUBDOMAINS = new Set([
   "portal",
   "staging",
   "dev",
+  "my-wealth-platform",
+  "platform",
+  "wealthos",
+  "unifiedwealth",
 ]);
 
 export function middleware(req: NextRequest) {
@@ -35,7 +39,7 @@ export function middleware(req: NextRequest) {
 
   let subdomain: string | null = null;
 
-  // 1. Check for query parameter override (ideal for local testing: ?tenant=zenith9186)
+  // 1. Check for query parameter override (ideal for testing or explicit selection: ?tenant=zenith9186)
   const queryTenant = url.searchParams.get("tenant") || url.searchParams.get("subdomain");
   if (queryTenant && queryTenant.trim()) {
     subdomain = queryTenant.toLowerCase().trim();
@@ -48,8 +52,22 @@ export function middleware(req: NextRequest) {
   } else if (hostname === "localhost" || hostname === "127.0.0.1") {
     // Root local environment
     subdomain = null;
+  } else if (hostname.endsWith(".vercel.app")) {
+    // 3. Vercel deployment domains (e.g. 'my-wealth-platform.vercel.app' or preview deployments)
+    // The base Vercel domain has 3 parts: [project-name, 'vercel', 'app'].
+    // Only extract subdomain if there are 4+ parts: [tenant, project-name, 'vercel', 'app'].
+    const parts = hostname.replace(/\.vercel\.app$/, "").split(".");
+    if (parts.length >= 2) {
+      const candidate = parts[0];
+      if (!RESERVED_SUBDOMAINS.has(candidate)) {
+        subdomain = candidate;
+      }
+    } else {
+      // Direct project root on Vercel (e.g. 'my-wealth-platform.vercel.app') -> Root platform
+      subdomain = null;
+    }
   } else {
-    // 3. Production / Staging domain parsing (e.g. 'zenith9186.unifiedwealth.com' or custom domains)
+    // 4. Custom production domains (e.g. 'zenith9186.unifiedwealth.com')
     const parts = hostname.split(".");
     if (parts.length >= 3) {
       const candidate = parts[0];
