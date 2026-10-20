@@ -28,6 +28,11 @@ const RESERVED_SUBDOMAINS = new Set([
   "platform",
   "wealthos",
   "unifiedwealth",
+  "login",
+  "forgot-password",
+  "reset-password",
+  "renew-account",
+  "super-admin",
 ]);
 
 export function middleware(req: NextRequest) {
@@ -90,6 +95,25 @@ export function middleware(req: NextRequest) {
   }
   requestHeaders.set("x-tenant-host", host);
   requestHeaders.set("x-tenant-hostname", hostname);
+
+  // Support path-based tenant login routes: e.g. /apex/login -> /login?tenant=apex
+  const loginMatch = url.pathname.match(/^\/([a-zA-Z0-9_-]+)\/login\/?$/);
+  if (loginMatch) {
+    const pathTenant = loginMatch[1].toLowerCase();
+    if (!RESERVED_SUBDOMAINS.has(pathTenant)) {
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("tenant", pathTenant);
+      requestHeaders.set("x-tenant-subdomain", pathTenant);
+      const response = NextResponse.rewrite(loginUrl, {
+        request: {
+          headers: requestHeaders,
+        },
+      });
+      response.headers.set("x-tenant-subdomain", pathTenant);
+      response.cookies.set("tenant_subdomain", pathTenant, { path: "/", httpOnly: false });
+      return response;
+    }
+  }
 
   // If a tenant subdomain is detected and accessing root path, rewrite to tenant portal route
   if (subdomain && url.pathname === "/") {
