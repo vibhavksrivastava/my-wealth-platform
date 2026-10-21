@@ -40,6 +40,14 @@ export interface NetWorthDiagnostic {
   findings: string[];
 }
 
+import {
+  unpackAsset,
+  unpackInvestment,
+  unpackGoal,
+  projectAssetProceedsForGoal,
+  projectInvestmentCorpusForGoal,
+} from "./goalAssetAlignment";
+
 export interface GoalDiagnosticItem {
   goalId: string;
   goalName: string;
@@ -58,6 +66,29 @@ export interface GoalDiagnosticItem {
   currentMonthlySIP: number;
   additionalMonthlySipRequired: number;
   recommendationSummary: string;
+  // Enhanced Earmarked Asset & Investment Alignment Breakdown
+  earmarkedAssetProceeds?: number;
+  earmarkedInvestmentProceeds?: number;
+  totalPreFundedFutureCorpus?: number;
+  linkedAssets?: Array<{
+    assetId: string;
+    description: string;
+    category: string;
+    currentValue: number;
+    expectedCagr: number;
+    targetLiquidationDate: string | null;
+    projectedProceeds: number;
+    isMaturedBeforeGoal: boolean;
+  }>;
+  linkedInvestments?: Array<{
+    investmentId: string;
+    schemeName: string;
+    assetClass: string;
+    currentValue: number;
+    monthlySip: number;
+    expectedCagr: number;
+    totalProjectedCorpus: number;
+  }>;
 }
 
 export interface GoalFeasibilityDiagnostic {
@@ -69,6 +100,8 @@ export interface GoalFeasibilityDiagnostic {
   totalProjectedCorpus: number;
   totalShortfall: number;
   totalMonthlyRequiredSip: number;
+  totalEarmarkedAssetProceeds: number;
+  totalEarmarkedInvestmentProceeds: number;
   monthlySurplus: number;
   monthlyCapacityGap: number;
   capacityStatus: "AFFORDABLE" | "DEFICIT";
@@ -325,16 +358,43 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
     // Compounded future value of target
     const inflatedTarget = Math.round(targetAmt * Math.pow(1 + infRate / 100, yearsRem));
 
-    // Compounded growth of existing dedicated corpus
+    // Compounded growth of existing dedicated cash corpus
     const allocatedCorpus = Number(g.current_corpus_allocated || 0);
     const futureValCorpus = Math.round(allocatedCorpus * Math.pow(1 + expReturn / 100, yearsRem));
 
-    // Shortfall without additional monthly contributions
-    const grossShortfall = Math.max(0, inflatedTarget - futureValCorpus);
+    // 1. Identify Earmarked Physical Assets & Project Liquidation Proceeds
+    const unpackedGoalObj = unpackGoal(g);
+    const linkedAssetIds = new Set(unpackedGoalObj.linked_asset_ids || []);
 
-    // Monthly SIP required to bridge this goal's shortfall
+    const mappedAssets = (assets || [])
+      .filter((a: any) => {
+        const uA = unpackAsset(a);
+        return uA.linked_goal_id === g.goal_id || (a.asset_id && linkedAssetIds.has(a.asset_id));
+      })
+      .map((a: any) => projectAssetProceedsForGoal(unpackAsset(a), targetYr));
+
+    const totalAssetProceeds = mappedAssets.reduce((sum, item) => sum + item.projectedProceeds, 0);
+
+    // 2. Identify Earmarked Market Investments & Project Compounded Corpus
+    const linkedInvIds = new Set(unpackedGoalObj.linked_investment_ids || []);
+    const mappedInvestments = (investments || [])
+      .filter((inv: any) => {
+        const uInv = unpackInvestment(inv);
+        return uInv.linked_goal_id === g.goal_id || (inv.investment_id && linkedInvIds.has(inv.investment_id));
+      })
+      .map((inv: any) => projectInvestmentCorpusForGoal(unpackInvestment(inv), targetYr));
+
+    const totalInvestmentProceeds = mappedInvestments.reduce((sum, item) => sum + item.totalProjectedCorpus, 0);
+
+    // 3. Consolidated Pre-Funded Future Corpus (Corpus + Asset Liquidations + Investments)
+    const totalPreFundedCorpus = futureValCorpus + totalAssetProceeds + totalInvestmentProceeds;
+
+    // 4. Net Future Shortfall to be bridged by ongoing monthly cash flow surplus
+    const grossShortfall = Math.max(0, inflatedTarget - totalPreFundedCorpus);
+
+    // 5. True Monthly SIP required to bridge only the remaining gap
     const requiredSip = grossShortfall > 0
-      ? (Number(g.monthly_required_sip) || calculateRequiredMonthlySIP(grossShortfall, expReturn, yearsRem))
+      ? calculateRequiredMonthlySIP(grossShortfall, expReturn, yearsRem)
       : 0;
 
     return {
@@ -350,13 +410,20 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
       inflatedTargetAmount: inflatedTarget,
       currentAllocatedCorpus: allocatedCorpus,
       futureValCorpus,
+      totalAssetProceeds,
+      totalInvestmentProceeds,
+      totalPreFundedCorpus,
       grossShortfall,
       requiredSip,
+      mappedAssets,
+      mappedInvestments,
     };
   });
 
   // Calculate total monthly required SIP across all family goals vs net monthly cash flow surplus
   const totalMonthlyRequiredSip = preparedGoals.reduce((sum, g) => sum + g.requiredSip, 0);
+  const totalEarmarkedAssetProceeds = preparedGoals.reduce((sum, g) => sum + g.totalAssetProceeds, 0);
+  const totalEarmarkedInvestmentProceeds = preparedGoals.reduce((sum, g) => sum + g.totalInvestmentProceeds, 0);
   const totalMonthlySurplus = Math.max(0, netMonthlySurplus);
   const monthlyCapacityGap = Math.max(0, totalMonthlyRequiredSip - totalMonthlySurplus);
   const capacityStatus: "AFFORDABLE" | "DEFICIT" = monthlyCapacityGap > 0 ? "DEFICIT" : "AFFORDABLE";
@@ -375,8 +442,8 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
     // Projected future value of the allocatable SIP
     const achievableFutureValSip = calculateSipFutureValue(allocatableSip, pg.expectedReturnRate, pg.yearsRemaining);
 
-    // Realistic total projected corpus given available cash flows
-    const projectedCorpus = Math.round(pg.futureValCorpus + achievableFutureValSip);
+    // Realistic total projected corpus given available cash flows and pre-funded asset liquidations
+    const projectedCorpus = Math.round(pg.totalPreFundedCorpus + achievableFutureValSip);
 
     // Actual realistic shortfall
     const shortfall = Math.max(0, pg.inflatedTargetAmount - projectedCorpus);
@@ -387,10 +454,10 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
       : 100;
 
     let feasibilityStatus: "ON_TRACK" | "MODERATE_GAP" | "CRITICAL_GAP" = "ON_TRACK";
-    if (fundedPct >= 90 && unfundedMonthlySip === 0) {
+    if (fundedPct >= 95 || unfundedMonthlySip === 0) {
       feasibilityStatus = "ON_TRACK";
       onTrackCount++;
-    } else if (fundedPct >= 60) {
+    } else if (fundedPct >= 65) {
       feasibilityStatus = "MODERATE_GAP";
       gapCount++;
     } else {
@@ -399,12 +466,29 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
     }
 
     let summary = "";
+    const assetCount = pg.mappedAssets.length;
+    const invCount = pg.mappedInvestments.length;
+
+    let backingDetails: string[] = [];
+    if (pg.totalAssetProceeds > 0) {
+      backingDetails.push(`₹${(pg.totalAssetProceeds / 100000).toFixed(1)}L from ${assetCount} earmarked asset liquidation(s)`);
+    }
+    if (pg.totalInvestmentProceeds > 0) {
+      backingDetails.push(`₹${(pg.totalInvestmentProceeds / 100000).toFixed(1)}L from ${invCount} mapped investment(s)`);
+    }
+
+    const backingText = backingDetails.length > 0 ? ` (backed by ${backingDetails.join(" + ")})` : "";
+
     if (feasibilityStatus === "ON_TRACK") {
-      summary = `Goal is fully affordable & funded (${fundedPct}% projected coverage by ${pg.targetYear}) via ₹${Math.round(allocatableSip).toLocaleString("en-IN")}/mo surplus allocation.`;
+      if (pg.requiredSip === 0) {
+        summary = `Goal is fully funded & on-track for ${pg.targetYear}${backingText}. Zero additional monthly SIP needed.`;
+      } else {
+        summary = `Goal is on-track for ${pg.targetYear}${backingText}. Current cash flow surplus easily funds the required ₹${Math.round(allocatableSip).toLocaleString("en-IN")}/mo SIP.`;
+      }
     } else if (feasibilityStatus === "MODERATE_GAP") {
-      summary = `Moderate shortfall of ₹${Math.round(shortfall).toLocaleString("en-IN")}. Current surplus funds ₹${Math.round(allocatableSip).toLocaleString("en-IN")}/mo; requires an additional ₹${Math.round(unfundedMonthlySip).toLocaleString("en-IN")}/mo.`;
+      summary = `Moderate shortfall of ₹${Math.round(shortfall).toLocaleString("en-IN")}${backingText}. Current surplus funds ₹${Math.round(allocatableSip).toLocaleString("en-IN")}/mo; requires an additional ₹${Math.round(unfundedMonthlySip).toLocaleString("en-IN")}/mo.`;
     } else {
-      summary = `Funding gap of ₹${Math.round(shortfall).toLocaleString("en-IN")} (${fundedPct}% funded). Constrained by monthly surplus: requires additional ₹${Math.round(unfundedMonthlySip).toLocaleString("en-IN")}/mo or timeline extension.`;
+      summary = `Funding gap of ₹${Math.round(shortfall).toLocaleString("en-IN")} (${fundedPct}% funded)${backingText}. Requires an additional ₹${Math.round(unfundedMonthlySip).toLocaleString("en-IN")}/mo or extending target horizon.`;
     }
 
     totalInflatedTarget += pg.inflatedTargetAmount;
@@ -429,6 +513,11 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
       currentMonthlySIP: allocatableSip,
       additionalMonthlySipRequired: unfundedMonthlySip,
       recommendationSummary: summary,
+      earmarkedAssetProceeds: pg.totalAssetProceeds,
+      earmarkedInvestmentProceeds: pg.totalInvestmentProceeds,
+      totalPreFundedFutureCorpus: pg.totalPreFundedCorpus,
+      linkedAssets: pg.mappedAssets,
+      linkedInvestments: pg.mappedInvestments,
     });
   }
 
@@ -476,6 +565,12 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
 
   if (emergencyFundStatus !== "SUFFICIENT") {
     summaryHighlights.push("Priority: Fortify liquid emergency reserves to safeguard against income disruptions.");
+  }
+
+  if (totalEarmarkedAssetProceeds > 0) {
+    summaryHighlights.push(
+      `Asset Liquidation Strategy: ₹${(totalEarmarkedAssetProceeds / 10000000).toFixed(2)} Cr in planned physical asset liquidations (Real Estate, FDs & Gold) earmarked to fund long-term life goals.`
+    );
   }
 
   if (monthlyCapacityGap > 0) {
@@ -695,6 +790,8 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
       totalProjectedCorpus,
       totalShortfall,
       totalMonthlyRequiredSip,
+      totalEarmarkedAssetProceeds,
+      totalEarmarkedInvestmentProceeds,
       monthlySurplus: totalMonthlySurplus,
       monthlyCapacityGap,
       capacityStatus,

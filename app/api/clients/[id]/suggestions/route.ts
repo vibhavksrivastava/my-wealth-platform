@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { generateClientDiagnostic } from "@/lib/analysisEngine";
+import { unpackAsset, unpackInvestment, unpackGoal } from "@/lib/goalAssetAlignment";
 import {
   getSuggestionsForClient,
   createClientSuggestion,
@@ -48,10 +49,10 @@ async function fetchClientProfile(clientId: string) {
     client,
     incomes: incomesRes.data || [],
     expenses: expensesRes.data || [],
-    assets: assetsRes.data || [],
+    assets: (assetsRes.data || []).map(unpackAsset),
     liabilities: liabilitiesRes.data || [],
-    investments: investmentsRes.data || [],
-    goals: goalsRes.data || [],
+    investments: (investmentsRes.data || []).map(unpackInvestment),
+    goals: (goalsRes.data || []).map(unpackGoal),
   };
 }
 

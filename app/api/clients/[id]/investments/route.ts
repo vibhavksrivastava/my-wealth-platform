@@ -2,6 +2,7 @@ import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
+import { unpackInvestment, packInvestmentNotes } from "@/lib/goalAssetAlignment";
 
 
 async function verifyClientAccess(clientId: string, session: any) {
@@ -58,6 +59,7 @@ export async function POST(
       goal_purpose,
       notes,
       target_client_id,
+      linked_goal_id,
     } = body;
 
     const assignedClientId = target_client_id || clientId;
@@ -71,7 +73,12 @@ export async function POST(
     const cagrRaw = Number(expected_return_cagr || 0.12);
     const cagrFormatted = cagrRaw > 1 ? cagrRaw / 100 : cagrRaw;
 
-    const { data: inserted, error: insertErr } = await supabaseAdmin
+    const effectiveGoalId = linked_goal_id && linked_goal_id !== "none" ? linked_goal_id : null;
+
+    let inserted: any = null;
+    let insertErr: any = null;
+
+    const res1 = await supabaseAdmin
       .from("investment_portfolio")
       .insert({
         client_id: assignedClientId,
@@ -83,14 +90,76 @@ export async function POST(
         monthly_sip_amount: Number(monthly_sip_amount || 0),
         expected_return_cagr: cagrFormatted,
         goal_purpose: goal_purpose ? String(goal_purpose).trim() : null,
+        linked_goal_id: effectiveGoalId,
         notes: notes ? String(notes).trim() : null,
         updated_at: new Date().toISOString(),
       })
       .select()
       .single();
 
+    if (res1.error && res1.error.code === "PGRST204") {
+      const packedNotes = packInvestmentNotes(notes, { linked_goal_id: effectiveGoalId });
+      const res2 = await supabaseAdmin
+        .from("investment_portfolio")
+        .insert({
+          client_id: assignedClientId,
+          asset_class: asset_class || "Equity Mutual Fund",
+          scheme_instrument_name: scheme_instrument_name.trim(),
+          owner_name: owner_name ? owner_name.trim() : client?.full_name || "Self",
+          invested_amount: investedNum,
+          current_value: currentValNum,
+          monthly_sip_amount: Number(monthly_sip_amount || 0),
+          expected_return_cagr: cagrFormatted,
+          goal_purpose: effectiveGoalId ? `GOAL_ID:${effectiveGoalId}` : (goal_purpose ? String(goal_purpose).trim() : null),
+          notes: packedNotes,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      inserted = res2.data;
+      insertErr = res2.error;
+    } else {
+      inserted = res1.data;
+      insertErr = res1.error;
+    }
+
     if (insertErr || !inserted) {
       throw insertErr || new Error("Failed to insert investment record.");
+    }
+
+    // Sync goal mapping if present
+    if (effectiveGoalId) {
+      try {
+        const { data: targetGoal } = await supabaseAdmin
+          .from("financial_goals")
+          .select("goal_id, notes, linked_investment_ids")
+          .eq("goal_id", effectiveGoalId)
+          .maybeSingle();
+
+        if (targetGoal) {
+          const currentInvIds = Array.isArray(targetGoal.linked_investment_ids) ? targetGoal.linked_investment_ids : [];
+          if (!currentInvIds.includes(inserted.investment_id)) {
+            const updatedIds = [...currentInvIds, inserted.investment_id];
+            const gRes = await supabaseAdmin
+              .from("financial_goals")
+              .update({ linked_investment_ids: updatedIds })
+              .eq("goal_id", effectiveGoalId);
+
+            if (gRes.error && gRes.error.code === "PGRST204") {
+              const { packGoalNotes, unpackGoal } = await import("@/lib/goalAssetAlignment");
+              const unpacked = unpackGoal(targetGoal);
+              const newIds = Array.from(new Set([...unpacked.linked_investment_ids || [], inserted.investment_id]));
+              const packedGNotes = packGoalNotes(unpacked.clean_notes, {
+                linked_asset_ids: unpacked.linked_asset_ids,
+                linked_investment_ids: newIds,
+              });
+              await supabaseAdmin.from("financial_goals").update({ notes: packedGNotes }).eq("goal_id", effectiveGoalId);
+            }
+          }
+        }
+      } catch (syncErr) {
+        console.warn("Investment goal sync notice:", syncErr);
+      }
     }
 
     await logAuditEvent({
@@ -103,7 +172,7 @@ export async function POST(
       details: inserted,
     });
 
-    return NextResponse.json({ success: true, item: inserted });
+    return NextResponse.json({ success: true, item: unpackInvestment(inserted) });
   } catch (err: any) {
     console.error("Investment POST error:", err);
     return NextResponse.json({ error: err.message || "Failed to create investment record." }, { status: 500 });
@@ -136,6 +205,7 @@ export async function PUT(
       monthly_sip_amount,
       expected_return_cagr,
       goal_purpose,
+      linked_goal_id,
       notes,
     } = body;
 
@@ -161,14 +231,40 @@ export async function PUT(
       updates.expected_return_cagr = cagrRaw > 1 ? cagrRaw / 100 : cagrRaw;
     }
     if (goal_purpose !== undefined) updates.goal_purpose = goal_purpose ? String(goal_purpose).trim() : null;
+    if (linked_goal_id !== undefined) updates.linked_goal_id = linked_goal_id && linked_goal_id !== "none" ? linked_goal_id : null;
     if (notes !== undefined) updates.notes = notes ? String(notes).trim() : null;
 
-    const { data: updated, error: updateErr } = await supabaseAdmin
+    let updated: any = null;
+    let updateErr: any = null;
+
+    const res1 = await supabaseAdmin
       .from("investment_portfolio")
       .update(updates)
       .eq("investment_id", investment_id)
       .select()
       .single();
+
+    if (res1.error && res1.error.code === "PGRST204") {
+      const cleanUpdates = { ...updates };
+      delete cleanUpdates.linked_goal_id;
+      if (linked_goal_id !== undefined) {
+        cleanUpdates.notes = packInvestmentNotes(notes, { linked_goal_id });
+        if (linked_goal_id && linked_goal_id !== "none") {
+          cleanUpdates.goal_purpose = `GOAL_ID:${linked_goal_id}`;
+        }
+      }
+      const res2 = await supabaseAdmin
+        .from("investment_portfolio")
+        .update(cleanUpdates)
+        .eq("investment_id", investment_id)
+        .select()
+        .single();
+      updated = res2.data;
+      updateErr = res2.error;
+    } else {
+      updated = res1.data;
+      updateErr = res1.error;
+    }
 
     if (updateErr || !updated) {
       throw updateErr || new Error("Failed to update investment record.");
@@ -184,7 +280,7 @@ export async function PUT(
       details: updates,
     });
 
-    return NextResponse.json({ success: true, item: updated });
+    return NextResponse.json({ success: true, item: unpackInvestment(updated) });
   } catch (err: any) {
     console.error("Investment PUT error:", err);
     return NextResponse.json({ error: err.message || "Failed to update investment record." }, { status: 500 });

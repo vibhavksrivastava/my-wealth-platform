@@ -2,6 +2,7 @@ import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
+import { unpackAsset, unpackInvestment, unpackGoal } from "@/lib/goalAssetAlignment";
 
 
 export async function GET(
@@ -74,15 +75,15 @@ export async function GET(
 
     const incomes = incomesRes.data || [];
     const expenses = expensesRes.data || [];
-    const assets = assetsRes.data || [];
+    const assets = (assetsRes.data || []).map(unpackAsset);
     const liabilities = liabilitiesRes.data || [];
-    const investments = investmentsRes.data || [];
-    const goals = goalsRes.data || [];
+    const investments = (investmentsRes.data || []).map(unpackInvestment);
+    const goals = (goalsRes.data || []).map(unpackGoal);
 
     // Helper for calculation
     const calculateMetrics = (cIds: string[]) => {
-      const filteredAssets = assets.filter((a) => cIds.includes(a.client_id));
-      const filteredInvestments = investments.filter((i) => cIds.includes(i.client_id));
+      const filteredAssets = assets.filter((a) => a.client_id && cIds.includes(a.client_id));
+      const filteredInvestments = investments.filter((i) => i.client_id && cIds.includes(i.client_id));
       const filteredLiabilities = liabilities.filter((l) => cIds.includes(l.client_id));
       const filteredIncomes = incomes.filter((inc) => cIds.includes(inc.client_id));
       const filteredExpenses = expenses.filter((e) => cIds.includes(e.client_id));
