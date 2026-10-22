@@ -114,3 +114,4 @@ export async function PATCH(
     return NextResponse.json({ error: err.message || "Failed to update tenant features." }, { status: 500 });
   }
 }
+

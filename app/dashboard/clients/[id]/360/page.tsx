@@ -333,6 +333,15 @@ export default function Client360Page({
 
         {/* Scope Switcher & Quick Actions */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Link to Mutual Fund Portfolio */}
+          <Link
+            href={`/dashboard/portfolio?clientId=${clientId}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-xs font-bold text-sky-400 hover:text-sky-300 transition shadow-sm"
+          >
+            <TrendingUp className="h-3.5 w-3.5 text-sky-400" />
+            <span>MF Portfolio</span>
+          </Link>
+
           {/* Link to Net Worth Sheet */}
           <Link
             href={`/dashboard/clients/${clientId}/net-worth`}

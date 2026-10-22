@@ -391,6 +391,12 @@ export default function AdvisorDashboard() {
                       Client 360 &deg;
                     </Link>
                     <Link
+                      href={`/dashboard/portfolio?clientId=${c.client_id}`}
+                      className="px-2 py-1 rounded-md text-[10px] font-semibold bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/80 dark:hover:bg-sky-900 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 transition shadow-sm"
+                    >
+                      MF Portfolio
+                    </Link>
+                    <Link
                       href={`/dashboard/clients/${c.client_id}/net-worth`}
                       className="px-2 py-1 rounded-md text-[10px] font-semibold bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
                     >

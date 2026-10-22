@@ -155,3 +155,4 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: err.message || "Failed to save firm feature permissions." }, { status: 500 });
   }
 }
+

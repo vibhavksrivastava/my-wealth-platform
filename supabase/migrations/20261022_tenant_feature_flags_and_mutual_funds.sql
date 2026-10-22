@@ -117,3 +117,4 @@ CREATE TABLE IF NOT EXISTS public.mf_sips (
 
 CREATE INDEX IF NOT EXISTS idx_mf_sips_client ON public.mf_sips(client_id);
 CREATE INDEX IF NOT EXISTS idx_mf_sips_status ON public.mf_sips(status);
+
