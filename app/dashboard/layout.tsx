@@ -248,6 +248,15 @@ function DashboardNavBar({ user }: { user: UserProfile | null }) {
           </span>
         </Link>
 
+        {/* Financial Calculators Direct Link */}
+        <Link
+          href="/dashboard/portfolio?tab=calculators"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900"
+        >
+          <Calculator className="h-3.5 w-3.5 text-amber-500" />
+          <span>Calculators</span>
+        </Link>
+
         {/* Investment Planning Dropdown Menu */}
         <div className="relative">
           <button
@@ -280,6 +289,20 @@ function DashboardNavBar({ user }: { user: UserProfile | null }) {
                 </div>
                 <div className="text-[10px] text-slate-500 mt-0.5">
                   Goals, cashflow surplus, and net worth
+                </div>
+              </Link>
+
+              <Link
+                href="/dashboard/portfolio?tab=calculators"
+                onClick={() => setPlanningMenuOpen(false)}
+                className="block p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition"
+              >
+                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <Calculator className="h-3.5 w-3.5 text-amber-500" />
+                  <span>Financial &amp; MF Calculators</span>
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">
+                  SIP, Lumpsum, Retirement, Step-Up &amp; Goals
                 </div>
               </Link>
 

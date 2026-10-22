@@ -57,9 +57,11 @@ export async function POST(req: Request) {
     const uwpCode = `UWP-2026-${randomSuffix}`;
 
     // 3. Insert Client Profile Record
+    const effectiveUserId = session.role === "CLIENT" ? session.sub : (personal.user_id || null);
+
     const clientRecordData = {
       tenant_id: session.tenantId,
-      user_id: session.role === "CLIENT" ? session.sub : null,
+      user_id: effectiveUserId,
       household_id: householdId,
       uwp_client_code: uwpCode,
       full_name: personal.full_name.trim(),

@@ -22,6 +22,9 @@ export interface ClientPersonalDetails {
   household_mode: "existing" | "new";
   household_id?: string;
   new_household_name?: string;
+  user_id?: string;
+  user_email?: string;
+  user_account_mode?: "existing_user" | "new_user" | "offline";
   planning_disclosures_notes?: string;
 }
 

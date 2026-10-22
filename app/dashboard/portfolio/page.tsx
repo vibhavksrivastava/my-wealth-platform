@@ -37,10 +37,12 @@ import {
   ArrowLeft,
   ChevronUp,
   SlidersHorizontal,
-  Home
+  Home,
+  Calculator
 } from "lucide-react";
 import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 import { useFeatureAccess } from "@/lib/useFeatureAccess";
+import FinancialCalculators from "@/components/calculators/FinancialCalculators";
 
 function formatINR(val: number) {
   if (val === undefined || val === null || isNaN(val)) return "₹0";
@@ -100,14 +102,26 @@ function MutualFundPortfolioContent() {
     paramClientId || (isAdvisor ? "ALL" : "")
   );
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const paramTab = searchParams.get("tab");
   const [scope, setScope] = useState<"HOUSEHOLD" | "INDIVIDUAL">(paramScope || "HOUSEHOLD");
   const [journeyPeriod, setJourneyPeriod] = useState<"1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y" | "ALL">("ALL");
 
   // Advisor Book Tabs
-  const [bookSubTab, setBookSubTab] = useState<"clients" | "households">("clients");
+  const [bookSubTab, setBookSubTab] = useState<"clients" | "households" | "calculators">(
+    paramTab === "calculators" ? "calculators" : "clients"
+  );
 
   // Client Detail Tabs
-  const [activeTab, setActiveTab] = useState<"holdings" | "transactions" | "sips" | "rebalancing">("holdings");
+  const [activeTab, setActiveTab] = useState<"holdings" | "transactions" | "sips" | "rebalancing" | "calculators">(
+    paramTab === "calculators" ? "calculators" : "holdings"
+  );
+
+  useEffect(() => {
+    if (paramTab === "calculators") {
+      setBookSubTab("calculators");
+      setActiveTab("calculators");
+    }
+  }, [paramTab]);
 
   // Client Switcher Dropdown in Top Bar
   const [switcherOpen, setSwitcherOpen] = useState(false);
@@ -682,7 +696,7 @@ function MutualFundPortfolioContent() {
                 </button>
                 <button
                   onClick={() => setBookSubTab("households")}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition ${
+                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition whitespace-nowrap ${
                     bookSubTab === "households"
                       ? "border-sky-500 text-sky-600 dark:text-sky-400"
                       : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
@@ -690,6 +704,17 @@ function MutualFundPortfolioContent() {
                 >
                   <Home className="h-3.5 w-3.5" />
                   <span>Family Households ({portfolioData?.households?.length || 0})</span>
+                </button>
+                <button
+                  onClick={() => setBookSubTab("calculators")}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition whitespace-nowrap ${
+                    bookSubTab === "calculators"
+                      ? "border-amber-500 text-amber-600 dark:text-amber-400 font-bold"
+                      : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <Calculator className="h-3.5 w-3.5 text-amber-500" />
+                  <span>Financial Calculators (9)</span>
                 </button>
               </div>
 
@@ -897,6 +922,13 @@ function MutualFundPortfolioContent() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* TAB 3: FINANCIAL CALCULATORS */}
+            {bookSubTab === "calculators" && (
+              <div className="pt-2">
+                <FinancialCalculators />
               </div>
             )}
           </div>
@@ -1163,6 +1195,18 @@ function MutualFundPortfolioContent() {
               >
                 <Scale className="h-3.5 w-3.5" />
                 <span>Portfolio Rebalancing</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("calculators")}
+                className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition shrink-0 ${
+                  activeTab === "calculators"
+                    ? "border-amber-500 text-amber-600 dark:text-amber-400 font-bold"
+                    : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Calculator className="h-3.5 w-3.5 text-amber-500" />
+                <span>Financial &amp; MF Calculators (9)</span>
               </button>
             </div>
 
@@ -1606,6 +1650,13 @@ function MutualFundPortfolioContent() {
                     ))
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* TAB 5: FINANCIAL CALCULATORS */}
+            {activeTab === "calculators" && (
+              <div className="pt-2">
+                <FinancialCalculators />
               </div>
             )}
           </div>
