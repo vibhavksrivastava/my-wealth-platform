@@ -21,3 +21,4 @@ ALTER TABLE public.financial_goals
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_assets_linked_goal ON public.assets(linked_goal_id);
 CREATE INDEX IF NOT EXISTS idx_investments_linked_goal ON public.investment_portfolio(linked_goal_id);
+
