@@ -27,9 +27,13 @@ import {
   Server,
   ShieldCheck,
   Scale,
+  Sliders,
+  Users,
+  UserCheck,
 } from "lucide-react";
 import FileUploader from "@/components/FileUploader";
 import { useFirmBranding, type FirmType } from "@/lib/context/FirmBrandingContext";
+import { MASTER_FEATURE_CATALOG, DEFAULT_ROLE_PERMISSIONS, type RolePermissionsMap } from "@/lib/featureFlags";
 
 interface PlanInfo {
   id: string;
@@ -93,6 +97,76 @@ export default function TenantAdminSettingsPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [selectedTenantSlug, setSelectedTenantSlug] = useState<string>("");
+
+  // Role-Based Feature Permissions State
+  const [rolePermissions, setRolePermissions] = useState<RolePermissionsMap>(DEFAULT_ROLE_PERMISSIONS);
+  const [tenantMasterFeatures, setTenantMasterFeatures] = useState<Record<string, boolean>>({});
+  const [isSavingFeatures, setIsSavingFeatures] = useState(false);
+  const [featuresFeedback, setFeaturesFeedback] = useState<string | null>(null);
+
+  const fetchFeatures = async (slug?: string) => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const targetParam = slug ? `?tenant=${encodeURIComponent(slug)}` : "";
+      const res = await fetch(`/api/admin/features${targetParam}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.tenantMasterFeatures) setTenantMasterFeatures(json.tenantMasterFeatures);
+        if (json.rolePermissions) setRolePermissions(json.rolePermissions);
+      }
+    } catch (err) {
+      console.error("Failed to load features:", err);
+    }
+  };
+
+  const handleToggleRoleFeature = (role: "CLIENT" | "ADVISOR" | "STAFF", featureKey: string) => {
+    // Strict Super Admin Veto: If disabled at tenant master level, forbid toggling!
+    if (tenantMasterFeatures[featureKey] === false) {
+      return;
+    }
+
+    setRolePermissions((prev) => {
+      const currentRoleObj = prev[role] || {};
+      const currentVal = currentRoleObj[featureKey] !== false;
+      return {
+        ...prev,
+        [role]: {
+          ...currentRoleObj,
+          [featureKey]: !currentVal,
+        },
+      };
+    });
+  };
+
+  const handleSaveRoleFeatures = async () => {
+    setIsSavingFeatures(true);
+    setFeaturesFeedback(null);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const targetParam = selectedTenantSlug ? `?tenant=${encodeURIComponent(selectedTenantSlug)}` : "";
+      const res = await fetch(`/api/admin/features${targetParam}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ rolePermissions }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to save feature permissions.");
+
+      if (json.rolePermissions) setRolePermissions(json.rolePermissions);
+      setFeaturesFeedback("Role-level feature permissions saved successfully!");
+      setTimeout(() => setFeaturesFeedback(null), 4000);
+    } catch (err: any) {
+      setFeaturesFeedback(err.message || "Failed to save feature permissions.");
+    } finally {
+      setIsSavingFeatures(false);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -184,6 +258,7 @@ export default function TenantAdminSettingsPage() {
 
   useEffect(() => {
     fetchSettings();
+    fetchFeatures(selectedTenantSlug);
   }, [selectedTenantSlug]);
 
   const hasWhiteLabel = plan ? Boolean(plan.features?.white_label) : true;
@@ -974,6 +1049,110 @@ export default function TenantAdminSettingsPage() {
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Role-Based Feature Permissions Matrix */}
+            <div className="border-t border-slate-800 pt-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Sliders className="h-4 w-4 text-amber-400" />
+                    Role-Based Feature Permissions &amp; Capabilities
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Configure which platform tabs and modules are accessible for Clients, Advisors, and Staff.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveRoleFeatures}
+                  disabled={isSavingFeatures}
+                  className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition self-start sm:self-auto shadow"
+                >
+                  {isSavingFeatures ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  <span>Save Role Permissions</span>
+                </button>
+              </div>
+
+              {featuresFeedback && (
+                <div className="p-3 rounded-xl bg-slate-950 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-amber-400 shrink-0" />
+                  <span>{featuresFeedback}</span>
+                </div>
+              )}
+
+              <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-800 bg-slate-900/60 text-slate-400 text-[10px] uppercase font-bold">
+                      <th className="py-2.5 px-3">Platform Capability / Tab</th>
+                      <th className="py-2.5 px-3 text-center w-24">Clients</th>
+                      <th className="py-2.5 px-3 text-center w-24">Advisors</th>
+                      <th className="py-2.5 px-3 text-center w-24">MFD / Staff</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {MASTER_FEATURE_CATALOG.map((f) => {
+                      const isSuperAdminBlocked = tenantMasterFeatures[f.key] === false;
+                      const clientAllowed = !isSuperAdminBlocked && rolePermissions.CLIENT?.[f.key] !== false;
+                      const advisorAllowed = !isSuperAdminBlocked && rolePermissions.ADVISOR?.[f.key] !== false;
+                      const staffAllowed = !isSuperAdminBlocked && rolePermissions.STAFF?.[f.key] !== false;
+
+                      return (
+                        <tr key={f.key} className={isSuperAdminBlocked ? "bg-slate-950/40 opacity-60" : "hover:bg-slate-900/30"}>
+                          <td className="py-2.5 px-3">
+                            <div className="font-bold text-white flex items-center gap-2">
+                              <span>{f.label}</span>
+                              {f.isUpcoming && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                  Coming Soon
+                                </span>
+                              )}
+                              {isSuperAdminBlocked && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center gap-1">
+                                  <Lock className="h-2.5 w-2.5" />
+                                  <span>Super Admin Locked</span>
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{f.description}</p>
+                          </td>
+
+                          <td className="py-2.5 px-3 text-center">
+                            <input
+                              type="checkbox"
+                              disabled={isSuperAdminBlocked}
+                              checked={clientAllowed}
+                              onChange={() => handleToggleRoleFeature("CLIENT", f.key)}
+                              className="h-4 w-4 accent-amber-500 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                            />
+                          </td>
+
+                          <td className="py-2.5 px-3 text-center">
+                            <input
+                              type="checkbox"
+                              disabled={isSuperAdminBlocked}
+                              checked={advisorAllowed}
+                              onChange={() => handleToggleRoleFeature("ADVISOR", f.key)}
+                              className="h-4 w-4 accent-amber-500 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                            />
+                          </td>
+
+                          <td className="py-2.5 px-3 text-center">
+                            <input
+                              type="checkbox"
+                              disabled={isSuperAdminBlocked}
+                              checked={staffAllowed}
+                              onChange={() => handleToggleRoleFeature("STAFF", f.key)}
+                              className="h-4 w-4 accent-amber-500 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
 

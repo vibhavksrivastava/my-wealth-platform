@@ -214,6 +214,13 @@ export default function AdvisorDashboard() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/dashboard/portfolio"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-sky-50 dark:bg-sky-950/70 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 text-xs font-bold shadow-sm transition hover:bg-sky-100 dark:hover:bg-sky-900"
+          >
+            <TrendingUp className="h-4 w-4 text-sky-500" />
+            Mutual Fund Portfolio
+          </Link>
           <button
             onClick={() => {
               setShowCasModal(true);

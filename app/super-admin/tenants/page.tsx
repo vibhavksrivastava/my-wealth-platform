@@ -25,7 +25,12 @@ import {
   Clock,
   ShieldCheck,
   Check,
+  Sliders,
+  Lock,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
+import { MASTER_FEATURE_CATALOG } from "@/lib/featureFlags";
 
 interface TenantData {
   id: string;
@@ -74,6 +79,9 @@ export default function SuperAdminTenantsPage() {
 
   // Edit Plan & License Modal State
   const [editingTenant, setEditingTenant] = useState<TenantData | null>(null);
+  const [editModalTab, setEditModalTab] = useState<"PLAN" | "FEATURES">("PLAN");
+  const [tenantFeatures, setTenantFeatures] = useState<Record<string, boolean>>({});
+  const [isLoadingFeatures, setIsLoadingFeatures] = useState(false);
   const [editPlanForm, setEditPlanForm] = useState({
     planSlug: "growth",
     arnNumber: "",
@@ -148,8 +156,9 @@ export default function SuperAdminTenantsPage() {
     }
   };
 
-  const handleOpenEditModal = (tenant: TenantData) => {
+  const handleOpenEditModal = async (tenant: TenantData, initialTab: "PLAN" | "FEATURES" = "PLAN") => {
     setEditingTenant(tenant);
+    setEditModalTab(initialTab);
     setSaveSuccessMsg(null);
     setEditPlanForm({
       planSlug: tenant.plan?.slug || (tenant.commission_sharing_active ? "arn_partnership" : "growth"),
@@ -159,6 +168,30 @@ export default function SuperAdminTenantsPage() {
         ? new Date(tenant.subscription_expires_at).toISOString().slice(0, 10)
         : "",
     });
+
+    // Fetch tenant master features
+    setIsLoadingFeatures(true);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch(`/api/super-admin/tenants/${tenant.id}/features`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setTenantFeatures(json.masterFeatures || {});
+      }
+    } catch {
+      // Fallback
+    } finally {
+      setIsLoadingFeatures(false);
+    }
+  };
+
+  const handleToggleFeature = (key: string) => {
+    setTenantFeatures((prev) => ({
+      ...prev,
+      [key]: prev[key] === false ? true : false,
+    }));
   };
 
   const handleSavePlan = async (e: React.FormEvent) => {
@@ -169,7 +202,9 @@ export default function SuperAdminTenantsPage() {
 
     try {
       const token = localStorage.getItem("auth_token");
-      const res = await fetch(`/api/super-admin/tenants/${editingTenant.id}`, {
+
+      // 1. Save Plan & Licensing
+      const res1 = await fetch(`/api/super-admin/tenants/${editingTenant.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -178,12 +213,22 @@ export default function SuperAdminTenantsPage() {
         body: JSON.stringify(editPlanForm),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
+      // 2. Save Master Feature Flags
+      const res2 = await fetch(`/api/super-admin/tenants/${editingTenant.id}/features`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ features: tenantFeatures }),
+      });
+
+      const data = await res1.json();
+      if (!res1.ok) {
         throw new Error(data.error || "Failed to update tenant plan.");
       }
 
-      setSaveSuccessMsg(`Plan updated successfully for ${editingTenant.firm_brand_name}!`);
+      setSaveSuccessMsg(`Plan & Feature capabilities successfully updated for ${editingTenant.firm_brand_name}!`);
       setTimeout(() => {
         setSaveSuccessMsg(null);
         setEditingTenant(null);
@@ -465,15 +510,26 @@ export default function SuperAdminTenantsPage() {
                         </button>
                       </td>
 
-                      {/* Action: Edit Plan & License */}
+                      {/* Actions: Edit Plan & Features */}
                       <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={() => handleOpenEditModal(tenant)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-sky-400 hover:text-sky-300 font-semibold text-[11px] transition shadow-sm"
-                        >
-                          <Edit3 className="h-3 w-3" />
-                          <span>Edit Plan</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleOpenEditModal(tenant, "PLAN")}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-sky-400 hover:text-sky-300 font-semibold text-[11px] transition shadow-sm"
+                            title="Edit Subscription Plan"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                            <span>Plan</span>
+                          </button>
+                          <button
+                            onClick={() => handleOpenEditModal(tenant, "FEATURES")}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-[11px] transition shadow-sm"
+                            title="Configure Tenant Feature Permissions"
+                          >
+                            <Sliders className="h-3 w-3" />
+                            <span>Features</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -484,15 +540,15 @@ export default function SuperAdminTenantsPage() {
         </div>
       </div>
 
-      {/* Modal: Edit Plan & License */}
+      {/* Modal: Edit Plan & Module Features */}
       {editingTenant && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
                   <Zap className="h-4 w-4 text-amber-400" />
-                  <span>Edit Plan &amp; License: {editingTenant.firm_brand_name}</span>
+                  <span>Tenant Control: {editingTenant.firm_brand_name}</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5 font-mono">
                   Subdomain: {editingTenant.subdomain}.wealthos.com
@@ -506,6 +562,38 @@ export default function SuperAdminTenantsPage() {
               </button>
             </div>
 
+            {/* Sub-Tabs: Plan vs Features */}
+            <div className="flex border-b border-slate-800 gap-2">
+              <button
+                type="button"
+                onClick={() => setEditModalTab("PLAN")}
+                className={`px-3 py-1.5 text-xs font-bold border-b-2 transition -mb-px flex items-center gap-1.5 ${
+                  editModalTab === "PLAN"
+                    ? "border-amber-500 text-amber-400"
+                    : "border-transparent text-slate-400 hover:text-white"
+                }`}
+              >
+                <Zap className="h-3.5 w-3.5" />
+                <span>Subscription Plan &amp; License</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditModalTab("FEATURES")}
+                className={`px-3 py-1.5 text-xs font-bold border-b-2 transition -mb-px flex items-center gap-1.5 ${
+                  editModalTab === "FEATURES"
+                    ? "border-amber-500 text-amber-400"
+                    : "border-transparent text-slate-400 hover:text-white"
+                }`}
+              >
+                <Sliders className="h-3.5 w-3.5" />
+                <span>
+                  Feature Capabilities (
+                  {MASTER_FEATURE_CATALOG.filter((f) => tenantFeatures[f.key] !== false).length}/
+                  {MASTER_FEATURE_CATALOG.length})
+                </span>
+              </button>
+            </div>
+
             {saveSuccessMsg && (
               <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
@@ -514,108 +602,196 @@ export default function SuperAdminTenantsPage() {
             )}
 
             <form onSubmit={handleSavePlan} className="space-y-4">
-              {/* Select Plan */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                  Software Subscription Tier *
-                </label>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {[
-                    { slug: "basic", name: "Starter / Solo IFA", price: "₹999/mo", seats: "1 Seat" },
-                    { slug: "growth", name: "Growth Practice", price: "₹2,499/mo", seats: "3 Seats • White-Label" },
-                    { slug: "enterprise", name: "Enterprise Wealth", price: "₹5,999/mo", seats: "20 Seats • Custom Domain" },
-                    { slug: "arn_partnership", name: "Zero-Fee ARN Partner", price: "₹0/mo", seats: "80/20 Trail Split" },
-                  ].map((p) => {
-                    const isSelected = editPlanForm.planSlug === p.slug;
-                    return (
-                      <div
-                        key={p.slug}
-                        onClick={() => {
-                          setEditPlanForm((prev) => ({
-                            ...prev,
-                            planSlug: p.slug,
-                            commissionSharingActive: p.slug === "arn_partnership" ? true : prev.commissionSharingActive,
-                          }));
-                        }}
-                        className={`p-3 rounded-xl border cursor-pointer transition ${
-                          isSelected
-                            ? "bg-amber-500/10 border-amber-500 text-white"
-                            : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
-                        }`}
-                      >
-                        <div className="font-bold text-xs text-white">{p.name}</div>
-                        <div className="text-[11px] text-amber-400 mt-0.5">{p.price}</div>
-                        <div className="text-[10px] text-slate-400">{p.seats}</div>
+              {/* TAB 1: Plan & Licensing */}
+              {editModalTab === "PLAN" && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                      Software Subscription Tier *
+                    </label>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {[
+                        { slug: "basic", name: "Starter / Solo IFA", price: "₹999/mo", seats: "1 Seat" },
+                        { slug: "growth", name: "Growth Practice", price: "₹2,499/mo", seats: "3 Seats • White-Label" },
+                        { slug: "enterprise", name: "Enterprise Wealth", price: "₹5,999/mo", seats: "20 Seats • Custom Domain" },
+                        { slug: "arn_partnership", name: "Zero-Fee ARN Partner", price: "₹0/mo", seats: "80/20 Trail Split" },
+                      ].map((p) => {
+                        const isSelected = editPlanForm.planSlug === p.slug;
+                        return (
+                          <div
+                            key={p.slug}
+                            onClick={() => {
+                              setEditPlanForm((prev) => ({
+                                ...prev,
+                                planSlug: p.slug,
+                                commissionSharingActive: p.slug === "arn_partnership" ? true : prev.commissionSharingActive,
+                              }));
+                            }}
+                            className={`p-3 rounded-xl border cursor-pointer transition ${
+                              isSelected
+                                ? "bg-amber-500/10 border-amber-500 text-white"
+                                : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                            }`}
+                          >
+                            <div className="font-bold text-xs text-white">{p.name}</div>
+                            <div className="text-[11px] text-amber-400 mt-0.5">{p.price}</div>
+                            <div className="text-[10px] text-slate-400">{p.seats}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                      AMFI ARN Registration Number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ARN-XXXXXX"
+                      value={editPlanForm.arnNumber}
+                      onChange={(e) => setEditPlanForm({ ...editPlanForm, arnNumber: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-white">Zero-Fee Commission Sharing Active</div>
+                      <div className="text-[11px] text-slate-400">
+                        Bypasses monthly SaaS fees in exchange for 80/20 trail commission split.
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={editPlanForm.commissionSharingActive}
+                      onChange={(e) =>
+                        setEditPlanForm({ ...editPlanForm, commissionSharingActive: e.target.checked })
+                      }
+                      className="h-4 w-4 accent-amber-500 cursor-pointer"
+                    />
+                  </div>
 
-              {/* AMFI ARN Number */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
-                  AMFI ARN Registration Number
-                </label>
-                <input
-                  type="text"
-                  placeholder="ARN-XXXXXX"
-                  value={editPlanForm.arnNumber}
-                  onChange={(e) => setEditPlanForm({ ...editPlanForm, arnNumber: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              {/* Commission Sharing Active Toggle */}
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-bold text-white">Zero-Fee Commission Sharing Active</div>
-                  <div className="text-[11px] text-slate-400">
-                    Bypasses monthly SaaS fees in exchange for 80/20 trail commission split.
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                        Subscription License Expiry Date
+                      </label>
+                      <div className="flex gap-1.5 text-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => setExtensionDays(30)}
+                          className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
+                        >
+                          +30 Days
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setExtensionDays(365)}
+                          className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
+                        >
+                          +1 Year
+                        </button>
+                      </div>
+                    </div>
+                    <input
+                      type="date"
+                      value={editPlanForm.subscriptionExpiresAt}
+                      onChange={(e) =>
+                        setEditPlanForm({ ...editPlanForm, subscriptionExpiresAt: e.target.value })
+                      }
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                    />
                   </div>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={editPlanForm.commissionSharingActive}
-                  onChange={(e) =>
-                    setEditPlanForm({ ...editPlanForm, commissionSharingActive: e.target.checked })
-                  }
-                  className="h-4 w-4 accent-amber-500 cursor-pointer"
-                />
-              </div>
+              )}
 
-              {/* Subscription Expiry Date */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                    Subscription License Expiry Date
-                  </label>
-                  <div className="flex gap-1.5 text-[10px]">
-                    <button
-                      type="button"
-                      onClick={() => setExtensionDays(30)}
-                      className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
-                    >
-                      +30 Days
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setExtensionDays(365)}
-                      className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded"
-                    >
-                      +1 Year
-                    </button>
+              {/* TAB 2: Feature Capabilities Matrix */}
+              {editModalTab === "FEATURES" && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs pb-1">
+                    <span className="text-slate-400">
+                      Toggle available platform modules for this tenant based on bespoke subscription terms.
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allOn: Record<string, boolean> = {};
+                          MASTER_FEATURE_CATALOG.forEach((f) => { allOn[f.key] = true; });
+                          setTenantFeatures(allOn);
+                        }}
+                        className="text-[10px] text-amber-400 hover:underline font-semibold"
+                      >
+                        Enable All
+                      </button>
+                      <span className="text-slate-600">&bull;</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const base: Record<string, boolean> = {};
+                          MASTER_FEATURE_CATALOG.forEach((f) => {
+                            base[f.key] = !["billing_invoicing", "estate_planning"].includes(f.key);
+                          });
+                          setTenantFeatures(base);
+                        }}
+                        className="text-[10px] text-slate-400 hover:text-white"
+                      >
+                        Standard Practice
+                      </button>
+                    </div>
                   </div>
+
+                  {isLoadingFeatures ? (
+                    <div className="p-8 text-center text-xs text-slate-400">
+                      <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-amber-400" />
+                      <span>Loading feature configuration...</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                      {MASTER_FEATURE_CATALOG.map((f) => {
+                        const isEnabled = tenantFeatures[f.key] !== false;
+
+                        return (
+                          <div
+                            key={f.key}
+                            onClick={() => handleToggleFeature(f.key)}
+                            className={`p-3 rounded-xl border text-xs cursor-pointer transition flex items-start justify-between gap-3 ${
+                              isEnabled
+                                ? "bg-amber-500/5 border-amber-500/30"
+                                : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                            }`}
+                          >
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-white">{f.label}</span>
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-slate-800 text-slate-300">
+                                  {f.category}
+                                </span>
+                                {f.isUpcoming && (
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                    Preview
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-400 leading-relaxed">
+                                {f.description}
+                              </p>
+                            </div>
+
+                            <input
+                              type="checkbox"
+                              checked={isEnabled}
+                              onChange={() => {}} // handled by parent onClick
+                              className="h-4 w-4 accent-amber-500 mt-1 cursor-pointer shrink-0"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                <input
-                  type="date"
-                  value={editPlanForm.subscriptionExpiresAt}
-                  onChange={(e) =>
-                    setEditPlanForm({ ...editPlanForm, subscriptionExpiresAt: e.target.value })
-                  }
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-amber-500"
-                />
-              </div>
+              )}
 
               <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800">
                 <button
@@ -633,12 +809,12 @@ export default function SuperAdminTenantsPage() {
                   {isSavingPlan ? (
                     <>
                       <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                      <span>Saving Plan...</span>
+                      <span>Saving Changes...</span>
                     </>
                   ) : (
                     <>
                       <Save className="h-3.5 w-3.5" />
-                      <span>Update Tenant Plan</span>
+                      <span>Save Plan &amp; Features</span>
                     </>
                   )}
                 </button>
