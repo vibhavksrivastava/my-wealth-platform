@@ -1,0 +1,302 @@
+import { NextResponse, connection } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase";
+import { verifyAuthHeader } from "@/lib/auth";
+
+export const maxDuration = 60;
+
+export async function GET(req: Request) {
+  await connection();
+  try {
+    const session = verifyAuthHeader(req.headers.get("authorization"));
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const isClient = session.role === "CLIENT";
+
+    // =========================================================================
+    // 1. CLIENT EXPERIENCE
+    // =========================================================================
+    if (isClient) {
+      // Find client record by user_id or client_id
+      let { data: client } = await supabaseAdmin
+        .from("clients")
+        .select("*")
+        .eq("user_id", session.sub)
+        .maybeSingle();
+
+      if (!client) {
+        const { data: cById } = await supabaseAdmin
+          .from("clients")
+          .select("*")
+          .eq("client_id", session.sub)
+          .maybeSingle();
+        client = cById;
+      }
+
+      if (!client) {
+        return NextResponse.json({
+          isAdvisor: false,
+          client: null,
+          metrics: {
+            totalAssets: 0,
+            physicalAssets: 0,
+            investmentAssets: 0,
+            liquidAssets: 0,
+            totalLiabilities: 0,
+            netWorth: 0,
+            totalMonthlyIncome: 0,
+            totalMonthlyExpenses: 0,
+            monthlySurplus: 0,
+          },
+          goals: [],
+          assets: [],
+          liabilities: [],
+          investments: [],
+        });
+      }
+
+      // Check household members if client belongs to a household
+      let memberIds = [client.client_id];
+      let household = null;
+
+      if (client.household_id) {
+        const [hhRes, membersRes] = await Promise.all([
+          supabaseAdmin.from("households").select("*").eq("household_id", client.household_id).maybeSingle(),
+          supabaseAdmin.from("clients").select("client_id, full_name, relationship_to_primary").eq("household_id", client.household_id),
+        ]);
+        household = hhRes.data;
+        if (membersRes.data && membersRes.data.length > 0) {
+          memberIds = membersRes.data.map((m) => m.client_id);
+        }
+      }
+
+      // Fetch financial balance sheet
+      const [incomesRes, expensesRes, assetsRes, liabilitiesRes, investmentsRes, goalsRes] = await Promise.all([
+        supabaseAdmin.from("incomes").select("*").in("client_id", memberIds),
+        supabaseAdmin.from("expenses").select("*").in("client_id", memberIds),
+        supabaseAdmin.from("assets").select("*").in("client_id", memberIds).order("current_market_value", { ascending: false }),
+        supabaseAdmin.from("liabilities").select("*").in("client_id", memberIds).order("outstanding_principal", { ascending: false }),
+        supabaseAdmin.from("investment_portfolio").select("*").in("client_id", memberIds).order("current_value", { ascending: false }),
+        supabaseAdmin.from("financial_goals").select("*").in("client_id", memberIds).order("target_year", { ascending: true }),
+      ]);
+
+      const incomes = incomesRes.data || [];
+      const expenses = expensesRes.data || [];
+      const assets = assetsRes.data || [];
+      const liabilities = liabilitiesRes.data || [];
+      const investments = investmentsRes.data || [];
+      const goals = goalsRes.data || [];
+
+      const physicalAssets = assets.reduce((sum, a) => sum + Number(a.current_market_value || 0), 0);
+      const investmentAssets = investments.reduce((sum, i) => sum + Number(i.current_value || 0), 0);
+      const totalAssets = physicalAssets + investmentAssets;
+      const liquidAssets = assets.filter((a) => a.is_liquid).reduce((sum, a) => sum + Number(a.current_market_value || 0), 0) + investmentAssets;
+      const totalLiabilities = liabilities.reduce((sum, l) => sum + Number(l.outstanding_principal || 0), 0);
+      const netWorth = totalAssets - totalLiabilities;
+
+      const totalMonthlyIncome = incomes.reduce((sum, i) => sum + Number(i.monthly_amount || 0), 0);
+      const totalMonthlyExpenses = expenses.reduce((sum, e) => sum + Number(e.monthly_amount || 0), 0);
+      const totalMonthlyEMIs = liabilities.reduce((sum, l) => sum + Number(l.monthly_emi || 0), 0);
+      const monthlySurplus = totalMonthlyIncome - (totalMonthlyExpenses + totalMonthlyEMIs);
+
+      return NextResponse.json({
+        isAdvisor: false,
+        client,
+        household,
+        metrics: {
+          totalAssets,
+          physicalAssets,
+          investmentAssets,
+          liquidAssets,
+          totalLiabilities,
+          netWorth,
+          totalMonthlyIncome,
+          totalMonthlyExpenses,
+          totalMonthlyEMIs,
+          monthlySurplus,
+        },
+        goals,
+        assets,
+        liabilities,
+        investments,
+      });
+    }
+
+    // =========================================================================
+    // 2. ADVISOR / STAFF / TENANT_ADMIN / SUPER_ADMIN EXPERIENCE
+    // =========================================================================
+    const headerSubdomain = req.headers.get("x-tenant-subdomain");
+    let activeTenantId = session.tenantId;
+
+    if (headerSubdomain && headerSubdomain !== "platform" && headerSubdomain !== "www") {
+      const { data: t } = await supabaseAdmin
+        .from("tenants")
+        .select("id")
+        .eq("subdomain", headerSubdomain.toLowerCase().trim())
+        .maybeSingle();
+      if (t?.id) activeTenantId = t.id;
+    }
+
+    // Fetch clients strictly for this tenant
+    let clientsQuery = supabaseAdmin
+      .from("clients")
+      .select("client_id, tenant_id, household_id, uwp_client_code, full_name, annual_gross_income, risk_profile, planning_horizon_years, advisor_name, relationship_to_primary, created_at")
+      .order("created_at", { ascending: false });
+
+    if (activeTenantId && session.role !== "SUPER_ADMIN") {
+      clientsQuery = clientsQuery.eq("tenant_id", activeTenantId);
+    }
+
+    const { data: clientsList } = await clientsQuery;
+    const allClients = clientsList || [];
+    const clientIds = allClients.map((c) => c.client_id);
+
+    // Fetch households for this tenant
+    let householdsQuery = supabaseAdmin
+      .from("households")
+      .select("household_id, household_name, tenant_id");
+
+    if (activeTenantId && session.role !== "SUPER_ADMIN") {
+      householdsQuery = householdsQuery.eq("tenant_id", activeTenantId);
+    }
+    const { data: householdsList } = await householdsQuery;
+    const allHouseholds = householdsList || [];
+    const householdMap = new Map<string, string>();
+    allHouseholds.forEach((h) => householdMap.set(h.household_id, h.household_name));
+
+    // Fetch batch financial records for all clients in tenant
+    let assetsByClient = new Map<string, number>();
+    let investmentsByClient = new Map<string, number>();
+    let liabilitiesByClient = new Map<string, number>();
+    let goalsByClient = new Map<string, number>();
+
+    if (clientIds.length > 0) {
+      const [assetsRes, invsRes, liabsRes, goalsRes] = await Promise.all([
+        supabaseAdmin.from("assets").select("client_id, current_market_value").in("client_id", clientIds),
+        supabaseAdmin.from("investment_portfolio").select("client_id, current_value").in("client_id", clientIds),
+        supabaseAdmin.from("liabilities").select("client_id, outstanding_principal").in("client_id", clientIds),
+        supabaseAdmin.from("financial_goals").select("client_id, goal_id").in("client_id", clientIds),
+      ]);
+
+      (assetsRes.data || []).forEach((a) => {
+        if (a.client_id) {
+          assetsByClient.set(a.client_id, (assetsByClient.get(a.client_id) || 0) + Number(a.current_market_value || 0));
+        }
+      });
+
+      (invsRes.data || []).forEach((i) => {
+        if (i.client_id) {
+          investmentsByClient.set(i.client_id, (investmentsByClient.get(i.client_id) || 0) + Number(i.current_value || 0));
+        }
+      });
+
+      (liabsRes.data || []).forEach((l) => {
+        if (l.client_id) {
+          liabilitiesByClient.set(l.client_id, (liabilitiesByClient.get(l.client_id) || 0) + Number(l.outstanding_principal || 0));
+        }
+      });
+
+      (goalsRes.data || []).forEach((g) => {
+        if (g.client_id) {
+          goalsByClient.set(g.client_id, (goalsByClient.get(g.client_id) || 0) + 1);
+        }
+      });
+    }
+
+    // Build enriched client planning rows
+    const clientSummaries = allClients.map((c) => {
+      const pAssets = assetsByClient.get(c.client_id) || 0;
+      const iAssets = investmentsByClient.get(c.client_id) || 0;
+      const totalAssets = pAssets + iAssets;
+      const totalLiabilities = liabilitiesByClient.get(c.client_id) || 0;
+      const netWorth = totalAssets - totalLiabilities;
+      const goalsCount = goalsByClient.get(c.client_id) || 0;
+      const hhName = c.household_id ? (householdMap.get(c.household_id) || "Family Household") : "Individual Household";
+
+      return {
+        clientId: c.client_id,
+        fullName: c.full_name,
+        clientCode: c.uwp_client_code || `CLI-${c.client_id.slice(0, 6).toUpperCase()}`,
+        householdId: c.household_id || `hh-${c.client_id}`,
+        householdName: hhName,
+        relationship: c.relationship_to_primary || "Primary",
+        riskProfile: c.risk_profile || "Moderate",
+        planningHorizon: c.planning_horizon_years || 15,
+        advisorName: c.advisor_name || "Assigned Advisor",
+        physicalAssets: pAssets,
+        investmentAssets: iAssets,
+        totalAssets,
+        totalLiabilities,
+        netWorth,
+        goalsCount,
+      };
+    });
+
+    // Group into Household summaries
+    const hhGroups = new Map<string, any[]>();
+    clientSummaries.forEach((c) => {
+      const hhKey = c.householdId;
+      if (!hhGroups.has(hhKey)) hhGroups.set(hhKey, []);
+      hhGroups.get(hhKey)!.push(c);
+    });
+
+    const householdSummaries = Array.from(hhGroups.entries()).map(([hhId, members]) => {
+      const primary = members.find((m) => m.relationship === "Primary") || members[0];
+      const hhName = primary.householdName;
+      const totalNetWorth = members.reduce((sum, m) => sum + m.netWorth, 0);
+      const totalAssets = members.reduce((sum, m) => sum + m.totalAssets, 0);
+      const totalLiabilities = members.reduce((sum, m) => sum + m.totalLiabilities, 0);
+      const totalInvestments = members.reduce((sum, m) => sum + m.investmentAssets, 0);
+      const totalGoalsCount = members.reduce((sum, m) => sum + m.goalsCount, 0);
+
+      return {
+        householdId: hhId,
+        householdName: hhName,
+        primaryClientName: primary.fullName,
+        primaryClientId: primary.clientId,
+        membersCount: members.length,
+        members: members.map((m) => ({
+          clientId: m.clientId,
+          fullName: m.fullName,
+          relationship: m.relationship,
+          netWorth: m.netWorth,
+        })),
+        totalNetWorth,
+        totalAssets,
+        totalLiabilities,
+        totalInvestments,
+        totalGoalsCount,
+      };
+    });
+
+    // Compute tenant consolidated metrics
+    const totalNetWorth = clientSummaries.reduce((sum, c) => sum + c.netWorth, 0);
+    const totalAssets = clientSummaries.reduce((sum, c) => sum + c.totalAssets, 0);
+    const totalLiabilities = clientSummaries.reduce((sum, c) => sum + c.totalLiabilities, 0);
+    const totalInvestments = clientSummaries.reduce((sum, c) => sum + c.investmentAssets, 0);
+    const totalGoals = clientSummaries.reduce((sum, c) => sum + c.goalsCount, 0);
+
+    return NextResponse.json({
+      isAdvisor: true,
+      summary: {
+        totalNetWorth,
+        totalAssets,
+        totalLiabilities,
+        totalInvestments,
+        totalClients: clientSummaries.length,
+        totalHouseholds: householdSummaries.length,
+        totalGoals,
+      },
+      clients: clientSummaries,
+      households: householdSummaries,
+    });
+  } catch (error: any) {
+    console.error("Investment planning overview error:", error);
+    return NextResponse.json(
+      { error: "Failed to load investment planning data." },
+      { status: 500 }
+    );
+  }
+}
+

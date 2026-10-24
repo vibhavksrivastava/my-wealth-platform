@@ -215,7 +215,6 @@ export default function DashboardLayout({
 // Child Client Navigation Component isolated with Suspense boundary
 function DashboardNavBar({ user }: { user: UserProfile | null }) {
   const pathname = usePathname();
-  const [planningMenuOpen, setPlanningMenuOpen] = useState(false);
 
   return (
     <nav className="border-b border-slate-200 dark:border-slate-900 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm px-6 py-2 flex items-center justify-between text-xs z-40 sticky top-[57px] overflow-x-auto">
@@ -262,57 +261,18 @@ function DashboardNavBar({ user }: { user: UserProfile | null }) {
           <span>Calculators</span>
         </Link>
 
-        {/* Investment Planning Dropdown Menu */}
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setPlanningMenuOpen(!planningMenuOpen)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition ${
-              pathname.startsWith("/dashboard/clients")
-                ? "bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 font-bold shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900"
-            }`}
-          >
-            <Compass className="h-3.5 w-3.5 text-purple-400" />
-            <span>Investment Planning</span>
-            <ChevronDown className={`h-3 w-3 transition-transform ${planningMenuOpen ? "rotate-180" : ""}`} />
-          </button>
-
-          {planningMenuOpen && (
-            <div 
-              className="absolute left-0 mt-1.5 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-50 space-y-1"
-              onMouseLeave={() => setPlanningMenuOpen(false)}
-            >
-              <Link
-                href={user?.role === "CLIENT" ? "/dashboard/client" : "/dashboard/advisor"}
-                onClick={() => setPlanningMenuOpen(false)}
-                className="block p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition"
-              >
-                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <Compass className="h-3.5 w-3.5 text-sky-400" />
-                  <span>Client 360 &amp; Financial Diagnostics</span>
-                </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">
-                  Goals, cashflow surplus, and net worth
-                </div>
-              </Link>
-
-              <Link
-                href="/dashboard/clients/new"
-                onClick={() => setPlanningMenuOpen(false)}
-                className="block p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition"
-              >
-                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-                  <span>New Client Fact-Find &amp; Risk Profiling</span>
-                </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">
-                  Comprehensive financial questionnaire
-                </div>
-              </Link>
-            </div>
-          )}
-        </div>
+        {/* Investment Planning Direct Link */}
+        <Link
+          href="/dashboard/planning"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition shrink-0 ${
+            pathname === "/dashboard/planning" || (pathname.startsWith("/dashboard/planning") && !pathname.startsWith("/dashboard/planning/tax") && !pathname.startsWith("/dashboard/planning/retirement") && !pathname.startsWith("/dashboard/planning/estate"))
+              ? "bg-purple-50 dark:bg-purple-950/80 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 font-bold shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900"
+          }`}
+        >
+          <Compass className="h-3.5 w-3.5 text-purple-400" />
+          <span>Investment Planning</span>
+        </Link>
 
         {/* Tax Planning Link */}
         <Link
