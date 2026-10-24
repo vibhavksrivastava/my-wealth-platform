@@ -250,8 +250,12 @@ function DashboardNavBar({ user }: { user: UserProfile | null }) {
 
         {/* Financial Calculators Direct Link */}
         <Link
-          href="/dashboard/portfolio?tab=calculators"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900"
+          href="/dashboard/calculators"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition ${
+            pathname.startsWith("/dashboard/calculators")
+              ? "bg-amber-50 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-bold shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900"
+          }`}
         >
           <Calculator className="h-3.5 w-3.5 text-amber-500" />
           <span>Calculators</span>
@@ -293,7 +297,7 @@ function DashboardNavBar({ user }: { user: UserProfile | null }) {
               </Link>
 
               <Link
-                href="/dashboard/portfolio?tab=calculators"
+                href="/dashboard/calculators"
                 onClick={() => setPlanningMenuOpen(false)}
                 className="block p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition"
               >
