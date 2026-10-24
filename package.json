@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sync:nav": "node --env-file=.env.local scripts/sync-amfi-nav.mjs",
+    "nav:daemon": "node --env-file=.env.local scripts/daily-nav-daemon.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

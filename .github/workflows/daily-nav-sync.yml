@@ -1,0 +1,35 @@
+name: AMFI Daily Mutual Fund NAV Sync
+
+on:
+  schedule:
+    # 10:00 PM IST Monday to Friday (UTC 16:30)
+    # Cron format: min hour day month day-of-week
+    - cron: '30 16 * * 1-5'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  sync-nav:
+    name: Populate Daily AMFI NAVs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Execute AMFI Daily NAV Sync
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node --experimental-strip-types scripts/sync-amfi-nav.ts
+
