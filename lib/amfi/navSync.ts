@@ -175,17 +175,28 @@ export async function syncAmfiNavToDatabase(options?: {
     let navRecordsUpsertedCount = 0;
 
     // 2. Upsert schemes into `mfd_schemes` in batches
+    const seenIsins = new Set<string>();
     for (let i = 0; i < records.length; i += batchSize) {
       const batch = records.slice(i, i + batchSize);
-      const schemeRows = batch.map((r) => ({
-        amfi_code: r.amfiCode,
-        isin: r.isin,
-        scheme_name: r.schemeName,
-        amc_name: r.amcName,
-        category: r.category,
-        plan_type: r.planType,
-        status: "ACTIVE",
-      }));
+      const schemeRows = batch.map((r) => {
+        let isin = r.isin;
+        if (isin) {
+          if (seenIsins.has(isin)) {
+            isin = null; // Multiple option schemes in AMFI share one ISIN; avoid unique constraint error
+          } else {
+            seenIsins.add(isin);
+          }
+        }
+        return {
+          amfi_code: r.amfiCode,
+          isin,
+          scheme_name: r.schemeName,
+          amc_name: r.amcName,
+          category: r.category,
+          plan_type: r.planType,
+          status: "ACTIVE",
+        };
+      });
 
       const { error: schemeErr } = await supabaseAdmin
         .from("mfd_schemes")
@@ -206,24 +217,24 @@ export async function syncAmfiNavToDatabase(options?: {
       }
     }
 
-    // 3. Resolve scheme_ids for NAV History mapping
-    // Fetch amfi_code -> scheme_id lookup map
+    // 3. Resolve scheme_ids for NAV History mapping via fast pagination
     const amfiCodeToIdMap = new Map<string, string>();
-    for (let i = 0; i < records.length; i += 1000) {
-      const codesBatch = records.slice(i, i + 1000).map((r) => r.amfiCode);
-      const { data: idRows } = await supabaseAdmin
+    let fromOffset = 0;
+    const PAGE_SIZE = 1000;
+    while (true) {
+      const { data: page, error: pErr } = await supabaseAdmin
         .from("mfd_schemes")
         .select("scheme_id, amfi_code")
-        .in("amfi_code", codesBatch);
-
-      if (idRows) {
-        for (const row of idRows) {
-          amfiCodeToIdMap.set(row.amfi_code, row.scheme_id);
-        }
+        .range(fromOffset, fromOffset + PAGE_SIZE - 1);
+      if (pErr || !page || page.length === 0) break;
+      for (const row of page) {
+        amfiCodeToIdMap.set(row.amfi_code, row.scheme_id);
       }
+      if (page.length < PAGE_SIZE) break;
+      fromOffset += PAGE_SIZE;
     }
 
-    // 4. Upsert into `mfd_nav_history`
+    // 4. Populate `mfd_nav_history`
     const navRowsToInsert: Array<{
       scheme_id: string;
       nav_date: string;
@@ -241,14 +252,23 @@ export async function syncAmfiNavToDatabase(options?: {
       }
     }
 
+    // Idempotent clean: Remove existing records for this date to prevent duplicates without requiring a specific DB constraint
+    await supabaseAdmin.from("mfd_nav_history").delete().eq("nav_date", latestNavDate);
+
     for (let i = 0; i < navRowsToInsert.length; i += batchSize) {
       const batch = navRowsToInsert.slice(i, i + batchSize);
-      const { error: navErr } = await supabaseAdmin
+      let { error: navErr } = await supabaseAdmin
         .from("mfd_nav_history")
         .upsert(batch, { onConflict: "scheme_id,nav_date" });
 
+      // If table doesn't have unique constraint for onConflict (Postgres 42P10), use direct insert
+      if (navErr && navErr.code === "42P10") {
+        const insRes = await supabaseAdmin.from("mfd_nav_history").insert(batch);
+        navErr = insRes.error;
+      }
+
       if (navErr) {
-        console.error(`Error upserting mfd_nav_history batch ${i}-${i + batch.length}:`, navErr.message);
+        console.error(`Error populating mfd_nav_history batch ${i}-${i + batch.length}:`, navErr.message);
       } else {
         navRecordsUpsertedCount += batch.length;
       }

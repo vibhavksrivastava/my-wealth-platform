@@ -141,17 +141,28 @@ export async function runSync(options = {}) {
   let navsUpserted = 0;
 
   console.log(`[3/4] Upserting scheme catalog into 'mfd_schemes' (batches of ${batchSize})...`);
+  const seenIsins = new Set();
   for (let i = 0; i < records.length; i += batchSize) {
     const batch = records.slice(i, i + batchSize);
-    const rows = batch.map((r) => ({
-      amfi_code: r.amfiCode,
-      isin: r.isin,
-      scheme_name: r.schemeName,
-      amc_name: r.amcName,
-      category: r.category,
-      plan_type: r.planType,
-      status: "ACTIVE",
-    }));
+    const rows = batch.map((r) => {
+      let isin = r.isin;
+      if (isin) {
+        if (seenIsins.has(isin)) {
+          isin = null; // AMFI has multiple option codes sharing one ISIN; avoid unique constraint violation
+        } else {
+          seenIsins.add(isin);
+        }
+      }
+      return {
+        amfi_code: r.amfiCode,
+        isin,
+        scheme_name: r.schemeName,
+        amc_name: r.amcName,
+        category: r.category,
+        plan_type: r.planType,
+        status: "ACTIVE",
+      };
+    });
 
     const { error: sErr } = await supabase.from("mfd_schemes").upsert(rows, { onConflict: "amfi_code" });
     if (sErr) {
@@ -165,17 +176,23 @@ export async function runSync(options = {}) {
   console.log("");
 
   console.log(`[4/4] Populating NAV history into 'mfd_nav_history' for date: ${latestDate}...`);
-  // Build amfi_code -> scheme_id lookup
+  // Build amfi_code -> scheme_id lookup via fast pagination
   const idMap = new Map();
-  for (let i = 0; i < records.length; i += 1000) {
-    const codes = records.slice(i, i + 1000).map((r) => r.amfiCode);
-    const { data: dbSchemes } = await supabase.from("mfd_schemes").select("scheme_id, amfi_code").in("amfi_code", codes);
-    if (dbSchemes) {
-      for (const s of dbSchemes) {
-        idMap.set(s.amfi_code, s.scheme_id);
-      }
+  let fromOffset = 0;
+  const PAGE_SIZE = 1000;
+  while (true) {
+    const { data: page, error: pErr } = await supabase
+      .from("mfd_schemes")
+      .select("scheme_id, amfi_code")
+      .range(fromOffset, fromOffset + PAGE_SIZE - 1);
+    if (pErr || !page || page.length === 0) break;
+    for (const s of page) {
+      idMap.set(s.amfi_code, s.scheme_id);
     }
+    if (page.length < PAGE_SIZE) break;
+    fromOffset += PAGE_SIZE;
   }
+  console.log(`      ✓ Resolved ${idMap.size.toLocaleString("en-IN")} scheme IDs for historical linking.`);
 
   const navRows = [];
   for (const r of records) {
@@ -189,9 +206,19 @@ export async function runSync(options = {}) {
     }
   }
 
+  // Idempotent clean: Remove existing records for this date to prevent duplicates without requiring a specific DB constraint
+  await supabase.from("mfd_nav_history").delete().eq("nav_date", latestDate);
+
   for (let i = 0; i < navRows.length; i += batchSize) {
     const batch = navRows.slice(i, i + batchSize);
-    const { error: nErr } = await supabase.from("mfd_nav_history").upsert(batch, { onConflict: "scheme_id,nav_date" });
+    let { error: nErr } = await supabase.from("mfd_nav_history").upsert(batch, { onConflict: "scheme_id,nav_date" });
+    
+    // If table doesn't have unique constraint for onConflict (Postgres 42P10), use direct insert
+    if (nErr && nErr.code === "42P10") {
+      const insRes = await supabase.from("mfd_nav_history").insert(batch);
+      nErr = insRes.error;
+    }
+
     if (nErr) {
       console.warn(`      NAV Batch warning: ${nErr.message}`);
     } else {
