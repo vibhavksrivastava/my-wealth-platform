@@ -16,7 +16,8 @@ import {
   ShieldAlert,
   FileCheck,
   Calculator,
-  Compass
+  Compass,
+  Receipt
 } from "lucide-react";
 import { TenantConfigProvider } from "@/lib/tenant-config";
 import { FirmBrandingProvider, useFirmBranding } from "@/lib/context/FirmBrandingContext";
@@ -217,8 +218,8 @@ function DashboardNavBar({ user }: { user: UserProfile | null }) {
   const [planningMenuOpen, setPlanningMenuOpen] = useState(false);
 
   return (
-    <nav className="border-b border-slate-200 dark:border-slate-900 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm px-6 py-2 flex items-center justify-between text-xs z-40 sticky top-[57px]">
-      <div className="flex items-center gap-1.5 sm:gap-2">
+    <nav className="border-b border-slate-200 dark:border-slate-900 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm px-6 py-2 flex items-center justify-between text-xs z-40 sticky top-[57px] overflow-x-auto">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {/* Dashboard Link */}
         <Link
           href={user?.role === "CLIENT" ? "/dashboard/client" : "/dashboard/advisor"}
@@ -262,17 +263,17 @@ function DashboardNavBar({ user }: { user: UserProfile | null }) {
         </Link>
 
         {/* Investment Planning Dropdown Menu */}
-        <div className="relative">
+        <div className="relative shrink-0">
           <button
             type="button"
             onClick={() => setPlanningMenuOpen(!planningMenuOpen)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition ${
-              pathname.includes("/planning") || pathname.includes("/clients")
+              pathname.startsWith("/dashboard/clients")
                 ? "bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 font-bold shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900"
             }`}
           >
-            <Target className="h-3.5 w-3.5 text-purple-400" />
+            <Compass className="h-3.5 w-3.5 text-purple-400" />
             <span>Investment Planning</span>
             <ChevronDown className={`h-3 w-3 transition-transform ${planningMenuOpen ? "rotate-180" : ""}`} />
           </button>
@@ -297,69 +298,69 @@ function DashboardNavBar({ user }: { user: UserProfile | null }) {
               </Link>
 
               <Link
-                href="/dashboard/calculators"
+                href="/dashboard/clients/new"
                 onClick={() => setPlanningMenuOpen(false)}
                 className="block p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition"
               >
                 <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <Calculator className="h-3.5 w-3.5 text-amber-500" />
-                  <span>Financial &amp; MF Calculators</span>
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+                  <span>New Client Fact-Find &amp; Risk Profiling</span>
                 </div>
                 <div className="text-[10px] text-slate-500 mt-0.5">
-                  SIP, Lumpsum, Retirement, Step-Up &amp; Goals
+                  Comprehensive financial questionnaire
                 </div>
               </Link>
-
-              <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 space-y-0.5">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 px-2 block mb-1">
-                  Upcoming Capabilities
-                </span>
-
-                <Link
-                  href="/dashboard/planning/retirement"
-                  onClick={() => setPlanningMenuOpen(false)}
-                  className="p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <Target className="h-3.5 w-3.5 text-purple-400" />
-                    <span className="text-xs text-slate-700 dark:text-slate-200">Retirement Planning</span>
-                  </div>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-400 font-bold border border-purple-500/20">
-                    Coming Soon
-                  </span>
-                </Link>
-
-                <Link
-                  href="/dashboard/planning/estate"
-                  onClick={() => setPlanningMenuOpen(false)}
-                  className="p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <FileCheck className="h-3.5 w-3.5 text-amber-400" />
-                    <span className="text-xs text-slate-700 dark:text-slate-200">Estate Planning</span>
-                  </div>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
-                    Coming Soon
-                  </span>
-                </Link>
-
-                <Link
-                  href="/dashboard/planning/tax"
-                  onClick={() => setPlanningMenuOpen(false)}
-                  className="p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <Calculator className="h-3.5 w-3.5 text-emerald-400" />
-                    <span className="text-xs text-slate-700 dark:text-slate-200">Tax Planning</span>
-                  </div>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
-                    Coming Soon
-                  </span>
-                </Link>
-              </div>
             </div>
           )}
         </div>
+
+        {/* Tax Planning Link */}
+        <Link
+          href="/dashboard/planning/tax"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition shrink-0 ${
+            pathname.startsWith("/dashboard/planning/tax")
+              ? "bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-bold shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900"
+          }`}
+        >
+          <Receipt className="h-3.5 w-3.5 text-emerald-500" />
+          <span>Tax Planning</span>
+          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            Soon
+          </span>
+        </Link>
+
+        {/* Retirement Planning Link */}
+        <Link
+          href="/dashboard/planning/retirement"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition shrink-0 ${
+            pathname.startsWith("/dashboard/planning/retirement")
+              ? "bg-purple-50 dark:bg-purple-950/80 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 font-bold shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900"
+          }`}
+        >
+          <Target className="h-3.5 w-3.5 text-purple-400" />
+          <span>Retirement Planning</span>
+          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            Soon
+          </span>
+        </Link>
+
+        {/* Estate Planning Link */}
+        <Link
+          href="/dashboard/planning/estate"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition shrink-0 ${
+            pathname.startsWith("/dashboard/planning/estate")
+              ? "bg-amber-50 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 font-bold shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900"
+          }`}
+        >
+          <FileCheck className="h-3.5 w-3.5 text-amber-500" />
+          <span>Estate Planning</span>
+          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            Soon
+          </span>
+        </Link>
       </div>
 
       {/* Quick Admin Links */}

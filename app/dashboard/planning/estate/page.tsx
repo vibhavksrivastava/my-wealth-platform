@@ -9,9 +9,7 @@ export default function EstatePlanningPage() {
       <div className="flex items-center gap-2 text-xs text-slate-500">
         <Link href="/dashboard/advisor" className="hover:text-white transition">Dashboard</Link>
         <ChevronRight className="h-3 w-3" />
-        <span>Investment Planning</span>
-        <ChevronRight className="h-3 w-3" />
-        <span className="text-white font-semibold">Estate &amp; Succession Planning</span>
+        <span className="text-white font-semibold">Estate Planning</span>
       </div>
 
       <div className="p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-amber-950/20 to-slate-950 border border-amber-500/30 shadow-2xl relative overflow-hidden">

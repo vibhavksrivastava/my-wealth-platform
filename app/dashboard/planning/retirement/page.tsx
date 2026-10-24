@@ -9,8 +9,6 @@ export default function RetirementPlanningPage() {
       <div className="flex items-center gap-2 text-xs text-slate-500">
         <Link href="/dashboard/advisor" className="hover:text-white transition">Dashboard</Link>
         <ChevronRight className="h-3 w-3" />
-        <span>Investment Planning</span>
-        <ChevronRight className="h-3 w-3" />
         <span className="text-white font-semibold">Retirement Planning</span>
       </div>
 
