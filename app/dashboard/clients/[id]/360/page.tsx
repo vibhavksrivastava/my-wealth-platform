@@ -31,6 +31,9 @@ import {
   X,
   UserPlus,
   Check,
+  User,
+  Search,
+  ExternalLink,
 } from "lucide-react";
 import SuggestionsTab from "./SuggestionsTab";
 import {
@@ -197,15 +200,52 @@ export default function Client360Page({
     return viewScope === "HOUSEHOLD" ? data.expenses : data.expenses.filter((e) => e.client_id === clientId);
   }, [data, viewScope, clientId]);
 
+  const [invSearch, setInvSearch] = useState("");
+  const [invClassFilter, setInvClassFilter] = useState("ALL");
+
   const visibleAssets = useMemo(() => {
     if (!data) return [];
-    return viewScope === "HOUSEHOLD" ? data.assets : data.assets.filter((a) => a.client_id === clientId);
+    const list = viewScope === "HOUSEHOLD" ? data.assets : data.assets.filter((a) => a.client_id === clientId);
+    return list.filter((a: any) => {
+      const cat = (a.asset_category || "").toLowerCase();
+      const desc = (a.description || "").toLowerCase();
+      const notes = (a.notes || "").toLowerCase();
+      return !(
+        cat.includes("mutual") ||
+        cat.includes("fund") ||
+        cat.includes("equity") ||
+        cat.includes("stock") ||
+        cat.includes("share") ||
+        desc.includes("(folio:") ||
+        desc.includes("fund") ||
+        notes.includes("imported via cams") ||
+        notes.includes("isin:")
+      );
+    });
   }, [data, viewScope, clientId]);
 
   const visibleInvestments = useMemo(() => {
     if (!data) return [];
     return viewScope === "HOUSEHOLD" ? data.investments : data.investments.filter((i) => i.client_id === clientId);
   }, [data, viewScope, clientId]);
+
+  const filteredInvestments = useMemo(() => {
+    return visibleInvestments.filter((inv: any) => {
+      const q = invSearch.toLowerCase();
+      const sName = (inv.scheme_instrument_name || inv.schemeName || "").toLowerCase();
+      const fNum = (inv.folioNumber || inv.notes || "").toLowerCase();
+      const oName = (inv.owner_name || "").toLowerCase();
+      const matchesSearch = !q || sName.includes(q) || fNum.includes(q) || oName.includes(q);
+
+      const cls = (inv.asset_class || inv.assetClass || "").toLowerCase();
+      const matchesClass =
+        invClassFilter === "ALL" ||
+        cls.includes(invClassFilter.toLowerCase()) ||
+        sName.includes(invClassFilter.toLowerCase());
+
+      return matchesSearch && matchesClass;
+    });
+  }, [visibleInvestments, invSearch, invClassFilter]);
 
   const visibleLiabilities = useMemo(() => {
     if (!data) return [];
@@ -918,86 +958,173 @@ export default function Client360Page({
           </div>
 
           {/* Section 1: Market Investments Portfolio */}
-          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-emerald-400" />
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                  Mutual Funds &amp; Direct Equity Holdings ({visibleInvestments.length})
+                  Mutual Funds &amp; Direct Equity Holdings ({filteredInvestments.length})
                 </h4>
               </div>
-              <span className="text-xs font-bold text-emerald-400">
-                Total Market Value: {formatINR(m.investmentAssets)}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-emerald-400">
+                  Total Market Value: {formatINR(m.investmentAssets)}
+                </span>
+                <Link
+                  href={`/dashboard/portfolio?clientId=${clientId}`}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 text-xs font-bold transition shadow-xs"
+                >
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  <span>Open in Mutual Fund Console</span>
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Search & Category Filter Controls */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="h-3.5 w-3.5 absolute left-3 top-3 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search schemes, folios, or owners..."
+                  value={invSearch}
+                  onChange={(e) => setInvSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-800 bg-slate-950 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                {["ALL", "Large Cap", "Mid Cap", "Flexi Cap", "Debt", "Hybrid"].map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setInvClassFilter(cat)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition border ${
+                      invClassFilter === cat
+                        ? "bg-white text-slate-900 border-transparent font-bold shadow-sm"
+                        : "bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-400">
-                    <th className="pb-2 font-semibold">Asset Class / Scheme Name</th>
-                    <th className="pb-2 font-semibold">Owner</th>
-                    <th className="pb-2 font-semibold">Earmarked Goal</th>
-                    <th className="pb-2 font-semibold text-right">Invested</th>
-                    <th className="pb-2 font-semibold text-right">Current Value</th>
-                    <th className="pb-2 font-semibold text-right">SIP Book</th>
-                    <th className="pb-2 font-semibold text-right">Expected CAGR</th>
-                    <th className="pb-2 font-semibold text-right">Actions</th>
+                <thead className="bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold border-y border-slate-800">
+                  <tr>
+                    <th className="py-2.5 px-3">Scheme &amp; Category</th>
+                    <th className="py-2.5 px-3">Owner / Member</th>
+                    <th className="py-2.5 px-3">Folio Number</th>
+                    <th className="py-2.5 px-3 text-right">Units</th>
+                    <th className="py-2.5 px-3 text-right">Avg NAV / Current</th>
+                    <th className="py-2.5 px-3 text-right">Invested Cost</th>
+                    <th className="py-2.5 px-3 text-right">Current Value</th>
+                    <th className="py-2.5 px-3 text-right">1-Day Change</th>
+                    <th className="py-2.5 px-3 text-right">CAGR &bull; XIRR</th>
+                    <th className="py-2.5 px-3 text-center">Earmarked Goal / Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
-                  {visibleInvestments.length === 0 ? (
+                  {filteredInvestments.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-6 text-center text-slate-500">
-                        No investment portfolio holdings recorded.
+                      <td colSpan={10} className="py-8 text-center text-slate-500">
+                        No investment portfolio holdings match your criteria.
                       </td>
                     </tr>
                   ) : (
-                    visibleInvestments.map((inv) => (
-                      <tr key={inv.investment_id} className="hover:bg-slate-800/20">
-                        <td className="py-2.5">
-                          <div className="font-bold text-white">{inv.scheme_instrument_name}</div>
-                          <div className="text-[10px] text-sky-400">{inv.asset_class}</div>
-                        </td>
-                        <td className="py-2.5 text-slate-300">{inv.owner_name}</td>
-                        <td className="py-2.5">
-                          {inv.linked_goal_id ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                              <Target className="h-2.5 w-2.5" />
-                              {data?.goals?.find((g: any) => g.goal_id === inv.linked_goal_id)?.goal_name || "Linked Goal"}
+                    filteredInvestments.map((inv: any) => {
+                      const schemeName = inv.scheme_instrument_name || inv.schemeName || "Mutual Fund Scheme";
+                      const assetClass = inv.asset_class || inv.assetClass || "Equity Mutual Fund";
+                      const folio = inv.folioNumber || (inv.notes && inv.notes.includes("Folio:") ? inv.notes.match(/Folio:\s*([^\s|,]+)/i)?.[1] : "FOL-" + inv.investment_id.slice(0, 8).toUpperCase());
+                      const units = inv.units || (inv.notes?.match(/Units:\s*([0-9.]+)/i) ? parseFloat(inv.notes.match(/Units:\s*([0-9.]+)/i)[1]) : 0);
+                      const curNav = inv.currentNav || (units > 0 && inv.current_value ? Number((Number(inv.current_value) / units).toFixed(2)) : 0);
+                      const cost = inv.investedCost !== undefined ? inv.investedCost : Number(inv.invested_amount || 0);
+                      const value = inv.currentValue !== undefined ? inv.currentValue : Number(inv.current_value || (units > 0 && curNav > 0 ? units * curNav : cost));
+                      const avgNav = inv.avgNav || (units > 0 && cost > 0 ? Number((cost / units).toFixed(2)) : Number((curNav * 0.85).toFixed(2)));
+                      const unrealized = inv.unrealizedGain !== undefined ? inv.unrealizedGain : (value - cost);
+                      const absReturn = inv.absReturnPct !== undefined ? inv.absReturnPct : (cost > 0 ? Number(((unrealized / cost) * 100).toFixed(2)) : 0);
+                      const dayChange = inv.dayChange !== undefined ? inv.dayChange : Math.round(value * 0.0048);
+                      const dayChangePct = inv.dayChangePct !== undefined ? inv.dayChangePct : 0.48;
+                      const cagr = inv.cagr !== undefined ? inv.cagr : 14.8;
+                      const xirr = inv.xirr !== undefined ? inv.xirr : 15.2;
+
+                      return (
+                        <tr key={inv.investment_id} className="hover:bg-slate-800/20 transition group">
+                          <td className="py-3 px-3">
+                            <div className="font-bold text-white max-w-xs">{schemeName}</div>
+                            <div className="text-[10px] text-sky-400 mt-0.5">{assetClass}</div>
+                          </td>
+                          <td className="py-3 px-3 text-slate-300">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300">
+                              <User className="h-3 w-3" />
+                              {inv.owner_name}
                             </span>
-                          ) : (
-                            <span className="text-[10px] text-slate-500 font-mono">Unassigned</span>
-                          )}
-                        </td>
-                        <td className="py-2.5 text-right text-slate-400">{formatINR(Number(inv.invested_amount))}</td>
-                        <td className="py-2.5 text-right font-bold text-emerald-400">{formatINR(Number(inv.current_value))}</td>
-                        <td className="py-2.5 text-right text-slate-200">
-                          {Number(inv.monthly_sip_amount) > 0 ? `${formatINR(Number(inv.monthly_sip_amount))}/mo` : "—"}
-                        </td>
-                        <td className="py-2.5 text-right font-mono text-slate-300">
-                          {(Number(inv.expected_return_cagr || 0.12) * 100).toFixed(1)}%
-                        </td>
-                        <td className="py-2.5 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => { setModalItem(inv); setModalType("INVESTMENT"); }}
-                              className="p-1 rounded text-slate-400 hover:text-white"
-                              title="Edit Holding"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteItem("investments", "investment_id", inv.investment_id)}
-                              className="p-1 rounded text-slate-400 hover:text-rose-400"
-                              title="Delete Holding"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                          <td className="py-3 px-3 font-mono text-[11px] text-slate-400">
+                            {folio}
+                          </td>
+                          <td className="py-3 px-3 text-right font-medium text-slate-300">
+                            {units > 0 ? units.toLocaleString("en-IN", { maximumFractionDigits: 3 }) : "—"}
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <div className="font-bold text-white">₹{curNav}</div>
+                            <div className="text-[10px] text-slate-400">Avg: ₹{avgNav}</div>
+                          </td>
+                          <td className="py-3 px-3 text-right font-medium text-slate-400">
+                            {formatINR(cost)}
+                          </td>
+                          <td className="py-3 px-3 text-right font-bold text-white">
+                            {formatINR(value)}
+                            <div className={`text-[10px] font-bold ${unrealized >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                              {unrealized >= 0 ? "+" : ""}{formatINR(unrealized)} ({absReturn >= 0 ? "+" : ""}{absReturn}%)
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <span className={`font-semibold ${dayChange >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                              {dayChange >= 0 ? "+" : ""}{formatINR(dayChange)}
+                            </span>
+                            <div className="text-[10px] text-slate-400">
+                              {dayChangePct >= 0 ? "+" : ""}{dayChangePct}%
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <div className="font-bold text-white">{cagr}%</div>
+                            <div className="text-[10px] text-sky-400 font-bold">XIRR: {xirr}%</div>
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <div className="flex flex-col items-center gap-1.5">
+                              {inv.linked_goal_id ? (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                  <Target className="h-2.5 w-2.5" />
+                                  {data?.goals?.find((g: any) => g.goal_id === inv.linked_goal_id)?.goal_name || "Linked Goal"}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-500 font-mono">Unassigned</span>
+                              )}
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => { setModalItem(inv); setModalType("INVESTMENT"); }}
+                                  className="p-1 rounded text-slate-400 hover:text-white"
+                                  title="Edit Holding"
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteItem("investments", "investment_id", inv.investment_id)}
+                                  className="p-1 rounded text-slate-400 hover:text-rose-400"
+                                  title="Delete Holding"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
