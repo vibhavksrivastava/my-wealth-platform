@@ -20,6 +20,7 @@ import {
   Sparkles
 } from "lucide-react";
 import AppointmentsManager from "@/components/AppointmentsManager";
+import CasUploadModal from "@/components/CasUploadModal";
 import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 
 function formatINR(val: number) {
@@ -429,120 +430,15 @@ export default function AdvisorDashboard() {
       </div>
 
       {/* CAMS / KFintech CAS Ingestion Modal */}
-      {showCasModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full p-4 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setShowCasModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white transition"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <div className="flex items-center gap-3 mb-4">
-              <div 
-                className="p-2.5 rounded-xl border"
-                style={{ backgroundColor: `${brandColor}15`, borderColor: `${brandColor}30`, color: brandColor }}
-              >
-                <UploadCloud className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Import CAMS / KFintech CAS Statement</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Batch parse and ingest mutual fund folios directly into client assets</p>
-              </div>
-            </div>
-
-            {casStatus && (
-              <div
-                className={`mb-4 p-3 rounded-lg text-xs flex items-start gap-2.5 ${
-                  casStatus.type === "success"
-                    ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
-                    : "bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300"
-                }`}
-              >
-                {casStatus.type === "success" ? (
-                  <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
-                ) : (
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
-                )}
-                <span>{casStatus.message}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleImportCas} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Select Target Client Record:
-                </label>
-                <select
-                  value={selectedClientId}
-                  onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
-                >
-                  <option value="">-- Choose Client --</option>
-                  {clients.map((c: any) => (
-                    <option key={c.client_id} value={c.client_id}>
-                      {c.full_name} ({c.uwp_client_code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    CAMS / KFintech CAS Data (JSON or Tabular / CSV):
-                  </label>
-                  <button
-                    type="button"
-                    onClick={populateSampleCas}
-                    className="text-[11px] hover:underline flex items-center gap-1 font-medium transition"
-                    style={{ color: brandColor }}
-                  >
-                    <Sparkles className="h-3 w-3" />
-                    Load Sample Folios
-                  </button>
-                </div>
-                <textarea
-                  value={casInput}
-                  onChange={(e) => setCasInput(e.target.value)}
-                  placeholder={`Paste CAS JSON or CSV entries, e.g.:\n[\n  { "scheme": "HDFC Top 100 Fund", "folio": "12345/67", "valuation": 650000 }\n]`}
-                  rows={7}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 font-mono border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCasModal(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isImporting}
-                  style={{ backgroundColor: brandColor }}
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold text-white shadow-md disabled:opacity-50 transition"
-                >
-                  {isImporting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Ingesting Folios...
-                    </>
-                  ) : (
-                    <>
-                      <UploadCloud className="h-4 w-4" />
-                      Process & Ingest Holdings
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CasUploadModal
+        isOpen={showCasModal}
+        onClose={() => setShowCasModal(false)}
+        onSuccess={loadData}
+        userRole="ADVISOR"
+        clients={clients}
+        initialClientId={selectedClientId}
+        brandColor={brandColor}
+      />
     </div>
   );
 }

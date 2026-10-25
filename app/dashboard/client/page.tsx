@@ -24,10 +24,12 @@ import {
   CreditCard,
   ShieldCheck,
   X,
+  UploadCloud,
 } from "lucide-react";
 import Link from "next/link";
 import AppointmentsManager from "@/components/AppointmentsManager";
 import FileUploader from "@/components/FileUploader";
+import CasUploadModal from "@/components/CasUploadModal";
 
 function formatINR(val: number) {
   if (val >= 10000000) {
@@ -47,6 +49,7 @@ export default function ClientDashboard() {
   const [isSavingAction, setIsSavingAction] = useState<{ [id: string]: boolean }>({});
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [showKycModal, setShowKycModal] = useState(false);
+  const [showCasModal, setShowCasModal] = useState(false);
   const [panDocUrl, setPanDocUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -236,9 +239,17 @@ export default function ClientDashboard() {
           </div>
         </div>
         <div className="flex flex-col xs:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => setShowCasModal(true)}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/80 dark:hover:bg-sky-900 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-bold transition shadow-xs"
+          >
+            <UploadCloud className="h-3.5 w-3.5 text-sky-500" />
+            <span>Upload CAS Report</span>
+          </button>
           <Link
             href="/dashboard/portfolio"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/70 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 text-xs font-bold transition shadow-sm hover:bg-sky-100 dark:hover:bg-sky-900"
+            className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition shadow-xs"
           >
             <TrendingUp className="h-3.5 w-3.5 text-sky-500" />
             <span>Mutual Fund Portfolio</span>
@@ -685,6 +696,16 @@ export default function ClientDashboard() {
           </div>
         </div>
       )}
+      {/* CAMS / KFintech CAS Upload Modal */}
+      <CasUploadModal
+        isOpen={showCasModal}
+        onClose={() => setShowCasModal(false)}
+        onSuccess={reloadData}
+        userRole="CLIENT"
+        currentClientId={clientRecord?.client_id || data?.clientRecord?.client_id}
+        currentClientName={clientRecord?.full_name || userName}
+        brandColor={brandColor}
+      />
     </div>
   );
 }

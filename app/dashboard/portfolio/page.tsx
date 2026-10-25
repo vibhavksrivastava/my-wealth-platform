@@ -37,10 +37,12 @@ import {
   ArrowLeft,
   ChevronUp,
   SlidersHorizontal,
-  Home
+  Home,
+  UploadCloud
 } from "lucide-react";
 import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 import { useFeatureAccess } from "@/lib/useFeatureAccess";
+import CasUploadModal from "@/components/CasUploadModal";
 
 function formatINR(val: number) {
   if (val === undefined || val === null || isNaN(val)) return "₹0";
@@ -92,6 +94,7 @@ function MutualFundPortfolioContent() {
   const [selectedClientId, setSelectedClientId] = useState<string>(
     paramClientId || (paramHouseholdId ? `hh:${paramHouseholdId}` : "")
   );
+  const [showCasModal, setShowCasModal] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -589,6 +592,16 @@ function MutualFundPortfolioContent() {
             </div>
 
             <button
+              type="button"
+              onClick={() => setShowCasModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/80 dark:hover:bg-sky-900 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-bold transition shadow-xs"
+              title="Upload / Import CAMS or KFintech CAS"
+            >
+              <UploadCloud className="h-3.5 w-3.5 text-sky-500" />
+              <span className="hidden sm:inline">Upload CAS</span>
+            </button>
+
+            <button
               onClick={fetchPortfolio}
               disabled={isLoading}
               className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition"
@@ -1069,6 +1082,14 @@ function MutualFundPortfolioContent() {
 
               {/* Household Scope Pills Bar */}
               <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCasModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs bg-sky-50 dark:bg-sky-950/80 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900"
+                >
+                  <UploadCloud className="h-3.5 w-3.5" />
+                  <span>Upload CAS</span>
+                </button>
                 <button
                   onClick={() => {
                     setScope("HOUSEHOLD");
@@ -1851,6 +1872,27 @@ function MutualFundPortfolioContent() {
           </div>
         </div>
       )}
+      {/* CAMS / KFintech CAS Ingestion Modal */}
+      <CasUploadModal
+        isOpen={showCasModal}
+        onClose={() => setShowCasModal(false)}
+        onSuccess={fetchPortfolio}
+        userRole={userRole}
+        clients={
+          portfolioData?.clients?.map((c: any) => ({
+            client_id: c.clientId,
+            full_name: c.clientName,
+            uwp_client_code: c.clientCode,
+          })) || []
+        }
+        initialClientId={
+          selectedClientId.startsWith("hh:")
+            ? ""
+            : selectedClientId || portfolioData?.clientId
+        }
+        currentClientId={portfolioData?.clientId}
+        currentClientName={portfolioData?.clientName}
+      />
     </div>
   );
 }

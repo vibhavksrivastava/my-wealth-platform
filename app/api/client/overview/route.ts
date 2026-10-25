@@ -19,6 +19,15 @@ export async function GET(req: Request) {
       .eq("user_id", session.sub)
       .maybeSingle();
 
+    // Fetch User details for name/email
+    const { data: userRec } = await supabaseAdmin
+      .from("users")
+      .select("first_name, last_name, email")
+      .eq("id", session.sub)
+      .maybeSingle();
+
+    const userFullName = userRec ? `${userRec.first_name || ""} ${userRec.last_name || ""}`.trim() : "";
+
     // Fetch Household Client data if linked or client by user_id
     let clientRecord = null;
     let assets: any[] = [];
@@ -28,21 +37,75 @@ export async function GET(req: Request) {
     let activeSuggestions: any[] = [];
 
     let cData = null;
-    if (profile?.household_id) {
-      const { data } = await supabaseAdmin
-        .from("clients")
-        .select("*")
-        .eq("household_id", profile.household_id)
-        .maybeSingle();
-      cData = data;
+    // 1. Direct match on user_id
+    const { data: userMatches } = await supabaseAdmin
+      .from("clients")
+      .select("*")
+      .eq("user_id", session.sub)
+      .limit(1);
+
+    if (userMatches && userMatches.length > 0) {
+      cData = userMatches[0];
     }
-    if (!cData) {
-      const { data } = await supabaseAdmin
+
+    // 2. Household match if linked
+    if (!cData && profile?.household_id) {
+      const { data: hhClients } = await supabaseAdmin
         .from("clients")
         .select("*")
-        .eq("user_id", session.sub)
+        .eq("household_id", profile.household_id);
+
+      if (hhClients && hhClients.length > 0) {
+        // Prefer matching full name or first member
+        const found = hhClients.find(
+          (c) =>
+            (userFullName && c.full_name && c.full_name.toLowerCase().includes(userFullName.toLowerCase())) ||
+            (userFullName && c.full_name && userFullName.toLowerCase().includes(c.full_name.toLowerCase()))
+        );
+        cData = found || hhClients[0];
+        if (cData && !cData.user_id) {
+          await supabaseAdmin
+            .from("clients")
+            .update({ user_id: session.sub })
+            .eq("client_id", cData.client_id);
+          cData.user_id = session.sub;
+        }
+      }
+    }
+
+    // 3. Name match fallback across tenant
+    if (!cData && userFullName) {
+      const { data: nameMatches } = await supabaseAdmin
+        .from("clients")
+        .select("*")
+        .ilike("full_name", `%${userFullName}%`)
+        .limit(1);
+
+      if (nameMatches && nameMatches.length > 0) {
+        cData = nameMatches[0];
+        if (!cData.user_id) {
+          await supabaseAdmin
+            .from("clients")
+            .update({ user_id: session.sub })
+            .eq("client_id", cData.client_id);
+          cData.user_id = session.sub;
+        }
+      }
+    }
+
+    // 4. Create client planning record if completely new
+    if (!cData) {
+      const { data: newClient } = await supabaseAdmin
+        .from("clients")
+        .insert({
+          tenant_id: session.tenantId || "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          user_id: session.sub,
+          full_name: userFullName || session.email?.split("@")[0] || "Investor Client",
+          uwp_client_code: `CL-${Math.floor(1000 + Math.random() * 9000)}`,
+        })
+        .select()
         .maybeSingle();
-      cData = data;
+      cData = newClient;
     }
 
     clientRecord = cData;
