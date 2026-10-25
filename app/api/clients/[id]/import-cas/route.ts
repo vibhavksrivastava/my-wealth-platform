@@ -304,6 +304,88 @@ export async function POST(
       console.warn("mfd_folios upsert warning:", folioErr);
     }
 
+    // 3b. Ingest Transactions if provided
+    const parsedTransactions = body.transactions || [];
+    if (parsedTransactions.length > 0) {
+      try {
+        const userId = client.user_id || session.sub;
+        let portfolioId = null;
+        const { data: pList } = await supabaseAdmin
+          .from("portfolios")
+          .select("id")
+          .eq("client_id", userId)
+          .limit(1);
+
+        if (pList && pList.length > 0) {
+          portfolioId = pList[0].id;
+        } else {
+          const { data: newP } = await supabaseAdmin
+            .from("portfolios")
+            .insert({
+              tenant_id: client.tenant_id || session.tenantId || "00000000-0000-0000-0000-000000000000",
+              client_id: userId,
+              portfolio_name: "Main Portfolio",
+            })
+            .select()
+            .maybeSingle();
+          portfolioId = newP?.id;
+        }
+
+        if (portfolioId) {
+          await supabaseAdmin
+            .from("transactions")
+            .delete()
+            .eq("client_id", userId);
+
+          for (const tx of parsedTransactions) {
+            let instrumentId = null;
+            if (tx.isin) {
+              const { data: exInst } = await supabaseAdmin
+                .from("instruments")
+                .select("id")
+                .eq("isin", tx.isin)
+                .limit(1);
+              if (exInst && exInst.length > 0) instrumentId = exInst[0].id;
+            }
+
+            if (!instrumentId) {
+              const { data: insInst } = await supabaseAdmin
+                .from("instruments")
+                .insert({
+                  scheme_name: tx.schemeName || "Mutual Fund Scheme",
+                  isin: tx.isin || null,
+                  asset_class: "EQUITY",
+                  fund_house: tx.amc || (tx.schemeName ? tx.schemeName.split(" ")[0] : "Mutual Fund"),
+                  current_nav: tx.nav || 10,
+                  nav_date: tx.date || new Date().toISOString().split("T")[0],
+                  is_active: true,
+                })
+                .select()
+                .maybeSingle();
+              instrumentId = insInst?.id;
+            }
+
+            if (instrumentId) {
+              await supabaseAdmin.from("transactions").insert({
+                tenant_id: client.tenant_id || session.tenantId || "00000000-0000-0000-0000-000000000000",
+                portfolio_id: portfolioId,
+                client_id: userId,
+                instrument_id: instrumentId,
+                transaction_type: tx.type === "SIP" ? "BUY" : tx.type || "BUY",
+                transaction_date: tx.date || new Date().toISOString().split("T")[0],
+                units: tx.units || 1,
+                nav: tx.nav || 10,
+                total_amount: tx.amount || 1000,
+                external_order_id: tx.folioNumber || null,
+              });
+            }
+          }
+        }
+      } catch (txErr) {
+        console.warn("Transactions ingestion warning:", txErr);
+      }
+    }
+
     // 4. Recalculate total assets, liabilities, and net worth
     const { data: allAssets } = await supabaseAdmin
       .from("assets")

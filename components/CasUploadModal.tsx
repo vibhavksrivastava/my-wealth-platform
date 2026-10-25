@@ -106,8 +106,9 @@ export default function CasUploadModal({
   // Paste / Text State
   const [casText, setCasText] = useState("");
 
-  // Parsed Preview Holdings
+  // Parsed Preview Holdings & Transactions
   const [parsedHoldings, setParsedHoldings] = useState<any[]>([]);
+  const [parsedTransactions, setParsedTransactions] = useState<any[]>([]);
 
   // Submission States
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -239,6 +240,9 @@ export default function CasUploadModal({
 
       if (json.holdings && Array.isArray(json.holdings) && json.holdings.length > 0) {
         setParsedHoldings(json.holdings);
+        if (json.transactions && Array.isArray(json.transactions)) {
+          setParsedTransactions(json.transactions);
+        }
         if (json.investorName || json.pan) {
           setPdfInvestorInfo({ name: json.investorName, pan: json.pan });
         }
@@ -337,6 +341,7 @@ export default function CasUploadModal({
         },
         body: JSON.stringify({
           casData: payloadData,
+          transactions: parsedTransactions.length > 0 ? parsedTransactions : undefined,
           pdfPassword: pdfPassword.trim() || undefined,
           fileName: selectedFile?.name || undefined,
         }),

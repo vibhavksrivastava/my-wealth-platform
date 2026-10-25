@@ -172,6 +172,75 @@ def extract_cas_pdf(pdf_path, password=None):
     # Filter out zero balance holdings where valuation and units are 0
     active_holdings = [h for h in holdings if h['valuation'] > 0 or h['units'] > 0]
 
+    # Extract Transactions section
+    transactions = []
+    txn_start = text.find('STATEMENT OF TRANSACTIONS FOR THE PERIOD')
+    if txn_start != -1:
+        txn_end = text.find('MUTUAL FUND UNITS HELD AS ON', txn_start)
+        txn_sec = text[txn_start:txn_end] if txn_end != -1 else text[txn_start:]
+        blocks = re.split(r'ISIN\s*:\s*([A-Z0-9]{12})', txn_sec)
+
+        for b_idx in range(1, len(blocks), 2):
+            b_isin = blocks[b_idx].strip()
+            sub_text = blocks[b_idx + 1]
+            info = {
+                'scheme': scheme_map.get(b_isin, f"Mutual Fund ({b_isin})"),
+                'folio': folio_map.get(b_isin, ""),
+                'amc': amc_map.get(b_isin, "Mutual Fund")
+            }
+
+            for tm in re.finditer(r'(\d{2}-\d{2}-\d{4})\s+([\s\S]+?)(?:\b\d{7,12}\b\s+)?([0-9,]+\.[0-9]{1,2})\s+([0-9\.]+)\s+([0-9\.]+)\s+([0-9\.]+)', sub_text):
+                d_raw = tm.group(1)
+                desc = re.sub(r'\s+', ' ', tm.group(2)).strip()
+                amt = float(tm.group(3).replace(',', ''))
+                t_nav = float(tm.group(4))
+                t_units = float(tm.group(6))
+
+                parts = d_raw.split('-')
+                fmt_date = f'{parts[2]}-{parts[1]}-{parts[0]}'
+
+                tx_type = 'SIP' if any(w in desc.lower() for w in ['systematic', 'sip', 'instalment']) else 'PURCHASE'
+                if any(w in desc.lower() for w in ['redemption', 'switch-out', 'withdr']):
+                    tx_type = 'REDEMPTION'
+                elif 'switch-in' in desc.lower():
+                    tx_type = 'SWITCH'
+
+                clean_name = re.sub(r'^[A-Z0-9]+\s*-\s*', '', info['scheme'])
+                transactions.append({
+                    "id": f"txn-{b_isin}-{len(transactions)+1}",
+                    "isin": b_isin,
+                    "folioNumber": info['folio'],
+                    "schemeName": clean_name,
+                    "type": tx_type,
+                    "date": fmt_date,
+                    "units": t_units,
+                    "nav": t_nav,
+                    "amount": amt,
+                    "status": "COMPLETED",
+                    "description": desc
+                })
+
+    # For active holdings without an explicit monthly transaction, add cumulative folio investment record
+    tx_folios = set(t['folioNumber'] for t in transactions if t.get('folioNumber'))
+    for idx, h in enumerate(active_holdings):
+        if h['folio'] not in tx_folios and h['cost'] > 0:
+            transactions.append({
+                "id": f"txn-folio-{idx+1}",
+                "isin": h.get("isin", ""),
+                "folioNumber": h["folio"],
+                "schemeName": h["scheme"],
+                "type": "SIP",
+                "date": "2026-09-01",
+                "units": h["units"],
+                "nav": h["nav"],
+                "amount": h["cost"],
+                "status": "COMPLETED",
+                "description": "Consolidated Mutual Fund Investment"
+            })
+
+    # Sort transactions by date descending
+    transactions.sort(key=lambda x: x["date"], reverse=True)
+
     return {
         "success": True,
         "investorName": investor_name,
@@ -179,7 +248,9 @@ def extract_cas_pdf(pdf_path, password=None):
         "totalValuation": total_val or sum(h['valuation'] for h in active_holdings),
         "totalCost": sum(h['cost'] for h in active_holdings),
         "holdingsCount": len(active_holdings),
-        "holdings": active_holdings
+        "holdings": active_holdings,
+        "transactionsCount": len(transactions),
+        "transactions": transactions
     }
 
 if __name__ == "__main__":
