@@ -229,6 +229,19 @@ export async function POST(
       }, { status: 400 });
     }
 
+    // Clean up any previously imported CAS holdings to prevent duplicate accumulation
+    await supabaseAdmin
+      .from("assets")
+      .delete()
+      .eq("client_id", clientId)
+      .ilike("notes", "%Imported via CAMS/KFintech CAS%");
+
+    await supabaseAdmin
+      .from("investment_portfolio")
+      .delete()
+      .eq("client_id", clientId)
+      .ilike("notes", "%Imported via CAMS/KFintech CAS%");
+
     // 1. Prepare and insert assets records
     const recordsToInsert = parsedHoldings.map((h) => ({
       client_id: clientId,

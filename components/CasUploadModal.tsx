@@ -111,6 +111,8 @@ export default function CasUploadModal({
 
   // Submission States
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isParsingPdf, setIsParsingPdf] = useState(false);
+  const [pdfInvestorInfo, setPdfInvestorInfo] = useState<{ name?: string; pan?: string } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -207,16 +209,63 @@ export default function CasUploadModal({
     }
   };
 
+  const handleParsePdf = async (fileToParse?: File, pwd?: string): Promise<any[] | null> => {
+    const targetFile = fileToParse || selectedFile;
+    if (!targetFile) return null;
+    const targetPwd = (pwd !== undefined ? pwd : pdfPassword).trim();
+
+    setIsParsingPdf(true);
+    setErrorMessage(null);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const formData = new FormData();
+      formData.append("file", targetFile);
+      if (targetPwd) {
+        formData.append("password", targetPwd);
+      }
+
+      const res = await fetch("/api/cas/parse-pdf", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to decrypt and analyze CAS PDF.");
+      }
+
+      if (json.holdings && Array.isArray(json.holdings) && json.holdings.length > 0) {
+        setParsedHoldings(json.holdings);
+        if (json.investorName || json.pan) {
+          setPdfInvestorInfo({ name: json.investorName, pan: json.pan });
+        }
+        return json.holdings;
+      } else {
+        throw new Error("No active mutual fund folios detected in this statement.");
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to decrypt PDF. Please verify your password.");
+      return null;
+    } finally {
+      setIsParsingPdf(false);
+    }
+  };
+
   const handleFileChange = (file: File | null) => {
     if (!file) return;
     setSelectedFile(file);
     setErrorMessage(null);
+    setPdfInvestorInfo(null);
 
     const isPdf = file.name.toLowerCase().endsWith(".pdf");
     if (isPdf) {
-      // For PDF statements, load standard CAMS preview holdings
-      // or prepare for PDF password validation
-      setParsedHoldings(SAMPLE_CAS_DATA);
+      setParsedHoldings([]);
+      if (pdfPassword.trim()) {
+        handleParsePdf(file, pdfPassword);
+      }
     } else {
       // Text / JSON / CSV
       const reader = new FileReader();
@@ -260,10 +309,21 @@ export default function CasUploadModal({
       return;
     }
 
-    let payloadData = parsedHoldings.length > 0 ? parsedHoldings : casText.trim();
+    let payloadData = parsedHoldings;
+    if (payloadData.length === 0 && selectedFile && selectedFile.name.toLowerCase().endsWith(".pdf")) {
+      const parsed = await handleParsePdf();
+      if (!parsed || parsed.length === 0) {
+        return;
+      }
+      payloadData = parsed;
+    }
+
     if (!payloadData || (Array.isArray(payloadData) && payloadData.length === 0)) {
-      setErrorMessage("Please select a CAS file or paste your statement details to import.");
-      return;
+      payloadData = casText.trim() ? (parseRawText(casText), parsedHoldings) : [];
+      if (!payloadData || (Array.isArray(payloadData) && payloadData.length === 0)) {
+        setErrorMessage("Please select a CAS file or paste your statement details to import.");
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -525,30 +585,67 @@ export default function CasUploadModal({
 
               {/* PDF Password Field if PDF selected */}
               {selectedFile && selectedFile.name.toLowerCase().endsWith(".pdf") && (
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
                   <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
                     <span className="flex items-center gap-1.5">
                       <Lock className="h-3.5 w-3.5 text-slate-400" />
-                      <span>CAS PDF Password (If Protected)</span>
+                      <span>CAS PDF Password</span>
                     </span>
-                    <span className="text-[10px] text-slate-400 font-normal">PAN (e.g., ABCDE1234F) or DOB</span>
+                    <span className="text-[10px] text-slate-400 font-normal">PAN in ALL CAPS (e.g., BFHPS4115P) or DOB</span>
                   </div>
-                  <div className="relative">
-                    <input
-                      type={showPdfPassword ? "text" : "password"}
-                      value={pdfPassword}
-                      onChange={(e) => setPdfPassword(e.target.value)}
-                      placeholder="Enter PAN or Date of Birth if PDF is encrypted..."
-                      className="w-full px-3 py-2 pr-9 text-xs rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none uppercase"
-                    />
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type={showPdfPassword ? "text" : "password"}
+                        value={pdfPassword}
+                        onChange={(e) => setPdfPassword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleParsePdf();
+                          }
+                        }}
+                        placeholder="Enter PAN in ALL CAPS (e.g. BFHPS4115P)..."
+                        className="w-full px-3 py-2 pr-9 text-xs rounded-lg border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none uppercase font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPdfPassword(!showPdfPassword)}
+                        className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs"
+                      >
+                        {showPdfPassword ? "Hide" : "Show"}
+                      </button>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setShowPdfPassword(!showPdfPassword)}
-                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs"
+                      onClick={() => handleParsePdf()}
+                      disabled={isParsingPdf}
+                      className="px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 disabled:opacity-50 transition shrink-0 flex items-center gap-1.5 shadow-xs"
                     >
-                      {showPdfPassword ? "Hide" : "Show"}
+                      {isParsingPdf ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span>Decrypting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-3.5 w-3.5" />
+                          <span>Unlock &amp; Parse</span>
+                        </>
+                      )}
                     </button>
                   </div>
+
+                  {pdfInvestorInfo && (
+                    <div className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 text-[11px] text-emerald-700 dark:text-emerald-300 flex items-center justify-between">
+                      <span className="font-semibold">Statement Holder: {pdfInvestorInfo.name}</span>
+                      {pdfInvestorInfo.pan && (
+                        <span className="font-mono text-[10px] bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded">
+                          PAN: {pdfInvestorInfo.pan}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
