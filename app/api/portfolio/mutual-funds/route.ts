@@ -27,8 +27,23 @@ function calculateHoldingMetrics(h: any) {
     cagr = 7.4;
   }
 
-  const units = Number(h.units || (value > 0 ? Math.round(value / 85.4) : 100));
-  const currentNav = units > 0 ? Number((value / units).toFixed(2)) : 85.4;
+  // Extract units and nav from notes if present (e.g., CAS imports)
+  let extractedUnits = Number(h.units || 0);
+  let extractedNav = Number(h.nav || 0);
+
+  if (h.notes) {
+    const uMatch = h.notes.match(/Units:\s*([0-9.]+)/i);
+    if (uMatch && !isNaN(Number(uMatch[1]))) {
+      extractedUnits = Number(uMatch[1]);
+    }
+    const navMatch = h.notes.match(/NAV:\s*₹?([0-9.]+)/i);
+    if (navMatch && !isNaN(Number(navMatch[1]))) {
+      extractedNav = Number(navMatch[1]);
+    }
+  }
+
+  const units = extractedUnits > 0 ? extractedUnits : Number(h.units || (value > 0 ? Math.round(value / 85.4) : 100));
+  const currentNav = extractedNav > 0 ? extractedNav : (units > 0 ? Number((value / units).toFixed(2)) : 85.4);
   const avgNav = units > 0 && cost > 0 ? Number((cost / units).toFixed(2)) : Number((currentNav * 0.82).toFixed(2));
 
   return {
@@ -584,15 +599,23 @@ export async function GET(req: Request) {
     });
 
     (rawMfAssets || []).forEach((ast) => {
-      const alreadyAdded = holdingsList.some((h) => h.schemeName.toLowerCase() === ast.description?.toLowerCase());
+      const cleanAstScheme = (ast.description || "").split("(Folio:")[0].trim().toLowerCase();
+      let folio = "FOL-" + ast.asset_id.slice(0, 8).toUpperCase();
+      if (ast.description && ast.description.includes("Folio:")) {
+        const match = ast.description.match(/Folio:\s*([^)]+)/i);
+        if (match) folio = match[1].trim();
+      }
+
+      const alreadyAdded = holdingsList.some(
+        (h) =>
+          h.id === ast.asset_id ||
+          (cleanAstScheme.length > 5 && h.schemeName.toLowerCase() === cleanAstScheme) ||
+          (cleanAstScheme.length > 5 && h.schemeName.toLowerCase().includes(cleanAstScheme)) ||
+          (cleanAstScheme.length > 5 && cleanAstScheme.includes(h.schemeName.toLowerCase()))
+      );
+
       if (!alreadyAdded) {
         const metrics = calculateHoldingMetrics(ast);
-        let folio = "FOL-" + ast.asset_id.slice(0, 8).toUpperCase();
-        if (ast.description && ast.description.includes("Folio:")) {
-          const match = ast.description.match(/Folio:\s*([^)]+)/i);
-          if (match) folio = match[1].trim();
-        }
-
         const cAstMember = householdMembers.find((m) => m.client_id === ast.client_id) || allTenantClients.find((c) => c.client_id === ast.client_id);
         holdingsList.push({
           id: ast.asset_id,
