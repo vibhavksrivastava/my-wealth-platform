@@ -693,7 +693,7 @@ function MutualFundPortfolioContent() {
               </div>
               <div className={`mt-1 text-xs font-bold flex items-center gap-1 ${bookMetrics.dayChange >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
                 {bookMetrics.dayChange >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-                <span>+{bookMetrics.dayChangePct}% today</span>
+                <span>{bookMetrics.dayChangePct >= 0 ? "+" : ""}{bookMetrics.dayChangePct}% today</span>
               </div>
               <div className="text-[10px] text-slate-400 mt-1">Daily mark-to-market</div>
             </div>
@@ -908,7 +908,7 @@ function MutualFundPortfolioContent() {
                             <span className={`font-semibold ${client.dayChange >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
                               {client.dayChange >= 0 ? "+" : ""}{formatINR(client.dayChange)}
                             </span>
-                            <div className="text-[10px] text-slate-400">+{client.dayChangePct}%</div>
+                            <div className="text-[10px] text-slate-400">{client.dayChangePct >= 0 ? "+" : ""}{client.dayChangePct}%</div>
                           </td>
                           <td className="py-3 px-3 text-right">
                             <div className="font-bold text-emerald-500">
@@ -1003,10 +1003,10 @@ function MutualFundPortfolioContent() {
                             {formatINR(hh.currentValue)}
                           </td>
                           <td className="py-3 px-3 text-right">
-                            <span className="font-semibold text-emerald-500">
-                              +{formatINR(hh.dayChange)}
+                            <span className={`font-semibold ${hh.dayChange >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                              {hh.dayChange >= 0 ? "+" : ""}{formatINR(hh.dayChange)}
                             </span>
-                            <div className="text-[10px] text-slate-400">+{hh.dayChangePct}%</div>
+                            <div className="text-[10px] text-slate-400">{hh.dayChangePct >= 0 ? "+" : ""}{hh.dayChangePct}%</div>
                           </td>
                           <td className="py-3 px-3 text-right">
                             <div className="font-bold text-sky-500">{hh.xirr}%</div>
@@ -1161,7 +1161,7 @@ function MutualFundPortfolioContent() {
                 </div>
                 <div className={`text-[10px] font-bold mt-1 flex items-center gap-0.5 ${clientMetrics.dayChange >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
                   {clientMetrics.dayChange >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                  <span>+{clientMetrics.dayChangePct}% today</span>
+                  <span>{clientMetrics.dayChangePct >= 0 ? "+" : ""}{clientMetrics.dayChangePct}% today</span>
                 </div>
               </div>
 
@@ -1415,7 +1415,7 @@ function MutualFundPortfolioContent() {
                               <span className={`font-semibold ${h.dayChange >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
                                 {h.dayChange >= 0 ? "+" : ""}{formatINR(h.dayChange)}
                               </span>
-                              <div className="text-[10px] text-slate-400">+{h.dayChangePct}%</div>
+                              <div className="text-[10px] text-slate-400">{h.dayChangePct >= 0 ? "+" : ""}{h.dayChangePct}%</div>
                             </td>
                             <td className="py-3 px-3 text-right">
                               <div className="font-bold text-slate-900 dark:text-white">{h.cagr}%</div>

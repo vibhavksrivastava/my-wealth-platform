@@ -9,6 +9,7 @@ import { verifyAuthHeader } from "@/lib/auth";
 function parseCasData(input: any): Array<{
   scheme: string;
   folio: string;
+  isin?: string;
   units?: number;
   nav?: number;
   valuation: number;
@@ -49,6 +50,7 @@ function parseCasData(input: any): Array<{
         return {
           scheme: item.scheme || item.scheme_name || item.schemeName || item.fund_name || item.description || "Mutual Fund Scheme",
           folio: String(item.folio || item.folio_number || item.folioNumber || item.folioNo || "").replace(/folio:?/i, "").trim(),
+          isin: item.isin || item.isin_number || item.isinCode || undefined,
           units: !isNaN(unitsVal) && unitsVal > 0 ? unitsVal : undefined,
           nav: !isNaN(navVal) && navVal > 0 ? navVal : undefined,
           valuation: !isNaN(val) ? val : 0,
@@ -250,7 +252,7 @@ export async function POST(
       owner_name: client.full_name || "Self",
       current_market_value: h.valuation,
       is_liquid: true,
-      notes: `Imported via CAMS/KFintech CAS. Units: ${h.units ?? "N/A"} | NAV: ${h.nav ? "₹" + h.nav : "N/A"} | Cost: ${h.cost ? "₹" + h.cost : "N/A"}`,
+      notes: (h.isin ? `ISIN: ${h.isin} | ` : "") + `Imported via CAMS/KFintech CAS. Units: ${h.units ?? "N/A"} | NAV: ${h.nav ? "₹" + h.nav : "N/A"} | Cost: ${h.cost ? "₹" + h.cost : "N/A"}`,
     }));
 
     const { data: insertedAssets, error: insErr } = await supabaseAdmin
@@ -272,7 +274,7 @@ export async function POST(
         invested_amount: h.cost || Math.round(h.valuation * 0.75),
         current_value: h.valuation,
         monthly_sip_amount: 0,
-        notes: (h.folio ? `Folio: ${h.folio} | ` : "") + `Imported via CAMS/KFintech CAS. Units: ${h.units ?? "N/A"} | NAV: ${h.nav ? "₹" + h.nav : "N/A"}`,
+        notes: (h.isin ? `ISIN: ${h.isin} | ` : "") + (h.folio ? `Folio: ${h.folio} | ` : "") + `Imported via CAMS/KFintech CAS. Units: ${h.units ?? "N/A"} | NAV: ${h.nav ? "₹" + h.nav : "N/A"}`,
         updated_at: new Date().toISOString(),
       }));
 

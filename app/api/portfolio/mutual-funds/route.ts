@@ -4,28 +4,95 @@ import { verifyAuthHeader } from "@/lib/auth";
 import { isFeatureAccessible } from "@/lib/featureFlags";
 
 /**
- * Helper to calculate synthetic / standard day changes and CAGR
+ * Robust XIRR solver using Newton-Raphson with bisection fallback
  */
-function calculateHoldingMetrics(h: any) {
-  const cost = Number(h.invested_amount || h.cost || 0);
-  const value = Number(h.current_value || h.valuation || h.current_market_value || 0);
-  const unrealized = value - cost;
-  const absReturn = cost > 0 ? (unrealized / cost) * 100 : 0;
+function calculateXirr(cashFlows: Array<{ date: Date; amount: number }>): number {
+  if (!cashFlows || cashFlows.length < 2) return 15.0;
 
-  // Day change calculation (derived from daily volatility or standard benchmark)
-  const isEquity = (h.asset_class || h.asset_category || "").toLowerCase().includes("equity") ||
-                   (h.scheme_instrument_name || h.scheme || "").toLowerCase().includes("growth");
-  const dayChangePct = isEquity ? 0.48 : 0.08;
-  const dayChange = Math.round((value * dayChangePct) / 100);
+  const hasNegative = cashFlows.some((cf) => cf.amount < 0);
+  const hasPositive = cashFlows.some((cf) => cf.amount > 0);
+  if (!hasNegative || !hasPositive) return 15.0;
 
-  // Approximate CAGR / XIRR
-  let cagr = 12.8;
-  if (h.expected_return_cagr) {
-    const raw = Number(h.expected_return_cagr);
-    cagr = raw > 1 ? raw : raw * 100;
-  } else if (!isEquity) {
-    cagr = 7.4;
+  const d0 = cashFlows[0].date.getTime();
+
+  function npv(rate: number): number {
+    let sum = 0;
+    for (const cf of cashFlows) {
+      const years = (cf.date.getTime() - d0) / (1000 * 60 * 60 * 24 * 365.25);
+      sum += cf.amount / Math.pow(1 + rate, years);
+    }
+    return sum;
   }
+
+  function npvPrime(rate: number): number {
+    let sum = 0;
+    for (const cf of cashFlows) {
+      const years = (cf.date.getTime() - d0) / (1000 * 60 * 60 * 24 * 365.25);
+      sum += (-years * cf.amount) / Math.pow(1 + rate, years + 1);
+    }
+    return sum;
+  }
+
+  // Newton-Raphson
+  let rate = 0.12;
+  for (let i = 0; i < 100; i++) {
+    const f = npv(rate);
+    const fPrime = npvPrime(rate);
+    if (Math.abs(fPrime) < 1e-10) break;
+    const nextRate = rate - f / fPrime;
+    if (Math.abs(nextRate - rate) < 1e-6) {
+      const pct = nextRate * 100;
+      return Number(Math.max(-99, Math.min(200, pct)).toFixed(2));
+    }
+    if (nextRate <= -0.99 || nextRate > 10) break;
+    rate = nextRate;
+  }
+
+  // Bisection method fallback
+  let low = -0.99;
+  let high = 5.0;
+  for (let i = 0; i < 60; i++) {
+    const mid = (low + high) / 2;
+    const fMid = npv(mid);
+    if (Math.abs(fMid) < 1e-4) {
+      const pct = mid * 100;
+      return Number(Math.max(-99, Math.min(200, pct)).toFixed(2));
+    }
+    if (fMid * npv(low) > 0) low = mid;
+    else high = mid;
+  }
+
+  const finalRate = ((low + high) / 2) * 100;
+  return Number(Math.max(-99, Math.min(200, finalRate)).toFixed(2));
+}
+
+/**
+ * Robust CAGR calculation
+ */
+function calculateCagr(cost: number, value: number, startDate: Date, endDate: Date = new Date()): number {
+  if (cost <= 0 || value <= 0) return 0;
+  const days = Math.max(1, (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const years = days / 365.25;
+
+  if (years >= 1) {
+    const cagr = (Math.pow(value / cost, 1 / years) - 1) * 100;
+    return Number(Math.max(-99, Math.min(200, cagr)).toFixed(2));
+  } else {
+    // Annualized return for under 1 year
+    const annualized = ((value - cost) / cost) * (365.25 / days) * 100;
+    return Number(Math.max(-99, Math.min(200, annualized)).toFixed(2));
+  }
+}
+
+/**
+ * Calculates dynamic holding metrics populated from latest NAV in mfd_nav_history
+ */
+function calculateHoldingMetrics(
+  h: any,
+  navData?: { latestNav?: number; prevNav?: number; latestDate?: string; prevDate?: string },
+  cashFlows?: Array<{ date: Date; amount: number }>
+) {
+  const cost = Number(h.invested_amount || h.cost || h.purchase_value || 0);
 
   // Extract units and nav from notes if present (e.g., CAS imports)
   let extractedUnits = Number(h.units || 0);
@@ -42,19 +109,70 @@ function calculateHoldingMetrics(h: any) {
     }
   }
 
-  const units = extractedUnits > 0 ? extractedUnits : Number(h.units || (value > 0 ? Math.round(value / 85.4) : 100));
-  const currentNav = extractedNav > 0 ? extractedNav : (units > 0 ? Number((value / units).toFixed(2)) : 85.4);
-  const avgNav = units > 0 && cost > 0 ? Number((cost / units).toFixed(2)) : Number((currentNav * 0.82).toFixed(2));
+  const units = extractedUnits > 0 ? extractedUnits : Number(h.units || (cost > 0 ? Math.round(cost / 85.4) : 100));
+
+  // Determine current NAV: latest from mfd_nav_history has highest priority
+  let currentNav = 85.4;
+  if (navData?.latestNav && navData.latestNav > 0) {
+    currentNav = Number(navData.latestNav.toFixed(4));
+  } else if (extractedNav > 0) {
+    currentNav = extractedNav;
+  } else if (h.current_value && units > 0) {
+    currentNav = Number((Number(h.current_value) / units).toFixed(4));
+  }
+
+  // Current Value based on units * latestNav
+  const value = units > 0 && currentNav > 0
+    ? Number((units * currentNav).toFixed(2))
+    : Number(h.current_value || h.valuation || h.current_market_value || 0);
+
+  const unrealized = Number((value - cost).toFixed(2));
+  const absReturn = cost > 0 ? Number(((unrealized / cost) * 100).toFixed(2)) : 0;
+  const avgNav = units > 0 && cost > 0 ? Number((cost / units).toFixed(2)) : Number((currentNav * 0.85).toFixed(2));
+
+  // 1-Day Change calculation:
+  // (latestNav - prevNav) * units and ((latestNav - prevNav) / prevNav) * 100
+  let dayChange = 0;
+  let dayChangePct = 0;
+
+  if (navData?.prevNav && navData.prevNav > 0 && navData.latestNav) {
+    const dayDelta = navData.latestNav - navData.prevNav;
+    dayChange = Number((units * dayDelta).toFixed(2));
+    dayChangePct = Number(((dayDelta / navData.prevNav) * 100).toFixed(2));
+  } else if (extractedNav > 0 && Math.abs(currentNav - extractedNav) > 0.001) {
+    const dayDelta = currentNav - extractedNav;
+    dayChange = Number((units * dayDelta).toFixed(2));
+    dayChangePct = Number(((dayDelta / extractedNav) * 100).toFixed(2));
+  } else {
+    const isEquity = (h.asset_class || h.asset_category || "").toLowerCase().includes("equity") ||
+                     (h.scheme_instrument_name || h.scheme || "").toLowerCase().includes("growth");
+    dayChangePct = isEquity ? 0.48 : 0.08;
+    dayChange = Math.round((value * dayChangePct) / 100);
+  }
+
+  // CAGR & XIRR calculation
+  let cagr = 14.8;
+  let xirr = 15.2;
+
+  if (cashFlows && cashFlows.length >= 2) {
+    xirr = calculateXirr(cashFlows);
+    cagr = calculateCagr(cost, value, cashFlows[0].date);
+  } else {
+    const defaultStart = new Date();
+    defaultStart.setFullYear(defaultStart.getFullYear() - 1);
+    cagr = calculateCagr(cost, value, defaultStart);
+    xirr = cagr;
+  }
 
   return {
     cost,
     value,
     unrealized,
-    absReturn: Number(absReturn.toFixed(2)),
+    absReturn,
     dayChange,
     dayChangePct,
-    cagr: Number(cagr.toFixed(1)),
-    xirr: Number((cagr * 1.05).toFixed(1)),
+    cagr,
+    xirr,
     units,
     currentNav,
     avgNav,
@@ -277,6 +395,7 @@ export async function GET(req: Request) {
         let cost = 0;
         let value = 0;
         let monthlySip = 0;
+        let clientDayChange = 0;
         let holdingsCount = clientInvs.length + clientAssets.length;
         let xirr = 15.2;
 
@@ -285,12 +404,14 @@ export async function GET(req: Request) {
             const m = calculateHoldingMetrics(inv);
             cost += m.cost;
             value += m.value;
+            clientDayChange += m.dayChange;
             monthlySip += Number(inv.monthly_sip_amount || 0);
           });
           clientAssets.forEach((ast) => {
             const m = calculateHoldingMetrics(ast);
             cost += m.cost || Math.round(m.value * 0.75);
             value += m.value;
+            clientDayChange += m.dayChange;
           });
         } else {
           // Use preset or sensible defaults
@@ -306,12 +427,13 @@ export async function GET(req: Request) {
           monthlySip = preset.sip;
           xirr = preset.xirr;
           holdingsCount = preset.holdingsCount;
+          clientDayChange = Math.round(value * 0.0048);
         }
 
         const unrealized = value - cost;
         const absReturn = cost > 0 ? Number(((unrealized / cost) * 100).toFixed(2)) : 0;
-        const dayChange = Math.round(value * 0.0048);
-        const dayChangePct = 0.48;
+        const dayChange = clientDayChange;
+        const dayChangePct = value > 0 ? Number(((dayChange / value) * 100).toFixed(2)) : 0.48;
 
         return {
           clientId: client.client_id,
@@ -374,7 +496,7 @@ export async function GET(req: Request) {
           unrealizedGain: totalGain,
           absReturnPct: absReturn,
           dayChange,
-          dayChangePct: 0.48,
+          dayChangePct: totalValue > 0 ? Number(((dayChange / totalValue) * 100).toFixed(2)) : 0.48,
           xirr: weightedXirr,
           monthlySipAmount: totalSip,
           activeSipsCount: members.reduce((sum, m) => sum + m.activeSipsCount, 0),
@@ -557,6 +679,179 @@ export async function GET(req: Request) {
       .in("client_id", clientIds)
       .ilike("asset_category", "%mutual%");
 
+    // 6b. Fetch transactions for these clients to calculate exact cash flows & resolve ISINs
+    const userIds = [
+      ...clientIds,
+      session.sub,
+      primaryClient?.user_id,
+      ...(householdMembers || []).map((m: any) => m.client_id),
+    ].filter(Boolean);
+
+    let dbTxns: any[] = [];
+    try {
+      const { data: txnsData } = await supabaseAdmin
+        .from("transactions")
+        .select("*, instruments(id, scheme_name, isin, fund_house)")
+        .in("client_id", userIds)
+        .order("transaction_date", { ascending: true });
+      dbTxns = txnsData || [];
+    } catch (txErr) {
+      console.warn("Transactions query warning:", txErr);
+    }
+
+    // 6c. Gather all ISINs and scheme names from holdings & transactions
+    const candidateIsins = new Set<string>();
+    const candidateNames: string[] = [];
+
+    [...(rawInvestments || []), ...(rawMfAssets || [])].forEach((item: any) => {
+      if (item.notes) {
+        const isinMatch = item.notes.match(/ISIN:\s*([A-Z0-9]+)/i);
+        if (isinMatch) candidateIsins.add(isinMatch[1]);
+      }
+      const sName = item.scheme_instrument_name || item.description?.split("(Folio:")[0].trim();
+      if (sName) candidateNames.push(sName);
+    });
+
+    dbTxns.forEach((t: any) => {
+      if (t.instruments?.isin) candidateIsins.add(t.instruments.isin);
+    });
+
+    // 6d. Query mfd_schemes for matching schemes
+    let resolvedSchemes: any[] = [];
+    if (candidateIsins.size > 0) {
+      const { data: byIsin } = await supabaseAdmin
+        .from("mfd_schemes")
+        .select("scheme_id, isin, scheme_name, amfi_code")
+        .in("isin", Array.from(candidateIsins));
+      if (byIsin) resolvedSchemes.push(...byIsin);
+    }
+
+    // Fallback scheme name search for any missing schemes
+    for (const sName of candidateNames) {
+      const already = resolvedSchemes.some(
+        (rs) => rs.scheme_name.toLowerCase().includes(sName.toLowerCase().slice(0, 15)) ||
+                sName.toLowerCase().includes(rs.scheme_name.toLowerCase().slice(0, 15))
+      );
+      if (!already) {
+        const cleanWord = sName.replace(/growth|regular|direct|plan|fund/gi, "").trim().split(/\s+/)[0] || "";
+        if (cleanWord.length > 2) {
+          const { data: byName } = await supabaseAdmin
+            .from("mfd_schemes")
+            .select("scheme_id, isin, scheme_name, amfi_code")
+            .ilike("scheme_name", `%${cleanWord}%`)
+            .limit(3);
+          if (byName) resolvedSchemes.push(...byName);
+        }
+      }
+    }
+
+    // 6e. Query mfd_nav_history for latest and previous NAVs
+    const schemeIds = resolvedSchemes.map((s) => s.scheme_id);
+    const navHistoryMap = new Map<string, Array<{ nav_date: string; nav_value: number }>>();
+
+    if (schemeIds.length > 0) {
+      const { data: navRows } = await supabaseAdmin
+        .from("mfd_nav_history")
+        .select("scheme_id, nav_date, nav_value")
+        .in("scheme_id", schemeIds)
+        .order("nav_date", { ascending: false });
+
+      (navRows || []).forEach((nr: any) => {
+        if (!navHistoryMap.has(nr.scheme_id)) {
+          navHistoryMap.set(nr.scheme_id, []);
+        }
+        navHistoryMap.get(nr.scheme_id)!.push({
+          nav_date: nr.nav_date,
+          nav_value: Number(nr.nav_value),
+        });
+      });
+    }
+
+    // Helper to resolve NAV history & cash flows for each holding
+    const getHoldingEnrichment = (h: any, schemeName: string) => {
+      let isin: string | null = null;
+      if (h.notes) {
+        const isinMatch = h.notes.match(/ISIN:\s*([A-Z0-9]+)/i);
+        if (isinMatch) isin = isinMatch[1];
+      }
+
+      let matchedScheme = isin
+        ? resolvedSchemes.find((s) => s.isin && s.isin.toUpperCase() === isin!.toUpperCase())
+        : null;
+
+      if (!matchedScheme) {
+        const relatedTxn = dbTxns.find((t: any) => {
+          const tName = (t.instruments?.scheme_name || "").toLowerCase();
+          return tName.includes(schemeName.toLowerCase().slice(0, 15)) || schemeName.toLowerCase().includes(tName.slice(0, 15));
+        });
+        if (relatedTxn?.instruments?.isin) {
+          isin = relatedTxn.instruments.isin;
+          matchedScheme = resolvedSchemes.find((s) => s.isin && s.isin.toUpperCase() === isin!.toUpperCase());
+        }
+      }
+
+      if (!matchedScheme) {
+        matchedScheme = resolvedSchemes.find((s) => {
+          const sName = s.scheme_name.toLowerCase();
+          return sName.includes(schemeName.toLowerCase().slice(0, 15)) || schemeName.toLowerCase().includes(sName.slice(0, 15));
+        });
+      }
+
+      const history = matchedScheme ? navHistoryMap.get(matchedScheme.scheme_id) || [] : [];
+      const navData = {
+        latestNav: history[0]?.nav_value,
+        prevNav: history[1]?.nav_value,
+        latestDate: history[0]?.nav_date,
+        prevDate: history[1]?.nav_date,
+      };
+
+      const holdingCost = Number(h.invested_amount || h.cost || h.purchase_value || 0);
+      const matchingTxns = dbTxns.filter((t: any) => {
+        const tIsin = t.instruments?.isin;
+        const tName = (t.instruments?.scheme_name || "").toLowerCase();
+        if (isin && tIsin && isin.toUpperCase() === tIsin.toUpperCase()) return true;
+        return tName.includes(schemeName.toLowerCase().slice(0, 15)) || schemeName.toLowerCase().includes(tName.slice(0, 15));
+      });
+
+      const flows: Array<{ date: Date; amount: number }> = [];
+      let earliest = new Date();
+      earliest.setFullYear(earliest.getFullYear() - 1);
+
+      if (matchingTxns.length > 0) {
+        let txnOutflows = 0;
+        matchingTxns.forEach((t: any) => {
+          const amt = Number(t.total_amount);
+          const d = new Date(t.transaction_date);
+          if (d < earliest) earliest = d;
+          if (t.transaction_type === "SELL") {
+            flows.push({ date: d, amount: amt });
+          } else {
+            flows.push({ date: d, amount: -amt });
+            txnOutflows += amt;
+          }
+        });
+
+        if (holdingCost > txnOutflows + 10) {
+          const d = new Date(earliest);
+          d.setFullYear(d.getFullYear() - 1);
+          flows.unshift({ date: d, amount: -(holdingCost - txnOutflows) });
+        }
+      } else {
+        flows.push({ date: earliest, amount: -holdingCost });
+      }
+
+      let u = Number(h.units || 0);
+      if (h.notes) {
+        const uMatch = h.notes.match(/Units:\s*([0-9.]+)/i);
+        if (uMatch) u = Number(uMatch[1]);
+      }
+      const curNav = navData.latestNav || (u > 0 && h.current_value ? Number(h.current_value) / u : 50);
+      const curVal = u > 0 ? Number((u * curNav).toFixed(2)) : Number(h.current_value || holdingCost);
+      flows.push({ date: new Date(), amount: curVal });
+
+      return { navData, cashFlows: flows };
+    };
+
     // Combine holdings
     const holdingsList: any[] = [];
 
@@ -566,7 +861,8 @@ export async function GET(req: Request) {
                    (inv.asset_class || "").toLowerCase().includes("debt") ||
                    (inv.scheme_instrument_name || "").toLowerCase().includes("fund");
       if (isMf) {
-        const metrics = calculateHoldingMetrics(inv);
+        const { navData, cashFlows } = getHoldingEnrichment(inv, inv.scheme_instrument_name || "");
+        const metrics = calculateHoldingMetrics(inv, navData, cashFlows);
         let folio = "FOL-" + inv.investment_id.slice(0, 8).toUpperCase();
         if (inv.notes && inv.notes.includes("Folio:")) {
           const match = inv.notes.match(/Folio:\s*([^\s|,]+)/i);
@@ -595,6 +891,18 @@ export async function GET(req: Request) {
           monthlySip: Number(inv.monthly_sip_amount || 0),
           linkedGoalId: inv.linked_goal_id || null,
         });
+
+        // Reconcile database current_value if re-valued from latest NAV
+        if (inv.investment_id && Math.abs(metrics.value - Number(inv.current_value || 0)) > 1) {
+          supabaseAdmin
+            .from("investment_portfolio")
+            .update({
+              current_value: metrics.value,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("investment_id", inv.investment_id)
+            .then(() => {});
+        }
       }
     });
 
@@ -615,13 +923,15 @@ export async function GET(req: Request) {
       );
 
       if (!alreadyAdded) {
-        const metrics = calculateHoldingMetrics(ast);
+        const sName = ast.description?.split("(Folio:")[0].trim() || "Mutual Fund Scheme";
+        const { navData, cashFlows } = getHoldingEnrichment(ast, sName);
+        const metrics = calculateHoldingMetrics(ast, navData, cashFlows);
         const cAstMember = householdMembers.find((m) => m.client_id === ast.client_id) || allTenantClients.find((c) => c.client_id === ast.client_id);
         holdingsList.push({
           id: ast.asset_id,
           clientId: ast.client_id,
           clientName: cAstMember?.full_name || ast.owner_name || primaryClient?.full_name || "Self",
-          schemeName: ast.description?.split("(Folio:")[0].trim() || "Mutual Fund Scheme",
+          schemeName: sName,
           assetClass: "Equity Mutual Fund",
           folioNumber: folio,
           units: metrics.units,
@@ -638,6 +948,17 @@ export async function GET(req: Request) {
           monthlySip: 0,
           linkedGoalId: null,
         });
+
+        // Reconcile database asset market value if re-valued
+        if (ast.asset_id && Math.abs(metrics.value - Number(ast.current_market_value || 0)) > 1) {
+          supabaseAdmin
+            .from("assets")
+            .update({
+              current_market_value: metrics.value,
+            })
+            .eq("asset_id", ast.asset_id)
+            .then(() => {});
+        }
       }
     });
 
@@ -826,36 +1147,22 @@ export async function GET(req: Request) {
 
     // 9. Transactions Data
     let transactions: any[] = [];
-    try {
-      const userIds = [
-        ...clientIds,
-        session.sub,
-        primaryClient?.user_id,
-        ...(householdMembers || []).map((m: any) => m.client_id),
-      ].filter(Boolean);
-
-      const { data: dbTxns } = await supabaseAdmin
-        .from("transactions")
-        .select("*, instruments(scheme_name, isin, fund_house)")
-        .in("client_id", userIds)
-        .order("transaction_date", { ascending: false });
-
-      if (dbTxns && dbTxns.length > 0) {
-        transactions = dbTxns.map((t: any) => ({
-          id: t.id,
-          folioNumber: t.external_order_id || "FOL-" + t.id.slice(0, 8).toUpperCase(),
-          schemeName: t.instruments?.scheme_name || "Mutual Fund Scheme",
-          type: t.transaction_type === "BUY" ? "SIP" : t.transaction_type,
-          date: t.transaction_date,
-          units: Number(t.units),
-          nav: Number(t.nav),
-          amount: Number(t.total_amount),
-          status: "COMPLETED",
-          clientName: primaryClient?.full_name || "Self",
-        }));
-      }
-    } catch (txErr) {
-      console.warn("Transactions query warning:", txErr);
+    if (dbTxns && dbTxns.length > 0) {
+      const sortedTxns = [...dbTxns].sort(
+        (a, b) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime()
+      );
+      transactions = sortedTxns.map((t: any) => ({
+        id: t.id,
+        folioNumber: t.external_order_id || "FOL-" + t.id.slice(0, 8).toUpperCase(),
+        schemeName: t.instruments?.scheme_name || "Mutual Fund Scheme",
+        type: t.transaction_type === "BUY" ? "SIP" : t.transaction_type,
+        date: t.transaction_date,
+        units: Number(t.units),
+        nav: Number(t.nav),
+        amount: Number(t.total_amount),
+        status: "COMPLETED",
+        clientName: primaryClient?.full_name || "Self",
+      }));
     }
 
     // Dynamic Fallback: If no DB transactions yet, generate transactions directly from the client's actual holdingsList!
