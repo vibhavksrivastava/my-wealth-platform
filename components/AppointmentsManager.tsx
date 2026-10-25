@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Calendar,
   Clock,
@@ -16,6 +17,8 @@ import {
   Check,
   X,
   ExternalLink,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import { AppointmentItem, AppointmentStatus } from "@/lib/appointments";
 
@@ -26,6 +29,7 @@ interface AppointmentsManagerProps {
   title?: string;
   subtitle?: string;
   brandColor?: string;
+  nextSevenDaysOnly?: boolean;
 }
 
 export default function AppointmentsManager({
@@ -35,6 +39,7 @@ export default function AppointmentsManager({
   title = "Review Calls & Strategy Meetings",
   subtitle = "Schedule calls, confirm meeting slots, and review strategic meeting minutes.",
   brandColor,
+  nextSevenDaysOnly = false,
 }: AppointmentsManagerProps) {
   const activeBrandColor = brandColor || "var(--tenant-primary, #0284c7)";
   const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
@@ -56,6 +61,22 @@ export default function AppointmentsManager({
   // Notes addition state per appointment
   const [noteInputs, setNoteInputs] = useState<{ [id: string]: string }>({});
   const [isSavingNote, setIsSavingNote] = useState<{ [id: string]: boolean }>({});
+
+  // Chronological appointments resolution (for next 7 days or all)
+  const displayAppointments = useMemo(() => {
+    if (!nextSevenDaysOnly) return appointments;
+    const now = new Date();
+    // Allow meetings from start of today or active 2 hours ago
+    const startWindow = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+    const endWindow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    return appointments
+      .filter((a) => {
+        const d = new Date(a.start_time);
+        return d >= startWindow && d <= endWindow && a.status !== "CANCELLED";
+      })
+      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+  }, [appointments, nextSevenDaysOnly]);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setNotification({ type, message });
@@ -228,29 +249,46 @@ export default function AppointmentsManager({
       )}
 
       {/* Header Bar */}
-      <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+      <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Calendar className="h-4 w-4" style={{ color: activeBrandColor }} />
             <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">{title}</h3>
+            {nextSevenDaysOnly && (
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+                Next 7 Days ({displayAppointments.length})
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>
         </div>
 
-        <button
-          onClick={() => {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            setFormDate(tomorrow.toISOString().split("T")[0]);
-            setModalError(null);
-            setIsScheduleOpen(true);
-          }}
-          style={{ backgroundColor: activeBrandColor }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-xs font-bold transition shadow-md hover:brightness-110 whitespace-nowrap"
-        >
-          <Plus className="h-4 w-4" />
-          <span>{userRole === "CLIENT" ? "Request Call with Advisor" : "Schedule Client Review"}</span>
-        </button>
+        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2">
+          {nextSevenDaysOnly && (
+            <Link
+              href="/dashboard/calendar"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition shadow-xs whitespace-nowrap"
+            >
+              <span>View All in Calendar</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          )}
+
+          <button
+            onClick={() => {
+              const tomorrow = new Date();
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              setFormDate(tomorrow.toISOString().split("T")[0]);
+              setModalError(null);
+              setIsScheduleOpen(true);
+            }}
+            style={{ backgroundColor: activeBrandColor }}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white text-xs font-bold transition shadow-md hover:brightness-110 whitespace-nowrap"
+          >
+            <Plus className="h-4 w-4" />
+            <span>{userRole === "CLIENT" ? "Request Call with Advisor" : "Schedule Review"}</span>
+          </button>
+        </div>
       </div>
 
       {/* Appointments List */}
@@ -259,26 +297,41 @@ export default function AppointmentsManager({
           <Loader2 className="h-6 w-6 animate-spin" style={{ color: activeBrandColor }} />
           <span className="text-xs font-medium">Loading scheduled meetings...</span>
         </div>
-      ) : appointments.length === 0 ? (
-        <div className="p-8 rounded-xl bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 text-center space-y-2">
+      ) : displayAppointments.length === 0 ? (
+        <div className="p-8 rounded-xl bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 text-center space-y-3">
           <Calendar className="h-8 w-8 text-slate-400 dark:text-slate-600 mx-auto" />
-          <p className="text-xs text-slate-600 dark:text-slate-400">No calls scheduled at the moment.</p>
-          <button
-            onClick={() => {
-              const tomorrow = new Date();
-              tomorrow.setDate(tomorrow.getDate() + 1);
-              setFormDate(tomorrow.toISOString().split("T")[0]);
-              setIsScheduleOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition"
-          >
-            <Plus className="h-3.5 w-3.5" style={{ color: activeBrandColor }} />
-            <span>Schedule First Call</span>
-          </button>
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            {nextSevenDaysOnly
+              ? "No client reviews scheduled in the next 7 days."
+              : "No calls scheduled at the moment."}
+          </p>
+          <div className="flex items-center justify-center gap-2 pt-1">
+            {nextSevenDaysOnly && (
+              <Link
+                href="/dashboard/calendar"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+              >
+                <span>View Full Calendar</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            )}
+            <button
+              onClick={() => {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                setFormDate(tomorrow.toISOString().split("T")[0]);
+                setIsScheduleOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-semibold hover:bg-sky-100 dark:hover:bg-sky-900 transition"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Schedule Call</span>
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
-          {appointments.map((appt) => {
+          {displayAppointments.map((appt) => {
             const startDate = new Date(appt.start_time);
             const endDate = new Date(appt.end_time);
             const dateStr = startDate.toLocaleDateString("en-IN", {
@@ -304,7 +357,7 @@ export default function AppointmentsManager({
             return (
               <div
                 key={appt.id}
-                className="p-5 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs transition"
+                className="p-4 sm:p-5 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs transition"
               >
                 {/* Top Row: Title, Date, Time & Status */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -459,8 +512,8 @@ export default function AppointmentsManager({
 
       {/* Schedule Call Modal */}
       {isScheduleOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in">
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" style={{ color: activeBrandColor }} />

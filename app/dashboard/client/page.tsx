@@ -193,27 +193,27 @@ export default function ClientDashboard() {
     <div className="space-y-6">
       {/* Welcome Banner with Dynamic White-Label Firm Branding */}
       <div 
-        className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md dark:shadow-xl transition"
+        className="p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md dark:shadow-xl transition"
         style={{ borderColor: `${brandColor}40`, boxShadow: `0 10px 30px -10px ${brandColor}20` }}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           {tenant?.logo_url ? (
             <img 
               src={tenant.logo_url} 
               alt={brandName} 
-              className="h-12 w-12 rounded-xl object-contain bg-white dark:bg-slate-950 p-1 border border-slate-200 dark:border-slate-800"
+              className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl object-contain bg-white dark:bg-slate-950 p-1 border border-slate-200 dark:border-slate-800 shrink-0"
               style={{ borderColor: `${brandColor}50` }}
             />
           ) : (
             <div 
-              className="h-12 w-12 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-md"
+              className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center font-black text-lg sm:text-xl text-white shadow-md shrink-0"
               style={{ backgroundColor: brandColor }}
             >
               {brandName.charAt(0)}
             </div>
           )}
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
               <span 
                 className="text-xs font-bold uppercase tracking-wider"
                 style={{ color: brandColor }}
@@ -226,7 +226,7 @@ export default function ClientDashboard() {
                 </span>
               )}
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
               Welcome back, {userName}
             </h1>
             <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
@@ -235,7 +235,7 @@ export default function ClientDashboard() {
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col xs:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
           <Link
             href="/dashboard/portfolio"
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/70 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 text-xs font-bold transition shadow-sm hover:bg-sky-100 dark:hover:bg-sky-900"
@@ -611,19 +611,20 @@ export default function ClientDashboard() {
         </div>
       </div>
 
-      {/* Real-time Appointments & Strategy Review Meetings */}
+      {/* Real-time Appointments & Strategy Review Meetings (Next 7 Days) */}
       <AppointmentsManager
         clientId={data?.clientRecord?.client_id}
         userRole="CLIENT"
-        title="Scheduled Strategy Calls & Advisor Reviews"
-        subtitle="Schedule review calls with your advisor, accept call invites, and view permanent meeting notes."
+        title="Upcoming Advisor Calls (Next 7 Days)"
+        subtitle="Scheduled reviews with your advisor in the next 7 days, ordered chronologically."
         brandColor={brandColor}
+        nextSevenDaysOnly={true}
       />
 
       {/* Secure KYC & PAN Document Upload Modal */}
       {showKycModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowKycModal(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white transition"

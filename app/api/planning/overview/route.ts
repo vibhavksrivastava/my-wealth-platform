@@ -63,7 +63,7 @@ export async function GET(req: Request) {
       if (client.household_id) {
         const [hhRes, membersRes] = await Promise.all([
           supabaseAdmin.from("households").select("*").eq("household_id", client.household_id).maybeSingle(),
-          supabaseAdmin.from("clients").select("client_id, full_name, relationship_to_primary").eq("household_id", client.household_id),
+          supabaseAdmin.from("clients").select("client_id, full_name").eq("household_id", client.household_id),
         ]);
         household = hhRes.data;
         if (membersRes.data && membersRes.data.length > 0) {
@@ -138,14 +138,21 @@ export async function GET(req: Request) {
       if (t?.id) activeTenantId = t.id;
     }
 
-    // Fetch clients strictly for this tenant
+    // Fetch clients for this tenant / advisor
     let clientsQuery = supabaseAdmin
       .from("clients")
-      .select("client_id, tenant_id, household_id, uwp_client_code, full_name, annual_gross_income, risk_profile, planning_horizon_years, advisor_name, relationship_to_primary, created_at")
+      .select("client_id, tenant_id, household_id, uwp_client_code, full_name, annual_gross_income, risk_profile, planning_horizon_years, advisor_name, created_at")
       .order("created_at", { ascending: false });
 
     if (activeTenantId && session.role !== "SUPER_ADMIN") {
-      clientsQuery = clientsQuery.eq("tenant_id", activeTenantId);
+      const advisorName = [session.firstName, session.lastName].filter(Boolean).join(" ").trim();
+      if (advisorName) {
+        clientsQuery = clientsQuery.or(
+          `tenant_id.eq.${activeTenantId},advisor_name.ilike.%${advisorName}%,advisor_name.ilike.%${session.lastName || session.firstName}%`
+        );
+      } else {
+        clientsQuery = clientsQuery.eq("tenant_id", activeTenantId);
+      }
     }
 
     const { data: clientsList } = await clientsQuery;
@@ -220,7 +227,7 @@ export async function GET(req: Request) {
         clientCode: c.uwp_client_code || `CLI-${c.client_id.slice(0, 6).toUpperCase()}`,
         householdId: c.household_id || `hh-${c.client_id}`,
         householdName: hhName,
-        relationship: c.relationship_to_primary || "Primary",
+        relationship: "Primary",
         riskProfile: c.risk_profile || "Moderate",
         planningHorizon: c.planning_horizon_years || 15,
         advisorName: c.advisor_name || "Assigned Advisor",

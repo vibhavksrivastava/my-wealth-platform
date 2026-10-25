@@ -191,13 +191,23 @@ export async function GET(req: Request) {
     if (isAdvisor) {
       let clientsQuery = supabaseAdmin
         .from("clients")
-        .select("client_id, full_name, household_id, tenant_id, relationship_to_primary, risk_profile, uwp_client_code")
+        .select("client_id, full_name, household_id, tenant_id, risk_profile, uwp_client_code, advisor_name")
         .order("full_name", { ascending: true });
 
       if (session.role !== "SUPER_ADMIN" && session.tenantId) {
-        clientsQuery = clientsQuery.eq("tenant_id", session.tenantId);
+        const advisorName = [session.firstName, session.lastName].filter(Boolean).join(" ").trim();
+        if (advisorName) {
+          clientsQuery = clientsQuery.or(
+            `tenant_id.eq.${session.tenantId},advisor_name.ilike.%${advisorName}%,advisor_name.ilike.%${session.lastName || session.firstName}%`
+          );
+        } else {
+          clientsQuery = clientsQuery.eq("tenant_id", session.tenantId);
+        }
       }
-      const { data: clientsData } = await clientsQuery;
+      const { data: clientsData, error: cErr } = await clientsQuery;
+      if (cErr) {
+        console.error("Mutual fund advisor clients query error:", cErr);
+      }
       allTenantClients = clientsData || [];
 
       // Fetch households
@@ -294,7 +304,7 @@ export async function GET(req: Request) {
           clientCode: client.uwp_client_code || "CLI-" + client.client_id.slice(0, 6).toUpperCase(),
           householdId: client.household_id,
           householdName: hhName,
-          relationship: client.relationship_to_primary || "Primary",
+          relationship: "Primary",
           riskProfile: client.risk_profile || "Aggressive Growth",
           holdingsCount,
           purchaseCost: cost,
@@ -358,8 +368,8 @@ export async function GET(req: Request) {
     }
 
     // 4. Decision: Are we serving the firm-wide Book View or a specific Client/Household detail?
-    // If advisor requests book view explicitly OR requests "ALL"
-    const isBookOverview = isAdvisor && (viewParam === "BOOK" || requestedClientId === "ALL" || (!requestedClientId && !searchParams.has("drilldown")));
+    const requestedHouseholdId = searchParams.get("householdId");
+    const isBookOverview = isAdvisor && !requestedHouseholdId && (viewParam === "BOOK" || requestedClientId === "ALL" || (!requestedClientId && !searchParams.has("drilldown")));
 
     if (isBookOverview) {
       const totalBookAum = clientSummaries.reduce((sum, c) => sum + c.currentValue, 0);
@@ -404,62 +414,24 @@ export async function GET(req: Request) {
 
     // 5. DETAIL VIEW: Resolve Target Client & Household Scope
     let targetClientId = requestedClientId;
+    let targetHouseholdId = requestedHouseholdId;
 
-    if (!targetClientId) {
-      if (session.role === "CLIENT") {
-        const { data: clientUser } = await supabaseAdmin
-          .from("clients")
-          .select("client_id")
-          .eq("user_id", session.sub)
-          .maybeSingle();
-
-        targetClientId = clientUser?.client_id || session.sub;
-      } else {
-        // Fallback for advisor: default to first client
-        targetClientId = allTenantClients[0]?.client_id;
-      }
+    if (targetClientId && targetClientId.startsWith("hh:")) {
+      targetHouseholdId = targetClientId.replace("hh:", "");
+      targetClientId = null;
     }
 
-    if (!targetClientId) {
-      return NextResponse.json({
-        holdings: [],
-        transactions: [],
-        sips: [],
-        metrics: {
-          purchaseCost: 0,
-          currentValue: 0,
-          unrealizedGain: 0,
-          absReturnPct: 0,
-          dayChange: 0,
-          dayChangePct: 0,
-          xirr: 0,
-          totalSipBook: 0,
-        },
-        trajectory: [],
-        rebalancing: {
-          current: { equity: 0, debt: 0, hybrid: 0, cash: 0 },
-          target: { equity: 65, debt: 25, hybrid: 5, cash: 5 },
-          shiftsNeeded: [],
-        },
-      });
-    }
-
-    // Fetch primary client and household info
-    const { data: primaryClient } = await supabaseAdmin
-      .from("clients")
-      .select("client_id, full_name, household_id, tenant_id, relationship_to_primary")
-      .eq("client_id", targetClientId)
-      .maybeSingle();
-
-    let clientIds = [targetClientId];
+    let clientIds: string[] = [];
     let householdMembers: any[] = [];
     let householdName = "Household";
+    let primaryClient: any = null;
 
-    if (primaryClient?.household_id) {
+    if (targetHouseholdId) {
+      // 5A. Advisor directly selected a Household
       const { data: hhRecord } = await supabaseAdmin
         .from("households")
-        .select("household_name")
-        .eq("household_id", primaryClient.household_id)
+        .select("household_id, household_name")
+        .eq("household_id", targetHouseholdId)
         .maybeSingle();
 
       if (hhRecord?.household_name) {
@@ -468,26 +440,93 @@ export async function GET(req: Request) {
 
       const { data: members } = await supabaseAdmin
         .from("clients")
-        .select("client_id, full_name, relationship_to_primary")
-        .eq("household_id", primaryClient.household_id);
+        .select("client_id, full_name, household_id, tenant_id, risk_profile, uwp_client_code")
+        .eq("household_id", targetHouseholdId);
 
       if (members && members.length > 0) {
-        householdMembers = members;
-        if (scope === "HOUSEHOLD") {
-          clientIds = members.map((m) => m.client_id);
-        } else if (requestedMemberId) {
+        householdMembers = members.map((m) => ({
+          client_id: m.client_id,
+          full_name: m.full_name,
+          relationship_to_primary: "Member",
+        }));
+        primaryClient = members[0];
+        targetClientId = primaryClient.client_id;
+        if (requestedMemberId) {
           clientIds = [requestedMemberId];
+        } else {
+          clientIds = members.map((m) => m.client_id);
         }
       }
     } else {
-      householdMembers = [
-        {
-          client_id: primaryClient?.client_id || targetClientId,
-          full_name: primaryClient?.full_name || "Self",
-          relationship_to_primary: "Primary",
-        },
-      ];
-      householdName = `${primaryClient?.full_name || "Client"}'s Household`;
+      // 5B. Resolve by Client ID
+      if (!targetClientId) {
+        if (session.role === "CLIENT") {
+          const { data: clientUser } = await supabaseAdmin
+            .from("clients")
+            .select("client_id")
+            .eq("user_id", session.sub)
+            .maybeSingle();
+
+          targetClientId = clientUser?.client_id || session.sub;
+        } else {
+          // Fallback for advisor: default to first client
+          targetClientId = allTenantClients[0]?.client_id;
+        }
+      }
+
+      if (targetClientId) {
+        const { data: pClient } = await supabaseAdmin
+          .from("clients")
+          .select("client_id, full_name, household_id, tenant_id, risk_profile, uwp_client_code")
+          .eq("client_id", targetClientId)
+          .maybeSingle();
+
+        primaryClient = pClient;
+
+        if (primaryClient?.household_id) {
+          const { data: hhRecord } = await supabaseAdmin
+            .from("households")
+            .select("household_name")
+            .eq("household_id", primaryClient.household_id)
+            .maybeSingle();
+
+          if (hhRecord?.household_name) {
+            householdName = hhRecord.household_name;
+          }
+
+          const { data: members } = await supabaseAdmin
+            .from("clients")
+            .select("client_id, full_name, household_id")
+            .eq("household_id", primaryClient.household_id);
+
+          if (members && members.length > 0) {
+            householdMembers = members.map((m) => ({
+              client_id: m.client_id,
+              full_name: m.full_name,
+              relationship_to_primary: m.client_id === primaryClient.client_id ? "Primary" : "Member",
+            }));
+            if (scope === "HOUSEHOLD") {
+              clientIds = members.map((m) => m.client_id);
+            } else if (requestedMemberId) {
+              clientIds = [requestedMemberId];
+            } else {
+              clientIds = [targetClientId];
+            }
+          } else {
+            clientIds = [targetClientId];
+          }
+        } else {
+          clientIds = [targetClientId];
+          householdMembers = [
+            {
+              client_id: primaryClient?.client_id || targetClientId,
+              full_name: primaryClient?.full_name || "Self",
+              relationship_to_primary: "Primary",
+            },
+          ];
+          householdName = `${primaryClient?.full_name || "Client"}'s Household`;
+        }
+      }
     }
 
     // 6. Fetch Holdings from `investment_portfolio`
@@ -519,10 +558,11 @@ export async function GET(req: Request) {
           if (match) folio = match[1];
         }
 
+        const cMember = householdMembers.find((m) => m.client_id === inv.client_id) || allTenantClients.find((c) => c.client_id === inv.client_id);
         holdingsList.push({
           id: inv.investment_id,
           clientId: inv.client_id,
-          clientName: inv.owner_name || primaryClient?.full_name || "Self",
+          clientName: cMember?.full_name || inv.owner_name || primaryClient?.full_name || "Self",
           schemeName: inv.scheme_instrument_name,
           assetClass: inv.asset_class || "Equity Mutual Fund",
           folioNumber: folio,
@@ -553,10 +593,11 @@ export async function GET(req: Request) {
           if (match) folio = match[1].trim();
         }
 
+        const cAstMember = householdMembers.find((m) => m.client_id === ast.client_id) || allTenantClients.find((c) => c.client_id === ast.client_id);
         holdingsList.push({
           id: ast.asset_id,
           clientId: ast.client_id,
-          clientName: ast.owner_name || primaryClient?.full_name || "Self",
+          clientName: cAstMember?.full_name || ast.owner_name || primaryClient?.full_name || "Self",
           schemeName: ast.description?.split("(Folio:")[0].trim() || "Mutual Fund Scheme",
           assetClass: "Equity Mutual Fund",
           folioNumber: folio,
@@ -1007,10 +1048,11 @@ export async function GET(req: Request) {
     return NextResponse.json({
       success: true,
       isAdvisor,
-      viewMode: "CLIENT",
+      viewMode: targetHouseholdId ? "HOUSEHOLD" : "CLIENT",
+      isHouseholdView: Boolean(targetHouseholdId),
       clientId: targetClientId,
-      clientName: primaryClient?.full_name || "Client",
-      householdId: primaryClient?.household_id || null,
+      clientName: targetHouseholdId ? householdName : (primaryClient?.full_name || "Client"),
+      householdId: targetHouseholdId || primaryClient?.household_id || null,
       householdName,
       scope,
       journeyPeriod,

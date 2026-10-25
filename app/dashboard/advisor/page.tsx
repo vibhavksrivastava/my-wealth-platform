@@ -107,6 +107,12 @@ export default function AdvisorDashboard() {
   };
   const clients = data?.clients || [];
   const appointments = data?.appointments || [];
+  const now = new Date();
+  const next7DaysEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const next7DaysAppointments = appointments.filter((a: any) => {
+    const d = new Date(a.start_time);
+    return d >= now && d <= next7DaysEnd && a.status !== "CANCELLED";
+  });
   const tenant = data?.tenant;
 
   const handleImportCas = async (e: React.FormEvent) => {
@@ -167,27 +173,27 @@ export default function AdvisorDashboard() {
     <div className="space-y-6">
       {/* Advisor Header with Dynamic White-Label Firm Branding */}
       <div 
-        className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md dark:shadow-xl transition"
+        className="p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md dark:shadow-xl transition"
         style={{ borderColor: `${brandColor}40`, boxShadow: `0 10px 30px -10px ${brandColor}20` }}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           {tenant?.logo_url ? (
             <img 
               src={tenant.logo_url} 
               alt={brandName} 
-              className="h-12 w-12 rounded-xl object-contain bg-white dark:bg-slate-950 p-1 border border-slate-200 dark:border-slate-800"
+              className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl object-contain bg-white dark:bg-slate-950 p-1 border border-slate-200 dark:border-slate-800 shrink-0"
               style={{ borderColor: `${brandColor}50` }}
             />
           ) : (
             <div 
-              className="h-12 w-12 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-md"
+              className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center font-black text-lg sm:text-xl text-white shadow-md shrink-0"
               style={{ backgroundColor: brandColor }}
             >
               {brandName.charAt(0)}
             </div>
           )}
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
               <span 
                 className="text-xs font-bold uppercase tracking-wider"
                 style={{ color: brandColor }}
@@ -205,7 +211,7 @@ export default function AdvisorDashboard() {
                 </span>
               )}
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
               {terms.dashboardHeader} &bull; {userName}
             </h1>
             <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
@@ -213,10 +219,10 @@ export default function AdvisorDashboard() {
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col xs:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
           <Link
             href="/dashboard/portfolio"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-sky-50 dark:bg-sky-950/70 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 text-xs font-bold shadow-sm transition hover:bg-sky-100 dark:hover:bg-sky-900"
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-sky-50 dark:bg-sky-950/70 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 text-xs font-bold shadow-sm transition hover:bg-sky-100 dark:hover:bg-sky-900"
           >
             <TrendingUp className="h-4 w-4 text-sky-500" />
             Mutual Fund Portfolio
@@ -226,7 +232,7 @@ export default function AdvisorDashboard() {
               setShowCasModal(true);
               setCasStatus(null);
             }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm transition"
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm transition"
           >
             <UploadCloud className="h-4 w-4" style={{ color: brandColor }} />
             Import CAMS / KFin CAS
@@ -234,12 +240,12 @@ export default function AdvisorDashboard() {
           <Link
             href="/dashboard/clients/new"
             style={{ backgroundColor: brandColor }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold text-white shadow-md transition hover:brightness-110 active:scale-95"
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold text-white shadow-md transition hover:brightness-110 active:scale-95"
           >
             + New Client Fact-Find
           </Link>
           <span 
-            className="px-3 py-1 rounded-full text-xs font-semibold border"
+            className="px-3 py-1 rounded-full text-xs font-semibold border text-center"
             style={{ 
               color: brandColor, 
               borderColor: `${brandColor}40`, 
@@ -325,9 +331,11 @@ export default function AdvisorDashboard() {
               <Calendar className="h-4 w-4" style={{ color: brandColor }} />
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">{appointments.length}</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-white">
+            {next7DaysAppointments.length}
+          </div>
           <div className="mt-2 text-xs font-medium" style={{ color: brandColor }}>
-            Scheduled client appointments
+            Reviews in next 7 days ({appointments.length} all-time)
           </div>
         </div>
       </div>
@@ -409,20 +417,21 @@ export default function AdvisorDashboard() {
           </div>
         </div>
 
-        {/* Calendar & Review Meetings Pipeline */}
+        {/* Calendar & Review Meetings Pipeline (Next 7 Days) */}
         <AppointmentsManager
           userRole="ADVISOR"
           clients={clients}
-          title="Calendar & Meetings Pipeline"
-          subtitle="Manage client reviews, accept client call requests, and record strategic call notes."
+          title="Upcoming Client Reviews (Next 7 Days)"
+          subtitle="Client reviews scheduled in the next 7 days, ordered chronologically."
           brandColor={brandColor}
+          nextSevenDaysOnly={true}
         />
       </div>
 
       {/* CAMS / KFintech CAS Ingestion Modal */}
       {showCasModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full p-4 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowCasModal(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white transition"

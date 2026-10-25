@@ -76,29 +76,40 @@ function MutualFundPortfolioContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  // Mounting state to eliminate SSR/client hydration mismatch
+  const [isMounted, setIsMounted] = useState(false);
+
   // User profile
   const [userRole, setUserRole] = useState<string>("CLIENT");
-  useEffect(() => {
-    try {
-      const p = localStorage.getItem("user_profile");
-      if (p) {
-        const parsed = JSON.parse(p);
-        setUserRole(parsed.role || "CLIENT");
-      }
-    } catch {}
-  }, []);
-
-  const isAdvisor = ["ADVISOR", "STAFF", "TENANT_ADMIN", "SUPER_ADMIN"].includes(userRole);
 
   // URL query params
   const paramClientId = searchParams.get("clientId");
+  const paramHouseholdId = searchParams.get("householdId");
   const paramScope = searchParams.get("scope") as "HOUSEHOLD" | "INDIVIDUAL" | null;
   const paramView = searchParams.get("view");
 
   // Selection states
   const [selectedClientId, setSelectedClientId] = useState<string>(
-    paramClientId || (isAdvisor ? "ALL" : "")
+    paramClientId || (paramHouseholdId ? `hh:${paramHouseholdId}` : "")
   );
+
+  useEffect(() => {
+    setIsMounted(true);
+    try {
+      const p = localStorage.getItem("user_profile");
+      if (p) {
+        const parsed = JSON.parse(p);
+        const role = parsed.role || "CLIENT";
+        setUserRole(role);
+        const isAdv = ["ADVISOR", "STAFF", "TENANT_ADMIN", "SUPER_ADMIN"].includes(role);
+        if (isAdv && !paramClientId && !paramHouseholdId) {
+          setSelectedClientId("ALL");
+        }
+      }
+    } catch {}
+  }, [paramClientId, paramHouseholdId]);
+
+  const isAdvisor = ["ADVISOR", "STAFF", "TENANT_ADMIN", "SUPER_ADMIN"].includes(userRole);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [scope, setScope] = useState<"HOUSEHOLD" | "INDIVIDUAL">(paramScope || "HOUSEHOLD");
   const [journeyPeriod, setJourneyPeriod] = useState<"1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y" | "ALL">("ALL");
@@ -112,6 +123,7 @@ function MutualFundPortfolioContent() {
   // Client Switcher Dropdown in Top Bar
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [switcherSearch, setSwitcherSearch] = useState("");
+  const [switcherTab, setSwitcherTab] = useState<"all" | "households" | "clients">("all");
 
   // Data fetching state
   const [portfolioData, setPortfolioData] = useState<any>(null);
@@ -137,8 +149,12 @@ function MutualFundPortfolioContent() {
   useEffect(() => {
     if (paramClientId) {
       setSelectedClientId(paramClientId);
+    } else if (paramHouseholdId) {
+      setSelectedClientId(`hh:${paramHouseholdId}`);
+    } else if (isAdvisor && !selectedClientId) {
+      setSelectedClientId("ALL");
     }
-  }, [paramClientId]);
+  }, [paramClientId, paramHouseholdId, isAdvisor]);
 
   // Fetch portfolio data from API
   const fetchPortfolio = async () => {
@@ -152,9 +168,13 @@ function MutualFundPortfolioContent() {
       if (selectedClientId === "ALL") {
         url += `&view=BOOK`;
       } else if (selectedClientId) {
-        url += `&clientId=${selectedClientId}`;
-        if (selectedMemberId) {
-          url += `&memberId=${selectedMemberId}`;
+        if (selectedClientId.startsWith("hh:")) {
+          url += `&householdId=${selectedClientId.replace("hh:", "")}`;
+        } else {
+          url += `&clientId=${selectedClientId}`;
+          if (selectedMemberId) {
+            url += `&memberId=${selectedMemberId}`;
+          }
         }
       }
 
@@ -182,6 +202,14 @@ function MutualFundPortfolioContent() {
   // Handle selecting a specific client
   const handleSelectClient = (clientId: string) => {
     setSelectedClientId(clientId);
+    setSelectedMemberId(null);
+    setScope("INDIVIDUAL");
+    setSwitcherOpen(false);
+  };
+
+  // Handle selecting a specific household
+  const handleSelectHousehold = (householdId: string) => {
+    setSelectedClientId(`hh:${householdId}`);
     setSelectedMemberId(null);
     setScope("HOUSEHOLD");
     setSwitcherOpen(false);
@@ -221,7 +249,7 @@ function MutualFundPortfolioContent() {
     });
   }, [portfolioData?.households, bookSearch]);
 
-  // Filtered Switcher List
+  // Filtered Switcher List - Clients
   const filteredSwitcherClients = useMemo(() => {
     const list = portfolioData?.clientsList || portfolioData?.clients || [];
     if (!switcherSearch.trim()) return list;
@@ -230,6 +258,19 @@ function MutualFundPortfolioContent() {
       (c: any) =>
         c.clientName.toLowerCase().includes(q) ||
         c.householdName.toLowerCase().includes(q)
+    );
+  }, [portfolioData, switcherSearch]);
+
+  // Filtered Switcher List - Households
+  const filteredSwitcherHouseholds = useMemo(() => {
+    const list = portfolioData?.householdSummaries || portfolioData?.households || [];
+    if (!switcherSearch.trim()) return list;
+    const q = switcherSearch.toLowerCase();
+    return list.filter(
+      (h: any) =>
+        h.householdName.toLowerCase().includes(q) ||
+        h.primaryClientName.toLowerCase().includes(q) ||
+        h.members?.some((m: any) => m.clientName?.toLowerCase().includes(q))
     );
   }, [portfolioData, switcherSearch]);
 
@@ -279,6 +320,16 @@ function MutualFundPortfolioContent() {
         t.schemeName.toLowerCase() === selectedHolding.schemeName.toLowerCase()
     );
   }, [selectedHolding, portfolioData?.transactions]);
+
+  // Prevent SSR/Client hydration mismatch
+  if (!isMounted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <Loader2 className="h-8 w-8 text-sky-500 animate-spin" />
+        <p className="text-xs text-slate-500 font-medium">Loading mutual fund workspace...</p>
+      </div>
+    );
+  }
 
   // Feature Guard Check
   if (!featureAccess.isLoading && !featureAccess.allowed) {
@@ -357,6 +408,17 @@ function MutualFundPortfolioContent() {
                   <span className="flex items-center gap-1 text-sky-600 dark:text-sky-400">
                     <Layers className="h-3.5 w-3.5" /> All Clients Book AUM
                   </span>
+                ) : selectedClientId.startsWith("hh:") || portfolioData?.isHouseholdView ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-amber-500 font-semibold flex items-center gap-1">
+                      <Home className="h-3 w-3" /> Household:
+                    </span>
+                    <span className="text-slate-900 dark:text-white font-bold">{portfolioData?.householdName}</span>
+                    <span className="text-slate-300 dark:text-slate-600">&bull;</span>
+                    <span className="text-xs text-sky-600 dark:text-sky-400 font-medium">
+                      {portfolioData?.householdMembers?.length || 1} Family Members
+                    </span>
+                  </span>
                 ) : (
                   <span className="flex items-center gap-1.5">
                     <span className="text-slate-500 dark:text-slate-400">Client:</span>
@@ -390,19 +452,23 @@ function MutualFundPortfolioContent() {
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-bold shadow-sm hover:bg-sky-100 dark:hover:bg-sky-900 transition"
               >
                 <Users className="h-3.5 w-3.5 text-sky-500" />
-                <span className="max-w-[170px] truncate">
-                  {isBookView ? "Switch Client / Household" : portfolioData?.clientName || "Switch Client"}
+                <span className="max-w-[190px] truncate">
+                  {isBookView
+                    ? "Consolidated Book (All Clients)"
+                    : selectedClientId.startsWith("hh:")
+                    ? portfolioData?.householdName || "Household Portfolio"
+                    : portfolioData?.clientName || "Switch Client / Household"}
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 text-sky-400" />
               </button>
 
               {switcherOpen && (
-                <div className="absolute right-0 top-10 z-50 w-80 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl animate-in fade-in zoom-in-95">
+                <div className="absolute right-0 top-10 z-50 w-[300px] xs:w-88 max-w-[calc(100vw-2rem)] p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl animate-in fade-in zoom-in-95">
                   <div className="relative mb-2">
                     <Search className="h-3.5 w-3.5 absolute left-2.5 top-2.5 text-slate-400" />
                     <input
                       type="text"
-                      placeholder="Search client or household..."
+                      placeholder="Filter on household or client name..."
                       value={switcherSearch}
                       onChange={(e) => setSwitcherSearch(e.target.value)}
                       className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-sky-500"
@@ -410,50 +476,112 @@ function MutualFundPortfolioContent() {
                     />
                   </div>
 
+                  {/* Switcher Tab Filter */}
+                  <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-800/70 rounded-lg mb-2 text-[10px] font-bold">
+                    <button
+                      onClick={() => setSwitcherTab("all")}
+                      className={`py-1 rounded text-center transition ${switcherTab === "all" ? "bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 shadow-sm" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={() => setSwitcherTab("households")}
+                      className={`py-1 rounded text-center transition ${switcherTab === "households" ? "bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 shadow-sm" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+                    >
+                      Households ({filteredSwitcherHouseholds.length})
+                    </button>
+                    <button
+                      onClick={() => setSwitcherTab("clients")}
+                      className={`py-1 rounded text-center transition ${switcherTab === "clients" ? "bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 shadow-sm" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}
+                    >
+                      Clients ({filteredSwitcherClients.length})
+                    </button>
+                  </div>
+
                   <div className="max-h-64 overflow-y-auto space-y-1 text-xs">
                     {/* Option: All Clients Overview */}
-                    <button
-                      onClick={handleSelectAllBook}
-                      className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between transition ${
-                        isBookView
-                          ? "bg-sky-500 text-white font-bold"
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Layers className="h-3.5 w-3.5" />
-                        <span>All Clients Overview (Book AUM)</span>
-                      </div>
-                      <span className="text-[10px] opacity-80">Full Book</span>
-                    </button>
+                    {switcherTab === "all" && (
+                      <button
+                        onClick={handleSelectAllBook}
+                        className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between transition ${
+                          isBookView
+                            ? "bg-sky-500 text-white font-bold"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Layers className="h-3.5 w-3.5 text-sky-400" />
+                          <span className="font-semibold">All Clients Consolidated Book</span>
+                        </div>
+                        <span className="text-[10px] opacity-80">Full Practice</span>
+                      </button>
+                    )}
 
-                    <div className="px-2 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                      Individual Clients &amp; Households
-                    </div>
+                    {/* Section: Family Households */}
+                    {(switcherTab === "all" || switcherTab === "households") && filteredSwitcherHouseholds.length > 0 && (
+                      <>
+                        <div className="px-2 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-amber-500 flex items-center gap-1">
+                          <Home className="h-3 w-3" />
+                          <span>Family Households</span>
+                        </div>
+                        {filteredSwitcherHouseholds.map((h: any) => (
+                          <button
+                            key={h.householdId}
+                            onClick={() => handleSelectHousehold(h.householdId)}
+                            className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between transition ${
+                              selectedClientId === `hh:${h.householdId}`
+                                ? "bg-amber-500 text-white font-bold"
+                                : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
+                            }`}
+                          >
+                            <div>
+                              <div className="font-semibold flex items-center gap-1">
+                                <Home className="h-3 w-3 text-amber-400 shrink-0" />
+                                <span>{h.householdName}</span>
+                              </div>
+                              <div className="text-[10px] opacity-75">{h.membersCount} members &bull; Primary: {h.primaryClientName}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-[11px]">{formatINR(h.currentValue)}</div>
+                              <div className="text-[9px] opacity-75">{h.totalHoldingsCount} folios</div>
+                            </div>
+                          </button>
+                        ))}
+                      </>
+                    )}
 
-                    {filteredSwitcherClients.length === 0 ? (
-                      <div className="p-3 text-center text-slate-400 text-[11px]">No matching clients found</div>
-                    ) : (
-                      filteredSwitcherClients.map((c: any) => (
-                        <button
-                          key={c.clientId}
-                          onClick={() => handleSelectClient(c.clientId)}
-                          className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between transition ${
-                            selectedClientId === c.clientId
-                              ? "bg-sky-500 text-white font-bold"
-                              : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-                          }`}
-                        >
-                          <div>
-                            <div className="font-semibold">{c.clientName}</div>
-                            <div className="text-[10px] opacity-75">{c.householdName}</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold text-[11px]">{formatINR(c.currentValue)}</div>
-                            <div className="text-[9px] opacity-75">{c.holdingsCount} folios</div>
-                          </div>
-                        </button>
-                      ))
+                    {/* Section: Individual Clients */}
+                    {(switcherTab === "all" || switcherTab === "clients") && filteredSwitcherClients.length > 0 && (
+                      <>
+                        <div className="px-2 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-sky-500 flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          <span>Individual Clients</span>
+                        </div>
+                        {filteredSwitcherClients.map((c: any) => (
+                          <button
+                            key={c.clientId}
+                            onClick={() => handleSelectClient(c.clientId)}
+                            className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between transition ${
+                              selectedClientId === c.clientId
+                                ? "bg-sky-500 text-white font-bold"
+                                : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
+                            }`}
+                          >
+                            <div>
+                              <div className="font-semibold">{c.clientName}</div>
+                              <div className="text-[10px] opacity-75">{c.householdName}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-[11px]">{formatINR(c.currentValue)}</div>
+                              <div className="text-[9px] opacity-75">{c.holdingsCount} folios</div>
+                            </div>
+                          </button>
+                        ))}
+                      </>
+                    )}
+
+                    {filteredSwitcherClients.length === 0 && filteredSwitcherHouseholds.length === 0 && (
+                      <div className="p-4 text-center text-slate-400 text-[11px]">No matching clients or households found</div>
                     )}
                   </div>
                 </div>
@@ -829,10 +957,7 @@ function MutualFundPortfolioContent() {
                         <tr
                           key={hh.householdId}
                           className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition group cursor-pointer"
-                          onClick={() => {
-                            const firstMember = hh.members[0];
-                            if (firstMember) handleSelectClient(firstMember.clientId);
-                          }}
+                          onClick={() => handleSelectHousehold(hh.householdId)}
                         >
                           <td className="py-3 px-3">
                             <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -882,10 +1007,7 @@ function MutualFundPortfolioContent() {
                           </td>
                           <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
                             <button
-                              onClick={() => {
-                                const firstMember = hh.members[0];
-                                if (firstMember) handleSelectClient(firstMember.clientId);
-                              }}
+                              onClick={() => handleSelectHousehold(hh.householdId)}
                               className="px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/80 hover:bg-sky-100 dark:hover:bg-sky-900 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 text-xs font-bold transition flex items-center gap-1 mx-auto"
                             >
                               <span>View Household</span>
@@ -920,9 +1042,22 @@ function MutualFundPortfolioContent() {
                       {portfolioData.householdName}
                     </span>
                   )}
+                  {isAdvisor && (
+                    <button
+                      onClick={handleSelectAllBook}
+                      className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-1 border border-slate-200 dark:border-slate-700"
+                    >
+                      <ArrowLeft className="h-3 w-3" />
+                      <span>Back to Consolidated Book</span>
+                    </button>
+                  )}
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white mt-1.5 tracking-tight flex items-center gap-2">
-                  <span>{portfolioData?.clientName || "Client Portfolio"}</span>
+                  <span>
+                    {selectedClientId.startsWith("hh:") || portfolioData?.isHouseholdView
+                      ? `${portfolioData?.householdName || "Family Household"} Portfolio`
+                      : portfolioData?.clientName || "Client Portfolio"}
+                  </span>
                   <span className="text-xs font-normal text-slate-400">
                     &bull; {scope === "HOUSEHOLD" ? "Consolidated Household View" : "Individual Member View"}
                   </span>
@@ -963,7 +1098,7 @@ function MutualFundPortfolioContent() {
                     }`}
                   >
                     <User className="h-3.5 w-3.5" />
-                    <span>{m.full_name} ({m.relationship_to_primary || "Self"})</span>
+                    <span>{m.full_name} ({m.relationship_to_primary || "Member"})</span>
                   </button>
                 ))}
               </div>
