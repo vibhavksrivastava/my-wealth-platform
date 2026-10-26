@@ -2,25 +2,7 @@ import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
-import { unpackAsset, unpackInvestment, unpackGoal, isRetirementAsset } from "@/lib/goalAssetAlignment";
-
-
-const isMarketAsset = (a: any) => {
-  const cat = (a.asset_category || "").toLowerCase();
-  const desc = (a.description || "").toLowerCase();
-  const notes = (a.notes || "").toLowerCase();
-  return (
-    cat.includes("mutual") ||
-    cat.includes("fund") ||
-    cat.includes("equity") ||
-    cat.includes("stock") ||
-    cat.includes("share") ||
-    desc.includes("(folio:") ||
-    desc.includes("fund") ||
-    notes.includes("imported via cams") ||
-    notes.includes("isin:")
-  );
-};
+import { unpackAsset, unpackInvestment, unpackGoal, isRetirementAsset, isMarketAsset } from "@/lib/goalAssetAlignment";
 
 export async function GET(
   req: Request,

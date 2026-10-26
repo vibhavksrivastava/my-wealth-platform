@@ -105,6 +105,12 @@ export function isRetirementAsset(a: any): boolean {
   const cat = (a.asset_category || "").toLowerCase();
   const desc = (a.description || "").toLowerCase();
   const notes = (a.notes || "").toLowerCase();
+
+  // Guard: if it's explicitly an imported mutual fund, it's not retirement
+  if (cat.includes("mutual") || notes.includes("imported via cams") || (notes.includes("isin:") && !cat.includes("nps") && !cat.includes("provident") && !cat.includes("epf") && !cat.includes("ppf"))) {
+    return false;
+  }
+
   return (
     cat.includes("nps") ||
     cat.includes("national pension") ||
@@ -113,15 +119,30 @@ export function isRetirementAsset(a: any): boolean {
     cat.includes("epf") ||
     cat.includes("vpf") ||
     cat.includes("superannuation") ||
-    desc.includes("ppf") ||
-    desc.includes("epf") ||
-    desc.includes("vpf") ||
-    desc.includes("nps") ||
-    desc.includes("pran") ||
-    desc.includes("uan") ||
-    notes.includes("ppf") ||
-    notes.includes("epf") ||
-    notes.includes("nps")
+    /\b(ppf|epf|vpf|nps|pran|uan)\b/i.test(desc) ||
+    /\b(ppf|epf|vpf|nps)\b/i.test(notes) ||
+    desc.includes("provident") ||
+    desc.includes("pension")
+  );
+}
+
+/**
+ * Checks if an asset record in the assets table is a market mutual fund or equity holding
+ */
+export function isMarketAsset(a: any): boolean {
+  if (!a) return false;
+  if (isRetirementAsset(a)) return false;
+  const cat = (a.asset_category || "").toLowerCase();
+  const desc = (a.description || "").toLowerCase();
+  const notes = (a.notes || "").toLowerCase();
+  return (
+    cat.includes("mutual") ||
+    cat.includes("stock") ||
+    cat.includes("share") ||
+    cat === "equity" ||
+    desc.includes("(folio:") ||
+    notes.includes("imported via cams") ||
+    notes.includes("isin:")
   );
 }
 

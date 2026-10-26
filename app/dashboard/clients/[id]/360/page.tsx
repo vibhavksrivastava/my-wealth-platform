@@ -45,6 +45,7 @@ import {
   getDefaultAssetCagr,
   calculateRetirementMaturityValue,
   isRetirementAsset,
+  isMarketAsset,
 } from "@/lib/goalAssetAlignment";
 
 interface Client360Data {
@@ -206,23 +207,6 @@ export default function Client360Page({
 
   const [invSearch, setInvSearch] = useState("");
   const [invClassFilter, setInvClassFilter] = useState("ALL");
-
-  const isMarketAsset = (a: any) => {
-    const cat = (a.asset_category || "").toLowerCase();
-    const desc = (a.description || "").toLowerCase();
-    const notes = (a.notes || "").toLowerCase();
-    return (
-      cat.includes("mutual") ||
-      cat.includes("fund") ||
-      cat.includes("equity") ||
-      cat.includes("stock") ||
-      cat.includes("share") ||
-      desc.includes("(folio:") ||
-      desc.includes("fund") ||
-      notes.includes("imported via cams") ||
-      notes.includes("isin:")
-    );
-  };
 
   const visibleAssets = useMemo(() => {
     if (!data) return [];
