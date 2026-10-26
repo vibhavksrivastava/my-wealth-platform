@@ -40,6 +40,7 @@ import {
 import SuggestionsTab from "./SuggestionsTab";
 import {
   projectAssetProceedsForGoal,
+  projectRetirementProceedsForGoal,
   projectInvestmentCorpusForGoal,
   calculateRequiredMonthlySIP,
   getDefaultAssetCagr,
@@ -1529,26 +1530,38 @@ export default function Client360Page({
                 const targetAmt = Number(g.target_amount_today || 0);
                 const futureVal = Number(g.required_future_value || targetAmt);
                 const corpusAlloc = Number(g.current_corpus_allocated || 0);
+                const yearsLeft = Math.max(1, Number(g.target_year) - new Date().getFullYear());
+                const targetYr = Number(g.target_year) || new Date().getFullYear() + 10;
 
-                // Find all assets earmarked for this goal
+                // Find all retirement assets (NPS / Provident Funds) earmarked for this goal
+                const mappedRetirementAssets = (visibleRetirementAssets || []).filter((a: any) =>
+                  a.linked_goal_id === g.goal_id || g.linked_asset_ids?.includes(a.asset_id)
+                );
+                const totalRetirementProceeds = mappedRetirementAssets.reduce((sum: number, a: any) => {
+                  const proj = projectRetirementProceedsForGoal(a, targetYr);
+                  return sum + proj.projectedProceeds;
+                }, 0);
+
+                // Find all physical assets earmarked for this goal
                 const mappedAssets = (visibleAssets || []).filter((a: any) =>
                   a.linked_goal_id === g.goal_id || g.linked_asset_ids?.includes(a.asset_id)
                 );
-                const totalAssetProceeds = mappedAssets.reduce((sum: number, a: any) =>
-                  sum + Number(a.expected_liquidation_value || a.current_market_value || 0), 0
-                );
+                const totalAssetProceeds = mappedAssets.reduce((sum: number, a: any) => {
+                  const proj = projectAssetProceedsForGoal(a, targetYr);
+                  return sum + proj.projectedProceeds;
+                }, 0);
 
                 // Find all investments earmarked for this goal
                 const mappedInvs = (visibleInvestments || []).filter((i: any) =>
                   i.linked_goal_id === g.goal_id || g.linked_investment_ids?.includes(i.investment_id)
                 );
-                const totalInvValue = mappedInvs.reduce((sum: number, i: any) =>
-                  sum + Number(i.current_value || 0), 0
-                );
+                const totalInvValue = mappedInvs.reduce((sum: number, i: any) => {
+                  const proj = projectInvestmentCorpusForGoal(i, targetYr);
+                  return sum + proj.totalProjectedCorpus;
+                }, 0);
 
-                const totalCovered = corpusAlloc + totalAssetProceeds + totalInvValue;
+                const totalCovered = corpusAlloc + totalAssetProceeds + totalRetirementProceeds + totalInvValue;
                 const progressPct = futureVal > 0 ? Math.min(100, Math.round((totalCovered / futureVal) * 100)) : 0;
-                const yearsLeft = Math.max(1, Number(g.target_year) - new Date().getFullYear());
 
                 return (
                   <div
@@ -1608,7 +1621,7 @@ export default function Client360Page({
                     </div>
 
                     {/* Numbers Breakdown */}
-                    <div className="pt-2 border-t border-slate-800 grid grid-cols-2 gap-2 text-xs">
+                    <div className="pt-2 border-t border-slate-800 grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
                       <div>
                         <span className="text-slate-500 text-[10px] uppercase">Today&apos;s Value</span>
                         <div className="font-semibold text-slate-200">{formatINR(targetAmt)}</div>
@@ -1616,6 +1629,12 @@ export default function Client360Page({
                       <div>
                         <span className="text-slate-500 text-[10px] uppercase">Inflated Target</span>
                         <div className="font-bold text-purple-400">{formatINR(futureVal)}</div>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-[10px] uppercase">NPS &amp; Provident Funds</span>
+                        <div className="font-semibold text-purple-300">
+                          {totalRetirementProceeds > 0 ? `${formatINR(totalRetirementProceeds)} (${mappedRetirementAssets.length})` : "—"}
+                        </div>
                       </div>
                       <div>
                         <span className="text-slate-500 text-[10px] uppercase">Asset Liquidations</span>
@@ -1629,7 +1648,78 @@ export default function Client360Page({
                           {totalInvValue > 0 ? `${formatINR(totalInvValue)} (${mappedInvs.length})` : "—"}
                         </div>
                       </div>
+                      <div>
+                        <span className="text-slate-500 text-[10px] uppercase">Dedicated Corpus</span>
+                        <div className="font-semibold text-slate-300">
+                          {corpusAlloc > 0 ? formatINR(corpusAlloc) : "—"}
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Earmarked Backing Assets Preview */}
+                    {(mappedRetirementAssets.length > 0 || mappedAssets.length > 0 || mappedInvs.length > 0) && (
+                      <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
+                        <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          Earmarked Backing Holdings:
+                        </div>
+                        <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                          {mappedRetirementAssets.map((ast) => {
+                            const retProj = projectRetirementProceedsForGoal(ast, targetYr);
+                            return (
+                              <div
+                                key={ast.asset_id}
+                                className="flex items-center justify-between p-1.5 rounded-lg bg-purple-950/20 border border-purple-800/30 text-[11px]"
+                              >
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <ShieldCheck className="h-3 w-3 text-purple-400 shrink-0" />
+                                  <span className="text-white font-medium truncate">{ast.description || ast.asset_category}</span>
+                                  {ast.monthly_deposit > 0 && (
+                                    <span className="text-[10px] text-purple-300">({formatINR(ast.monthly_deposit)}/mo)</span>
+                                  )}
+                                </div>
+                                <span className="font-mono font-bold text-purple-300 shrink-0 ml-2">
+                                  {formatINR(retProj.projectedProceeds)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          {mappedAssets.map((ast) => {
+                            const astProj = projectAssetProceedsForGoal(ast, targetYr);
+                            return (
+                              <div
+                                key={ast.asset_id}
+                                className="flex items-center justify-between p-1.5 rounded-lg bg-sky-950/20 border border-sky-800/30 text-[11px]"
+                              >
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <Home className="h-3 w-3 text-sky-400 shrink-0" />
+                                  <span className="text-white font-medium truncate">{ast.description || ast.asset_category}</span>
+                                </div>
+                                <span className="font-mono font-bold text-sky-400 shrink-0 ml-2">
+                                  {formatINR(astProj.projectedProceeds)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          {mappedInvs.map((inv) => {
+                            const invProj = projectInvestmentCorpusForGoal(inv, targetYr);
+                            return (
+                              <div
+                                key={inv.investment_id}
+                                className="flex items-center justify-between p-1.5 rounded-lg bg-emerald-950/20 border border-emerald-800/30 text-[11px]"
+                              >
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <TrendingUp className="h-3 w-3 text-emerald-400 shrink-0" />
+                                  <span className="text-white font-medium truncate">{inv.scheme_instrument_name}</span>
+                                </div>
+                                <span className="font-mono font-bold text-emerald-400 shrink-0 ml-2">
+                                  {formatINR(invProj.totalProjectedCorpus)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* SIP Status Pill */}
                     <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs">
@@ -2595,6 +2685,7 @@ export default function Client360Page({
           modalItem={modalItem}
           clientId={clientId}
           visibleAssets={visibleAssets}
+          visibleRetirementAssets={visibleRetirementAssets}
           visibleInvestments={visibleInvestments}
           onClose={() => setModalType(null)}
           onSuccess={() => fetch360Data()}
@@ -2637,6 +2728,7 @@ function GoalModalForm({
   modalItem,
   clientId,
   visibleAssets,
+  visibleRetirementAssets,
   visibleInvestments,
   onClose,
   onSuccess,
@@ -2645,6 +2737,7 @@ function GoalModalForm({
   modalItem: any;
   clientId: string;
   visibleAssets: any[];
+  visibleRetirementAssets: any[];
   visibleInvestments: any[];
   onClose: () => void;
   onSuccess: () => void;
@@ -2662,9 +2755,9 @@ function GoalModalForm({
   });
   const [notes, setNotes] = useState(modalItem?.clean_notes || modalItem?.notes || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formTab, setFormTab] = useState<"params" | "assets" | "investments">("params");
+  const [formTab, setFormTab] = useState<"params" | "retirement" | "investments" | "assets">("params");
 
-  // Initial linked asset IDs
+  // Initial linked asset IDs (combines physical and retirement assets)
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>(() => {
     const list = new Set<string>();
     if (modalItem?.linked_asset_ids && Array.isArray(modalItem.linked_asset_ids)) {
@@ -2672,6 +2765,9 @@ function GoalModalForm({
     }
     if (modalItem?.goal_id) {
       (visibleAssets || []).forEach((a) => {
+        if (a.linked_goal_id === modalItem.goal_id) list.add(a.asset_id);
+      });
+      (visibleRetirementAssets || []).forEach((a) => {
         if (a.linked_goal_id === modalItem.goal_id) list.add(a.asset_id);
       });
     }
@@ -2713,7 +2809,29 @@ function GoalModalForm({
   const inflatedTarget = Math.round(pv * Math.pow(1 + inf, yearsLeft));
   const existingCorpusFuture = Math.round((Math.max(0, Number(currentCorpus) || 0)) * Math.pow(1 + 0.10, yearsLeft));
 
-  // Asset projections
+  // Retirement asset projections
+  const retirementCalculations = useMemo(() => {
+    return (visibleRetirementAssets || []).map((ast) => {
+      const proj = projectRetirementProceedsForGoal(ast, validTargetYear);
+      return {
+        ...ast,
+        projectedProceeds: proj.projectedProceeds,
+        monthlyDeposit: proj.monthlyDeposit,
+        rateOfInterest: proj.rateOfInterest,
+        targetDate: proj.targetDate,
+        tenureYears: proj.tenureYears,
+        tenureMonths: proj.tenureMonths,
+      };
+    });
+  }, [visibleRetirementAssets, validTargetYear]);
+
+  const totalRetirementProceeds = useMemo(() => {
+    return retirementCalculations
+      .filter((a) => selectedAssetIds.includes(a.asset_id))
+      .reduce((sum, a) => sum + (a.projectedProceeds || 0), 0);
+  }, [retirementCalculations, selectedAssetIds]);
+
+  // Physical asset projections
   const assetCalculations = useMemo(() => {
     return (visibleAssets || []).map((ast) => {
       const proj = projectAssetProceedsForGoal(ast, validTargetYear);
@@ -2752,10 +2870,17 @@ function GoalModalForm({
       .reduce((sum, i) => sum + (i.totalProjectedCorpus || 0), 0);
   }, [investmentCalculations, selectedInvestmentIds]);
 
-  const totalPreFunded = existingCorpusFuture + totalAssetProceeds + totalInvestmentProceeds;
+  const totalPreFunded = existingCorpusFuture + totalAssetProceeds + totalRetirementProceeds + totalInvestmentProceeds;
   const netShortfall = Math.max(0, inflatedTarget - totalPreFunded);
   const requiredMonthlySip = netShortfall > 0 ? calculateRequiredMonthlySIP(netShortfall, 11, yearsLeft) : 0;
   const coveragePct = inflatedTarget > 0 ? Math.min(100, Math.round((totalPreFunded / inflatedTarget) * 100)) : 0;
+
+  const selectedRetirementCount = selectedAssetIds.filter((id) =>
+    (visibleRetirementAssets || []).some((a) => a.asset_id === id)
+  ).length;
+  const selectedPhysicalCount = selectedAssetIds.filter((id) =>
+    (visibleAssets || []).some((a) => a.asset_id === id)
+  ).length;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2780,7 +2905,7 @@ function GoalModalForm({
       notes: notes.trim() || null,
       linked_asset_ids: selectedAssetIds,
       linked_investment_ids: selectedInvestmentIds,
-      earmarked_proceeds: totalAssetProceeds + totalInvestmentProceeds,
+      earmarked_proceeds: totalAssetProceeds + totalRetirementProceeds + totalInvestmentProceeds,
     };
 
     try {
@@ -2806,7 +2931,7 @@ function GoalModalForm({
     <ModalWrapper
       title={modalItem ? `Edit Goal: ${modalItem.goal_name}` : "Define Life Financial Goal & Asset Backing"}
       onClose={onClose}
-      maxWidth="max-w-3xl"
+      maxWidth="max-w-4xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Live Goal Feasibility & Asset Backing Engine Banner */}
@@ -2829,19 +2954,24 @@ function GoalModalForm({
             </span>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
             <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Inflated Target (FV)</div>
+              <div className="text-[10px] text-slate-400 uppercase font-semibold">Inflated Target</div>
               <div className="text-sm font-bold text-white mt-0.5">{formatINR(inflatedTarget)}</div>
               <div className="text-[10px] text-slate-500">at {inflationRate}% inflation</div>
             </div>
             <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
-              <div className="text-[10px] text-sky-400 uppercase font-semibold">Asset Liquidations</div>
-              <div className="text-sm font-bold text-sky-300 mt-0.5">{formatINR(totalAssetProceeds)}</div>
-              <div className="text-[10px] text-slate-500">{selectedAssetIds.length} assets earmarked</div>
+              <div className="text-[10px] text-purple-400 uppercase font-semibold">NPS &amp; PF</div>
+              <div className="text-sm font-bold text-purple-300 mt-0.5">{formatINR(totalRetirementProceeds)}</div>
+              <div className="text-[10px] text-slate-500">{selectedRetirementCount} accounts mapped</div>
             </div>
             <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
-              <div className="text-[10px] text-emerald-400 uppercase font-semibold">Portfolio Proceeds</div>
+              <div className="text-[10px] text-sky-400 uppercase font-semibold">Physical Assets</div>
+              <div className="text-sm font-bold text-sky-300 mt-0.5">{formatINR(totalAssetProceeds)}</div>
+              <div className="text-[10px] text-slate-500">{selectedPhysicalCount} assets earmarked</div>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
+              <div className="text-[10px] text-emerald-400 uppercase font-semibold">Market Portfolio</div>
               <div className="text-sm font-bold text-emerald-300 mt-0.5">{formatINR(totalInvestmentProceeds)}</div>
               <div className="text-[10px] text-slate-500">{selectedInvestmentIds.length} holdings mapped</div>
             </div>
@@ -2865,11 +2995,11 @@ function GoalModalForm({
         </div>
 
         {/* Form Mode Sub-Tabs */}
-        <div className="flex border-b border-slate-800 gap-2">
+        <div className="flex border-b border-slate-800 gap-1 overflow-x-auto">
           <button
             type="button"
             onClick={() => setFormTab("params")}
-            className={`px-3 py-2 text-xs font-semibold border-b-2 transition -mb-px flex items-center gap-1.5 ${
+            className={`px-3 py-2 text-xs font-semibold border-b-2 transition -mb-px flex items-center gap-1.5 shrink-0 ${
               formTab === "params"
                 ? "border-purple-500 text-purple-400"
                 : "border-transparent text-slate-400 hover:text-white"
@@ -2880,27 +3010,39 @@ function GoalModalForm({
           </button>
           <button
             type="button"
-            onClick={() => setFormTab("assets")}
-            className={`px-3 py-2 text-xs font-semibold border-b-2 transition -mb-px flex items-center gap-1.5 ${
-              formTab === "assets"
-                ? "border-sky-500 text-sky-400"
+            onClick={() => setFormTab("retirement")}
+            className={`px-3 py-2 text-xs font-semibold border-b-2 transition -mb-px flex items-center gap-1.5 shrink-0 ${
+              formTab === "retirement"
+                ? "border-purple-500 text-purple-400"
                 : "border-transparent text-slate-400 hover:text-white"
             }`}
           >
-            <Home className="h-3.5 w-3.5" />
-            <span>2. Earmark Physical Assets ({selectedAssetIds.length})</span>
+            <ShieldCheck className="h-3.5 w-3.5" />
+            <span>2. NPS &amp; Provident Funds ({selectedRetirementCount})</span>
           </button>
           <button
             type="button"
             onClick={() => setFormTab("investments")}
-            className={`px-3 py-2 text-xs font-semibold border-b-2 transition -mb-px flex items-center gap-1.5 ${
+            className={`px-3 py-2 text-xs font-semibold border-b-2 transition -mb-px flex items-center gap-1.5 shrink-0 ${
               formTab === "investments"
                 ? "border-emerald-500 text-emerald-400"
                 : "border-transparent text-slate-400 hover:text-white"
             }`}
           >
             <TrendingUp className="h-3.5 w-3.5" />
-            <span>3. Earmark Market Portfolio ({selectedInvestmentIds.length})</span>
+            <span>3. Market Portfolio ({selectedInvestmentIds.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFormTab("assets")}
+            className={`px-3 py-2 text-xs font-semibold border-b-2 transition -mb-px flex items-center gap-1.5 shrink-0 ${
+              formTab === "assets"
+                ? "border-sky-500 text-sky-400"
+                : "border-transparent text-slate-400 hover:text-white"
+            }`}
+          >
+            <Home className="h-3.5 w-3.5" />
+            <span>4. Physical Assets ({selectedPhysicalCount})</span>
           </button>
         </div>
 
@@ -2994,7 +3136,7 @@ function GoalModalForm({
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. To be funded partially from farm land liquidation"
+                  placeholder="e.g. To be funded partially from EPF & farm land liquidation"
                   className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
                 />
               </div>
@@ -3002,23 +3144,23 @@ function GoalModalForm({
           </div>
         )}
 
-        {/* Tab 2: Earmark Physical Assets */}
-        {formTab === "assets" && (
+        {/* Tab 2: Earmark NPS & Provident Funds */}
+        {formTab === "retirement" && (
           <div className="space-y-3 pt-1">
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-400">
-                Select physical assets to earmark. Compounded at their expected CAGR up to liquidation/target year.
+                Select NPS, EPF, PPF &amp; VPF accounts to earmark. Compounded at their stated interest rates up to goal horizon.
               </span>
-              <span className="text-sky-400 font-bold">{formatINR(totalAssetProceeds)} earmarked</span>
+              <span className="text-purple-400 font-bold">{formatINR(totalRetirementProceeds)} earmarked</span>
             </div>
 
-            {assetCalculations.length === 0 ? (
+            {retirementCalculations.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500 border border-slate-800 rounded-xl bg-slate-950">
-                No physical assets found for this household. Add Real Estate, FDs, or Gold under the Assets tab.
+                No NPS or Provident Fund accounts found for this household. Add EPF or NPS under the Assets tab.
               </div>
             ) : (
               <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-                {assetCalculations.map((ast) => {
+                {retirementCalculations.map((ast) => {
                   const isChecked = selectedAssetIds.includes(ast.asset_id);
                   const isLinkedOther = ast.linked_goal_id && ast.linked_goal_id !== modalItem?.goal_id;
 
@@ -3028,33 +3170,36 @@ function GoalModalForm({
                       onClick={() => toggleAsset(ast.asset_id)}
                       className={`p-3 rounded-xl border text-xs cursor-pointer transition flex items-start gap-3 ${
                         isChecked
-                          ? "bg-sky-950/30 border-sky-600/50"
+                          ? "bg-purple-950/30 border-purple-600/50"
                           : "bg-slate-950 border-slate-800 hover:border-slate-700"
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
-                        onChange={() => {}} // handled by parent onClick
-                        className="mt-0.5 rounded border-slate-700 text-sky-600 focus:ring-0 cursor-pointer"
+                        onChange={() => {}}
+                        className="mt-0.5 rounded border-slate-700 text-purple-600 focus:ring-0 cursor-pointer"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-white truncate">
                             {ast.asset_category} {ast.description ? `— ${ast.description}` : ""}
                           </span>
-                          <span className="font-mono font-bold text-sky-400">
+                          <span className="font-mono font-bold text-purple-400">
                             {formatINR(ast.projectedProceeds)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
                           <span>Current: {formatINR(ast.current_market_value)}</span>
-                          <span>•</span>
-                          <span>CAGR: {ast.expectedCagr}%</span>
-                          <span>•</span>
-                          <span>
-                            Target Liq: {ast.target_liquidation_date ? new Date(ast.target_liquidation_date).toLocaleDateString() : "At Goal Horizon"}
-                          </span>
+                          {ast.monthly_deposit > 0 && (
+                            <span>• Deposit: {formatINR(ast.monthly_deposit)}/mo</span>
+                          )}
+                          <span>• ROI: {ast.rateOfInterest}%</span>
+                          {ast.targetDate && (
+                            <span>
+                              • Target: {new Date(ast.targetDate).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}
+                            </span>
+                          )}
                           {isLinkedOther && (
                             <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20">
                               Already linked to another goal
@@ -3103,7 +3248,7 @@ function GoalModalForm({
                       <input
                         type="checkbox"
                         checked={isChecked}
-                        onChange={() => {}} // handled by parent onClick
+                        onChange={() => {}}
                         className="mt-0.5 rounded border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
                       />
                       <div className="flex-1 min-w-0">
@@ -3124,6 +3269,74 @@ function GoalModalForm({
                             <span>• SIP: {formatINR(inv.monthly_sip_amount)}/mo</span>
                           )}
                           <span>• Projected CAGR: {inv.expectedCagr}%</span>
+                          {isLinkedOther && (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                              Already linked to another goal
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 4: Earmark Physical Assets */}
+        {formTab === "assets" && (
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">
+                Select physical assets to earmark. Compounded at their expected CAGR up to liquidation/target year.
+              </span>
+              <span className="text-sky-400 font-bold">{formatINR(totalAssetProceeds)} earmarked</span>
+            </div>
+
+            {assetCalculations.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-500 border border-slate-800 rounded-xl bg-slate-950">
+                No physical assets found for this household. Add Real Estate, FDs, or Gold under the Assets tab.
+              </div>
+            ) : (
+              <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                {assetCalculations.map((ast) => {
+                  const isChecked = selectedAssetIds.includes(ast.asset_id);
+                  const isLinkedOther = ast.linked_goal_id && ast.linked_goal_id !== modalItem?.goal_id;
+
+                  return (
+                    <div
+                      key={ast.asset_id}
+                      onClick={() => toggleAsset(ast.asset_id)}
+                      className={`p-3 rounded-xl border text-xs cursor-pointer transition flex items-start gap-3 ${
+                        isChecked
+                          ? "bg-sky-950/30 border-sky-600/50"
+                          : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}}
+                        className="mt-0.5 rounded border-slate-700 text-sky-600 focus:ring-0 cursor-pointer"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white truncate">
+                            {ast.asset_category} {ast.description ? `— ${ast.description}` : ""}
+                          </span>
+                          <span className="font-mono font-bold text-sky-400">
+                            {formatINR(ast.projectedProceeds)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
+                          <span>Current: {formatINR(ast.current_market_value)}</span>
+                          <span>•</span>
+                          <span>CAGR: {ast.expectedCagr}%</span>
+                          <span>•</span>
+                          <span>
+                            Target Liq: {ast.target_liquidation_date ? new Date(ast.target_liquidation_date).toLocaleDateString() : "At Goal Horizon"}
+                          </span>
                           {isLinkedOther && (
                             <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20">
                               Already linked to another goal

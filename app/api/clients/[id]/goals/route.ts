@@ -2,7 +2,40 @@ import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
-import { unpackGoal, packGoalNotes } from "@/lib/goalAssetAlignment";
+import { unpackGoal, packGoalNotes, unpackAsset, packAssetNotes } from "@/lib/goalAssetAlignment";
+
+async function syncLinkedAssetsForGoal(targetGoalId: string, linkedAssetIds: string[], targetClientId: string) {
+  try {
+    const { data: clientAssets } = await supabaseAdmin
+      .from("assets")
+      .select("asset_id, notes, current_market_value, asset_category, description")
+      .eq("client_id", targetClientId);
+
+    if (clientAssets && clientAssets.length > 0) {
+      for (const a of clientAssets) {
+        const isTarget = linkedAssetIds.includes(a.asset_id);
+        const unpacked = unpackAsset(a);
+        const currentlyLinkedToThis = unpacked.linked_goal_id === targetGoalId;
+
+        if (isTarget && !currentlyLinkedToThis) {
+          const packedNotes = packAssetNotes(unpacked.clean_notes, {
+            ...unpacked,
+            linked_goal_id: targetGoalId,
+          });
+          await supabaseAdmin.from("assets").update({ notes: packedNotes }).eq("asset_id", a.asset_id);
+        } else if (!isTarget && currentlyLinkedToThis) {
+          const packedNotes = packAssetNotes(unpacked.clean_notes, {
+            ...unpacked,
+            linked_goal_id: null,
+          });
+          await supabaseAdmin.from("assets").update({ notes: packedNotes }).eq("asset_id", a.asset_id);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("syncLinkedAssetsForGoal warning:", err);
+  }
+}
 
 
 async function verifyClientAccess(clientId: string, session: any) {
@@ -171,15 +204,8 @@ export async function POST(
     }
 
     // Two-way sync: update linked assets and investments to have this goal_id
-    if (Array.isArray(linked_asset_ids) && linked_asset_ids.length > 0) {
-      try {
-        await supabaseAdmin
-          .from("assets")
-          .update({ linked_goal_id: inserted.goal_id })
-          .in("asset_id", linked_asset_ids);
-      } catch (aSyncErr) {
-        console.warn("Linked assets goal_id sync notice:", aSyncErr);
-      }
+    if (Array.isArray(linked_asset_ids)) {
+      await syncLinkedAssetsForGoal(inserted.goal_id, linked_asset_ids, assignedClientId);
     }
 
     if (Array.isArray(linked_investment_ids) && linked_investment_ids.length > 0) {
@@ -323,14 +349,7 @@ export async function PUT(
 
     // Sync two-way links
     if (Array.isArray(linked_asset_ids)) {
-      try {
-        await supabaseAdmin
-          .from("assets")
-          .update({ linked_goal_id: goal_id })
-          .in("asset_id", linked_asset_ids);
-      } catch (aSyncErr) {
-        console.warn("Linked assets goal_id update sync notice:", aSyncErr);
-      }
+      await syncLinkedAssetsForGoal(goal_id, linked_asset_ids, clientId);
     }
 
     if (Array.isArray(linked_investment_ids)) {

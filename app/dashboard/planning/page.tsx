@@ -31,6 +31,9 @@ import {
 } from "lucide-react";
 import {
   calculateRetirementMaturityValue,
+  projectRetirementProceedsForGoal,
+  projectAssetProceedsForGoal,
+  projectInvestmentCorpusForGoal,
   isRetirementAsset,
   isMarketAsset,
 } from "@/lib/goalAssetAlignment";
@@ -503,28 +506,129 @@ function InvestmentPlanningContent() {
                 </Link>
               </div>
             ) : (
-              <div className="space-y-2.5">
-                {goals.map((g: any) => (
-                  <div
-                    key={g.goal_id}
-                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3"
-                  >
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 dark:text-white">{g.goal_name}</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
-                        Target Year: {g.target_year} &bull; Priority: {g.priority || "Medium"}
+              <div className="space-y-3">
+                {goals.map((g: any) => {
+                  const targetAmt = Number(g.target_amount_today || g.target_amount || 0);
+                  const futureVal = Number(g.required_future_value || targetAmt);
+                  const targetYr = Number(g.target_year) || new Date().getFullYear() + 10;
+
+                  // Find mapped retirement assets
+                  const mappedRet = (retirementAssets || []).filter((a: any) =>
+                    a.linked_goal_id === g.goal_id || g.linked_asset_ids?.includes(a.asset_id)
+                  );
+                  const retProceeds = mappedRet.reduce((sum: number, a: any) => {
+                    const proj = projectRetirementProceedsForGoal(a, targetYr);
+                    return sum + proj.projectedProceeds;
+                  }, 0);
+
+                  // Find mapped physical assets
+                  const mappedPhys = (physicalAssets || []).filter((a: any) =>
+                    a.linked_goal_id === g.goal_id || g.linked_asset_ids?.includes(a.asset_id)
+                  );
+                  const physProceeds = mappedPhys.reduce((sum: number, a: any) => {
+                    const proj = projectAssetProceedsForGoal(a, targetYr);
+                    return sum + proj.projectedProceeds;
+                  }, 0);
+
+                  // Find mapped investments
+                  const mappedInv = (investments || []).filter((i: any) =>
+                    i.linked_goal_id === g.goal_id || g.linked_investment_ids?.includes(i.investment_id)
+                  );
+                  const invProceeds = mappedInv.reduce((sum: number, i: any) => {
+                    const proj = projectInvestmentCorpusForGoal(i, targetYr);
+                    return sum + proj.totalProjectedCorpus;
+                  }, 0);
+
+                  const corpusAlloc = Number(g.current_corpus_allocated || 0);
+                  const totalFunded = corpusAlloc + retProceeds + physProceeds + invProceeds;
+                  const progressPct = futureVal > 0 ? Math.min(100, Math.round((totalFunded / futureVal) * 100)) : 0;
+
+                  return (
+                    <div
+                      key={g.goal_id}
+                      className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                            <span>{g.goal_name}</span>
+                            <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                              {g.priority || "High"}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            Target Year: {g.target_year} &bull; Inflated Target: <span className="font-semibold text-slate-700 dark:text-slate-300">{formatINR(futureVal)}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs font-black text-purple-600 dark:text-purple-400">
+                            {formatINR(targetAmt)}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            Today&apos;s Value
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Progress bar */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-slate-500">Funded Coverage: <strong className="text-slate-800 dark:text-slate-200">{formatINR(totalFunded)}</strong></span>
+                          <span className="font-bold text-purple-600 dark:text-purple-400">{progressPct}%</span>
+                        </div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-purple-500 via-sky-400 to-emerald-400 h-full rounded-full transition-all duration-300"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Backing Assets Pills */}
+                      {(mappedRet.length > 0 || mappedPhys.length > 0 || mappedInv.length > 0) && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-200 dark:border-slate-700/50 text-[10px]">
+                          <span className="text-slate-400 font-semibold">Backing:</span>
+                          {mappedRet.map((a: any) => {
+                            const p = projectRetirementProceedsForGoal(a, targetYr);
+                            return (
+                              <span
+                                key={a.asset_id}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 font-medium"
+                              >
+                                <ShieldCheck className="h-2.5 w-2.5" />
+                                {a.description || a.asset_category}: {formatINR(p.projectedProceeds)}
+                              </span>
+                            );
+                          })}
+                          {mappedPhys.map((a: any) => {
+                            const p = projectAssetProceedsForGoal(a, targetYr);
+                            return (
+                              <span
+                                key={a.asset_id}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20 font-medium"
+                              >
+                                <Home className="h-2.5 w-2.5" />
+                                {a.description || a.asset_category}: {formatINR(p.projectedProceeds)}
+                              </span>
+                            );
+                          })}
+                          {mappedInv.map((i: any) => {
+                            const p = projectInvestmentCorpusForGoal(i, targetYr);
+                            return (
+                              <span
+                                key={i.investment_id}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 font-medium"
+                              >
+                                <TrendingUp className="h-2.5 w-2.5" />
+                                {i.scheme_instrument_name}: {formatINR(p.totalProjectedCorpus)}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <div className="text-xs font-black text-purple-600 dark:text-purple-400">
-                        {formatINR(Number(g.target_amount || 0))}
-                      </div>
-                      <div className="text-[10px] text-slate-400">
-                        Target Value
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

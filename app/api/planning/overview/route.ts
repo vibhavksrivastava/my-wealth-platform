@@ -1,7 +1,7 @@
 import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
-import { unpackAsset, isRetirementAsset, isMarketAsset } from "@/lib/goalAssetAlignment";
+import { unpackAsset, unpackGoal, isRetirementAsset, isMarketAsset } from "@/lib/goalAssetAlignment";
 
 export const maxDuration = 60;
 
@@ -87,7 +87,7 @@ export async function GET(req: Request) {
       const assets = assetsRes.data || [];
       const liabilities = liabilitiesRes.data || [];
       const investments = investmentsRes.data || [];
-      const goals = goalsRes.data || [];
+      const goals = (goalsRes.data || []).map(unpackGoal);
 
       // Filter out market investments from physical assets and unpack metadata
       const physicalAssetsList = assets.filter((a) => !isMarketAsset(a)).map(unpackAsset);
