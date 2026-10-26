@@ -34,6 +34,8 @@ import {
   User,
   Search,
   ExternalLink,
+  ShieldCheck,
+  Landmark,
 } from "lucide-react";
 import SuggestionsTab from "./SuggestionsTab";
 import {
@@ -41,6 +43,8 @@ import {
   projectInvestmentCorpusForGoal,
   calculateRequiredMonthlySIP,
   getDefaultAssetCagr,
+  calculateRetirementMaturityValue,
+  isRetirementAsset,
 } from "@/lib/goalAssetAlignment";
 
 interface Client360Data {
@@ -136,7 +140,7 @@ export default function Client360Page({
   // Modals state
   const [modalType, setModalType] = useState<
     "EDIT_PROFILE" | "ADD_MEMBER" | "RENAME_HOUSEHOLD" |
-    "INCOME" | "EXPENSE" | "ASSET" | "INVESTMENT" | "LIABILITY" | "GOAL" | null
+    "INCOME" | "EXPENSE" | "ASSET" | "INVESTMENT" | "LIABILITY" | "GOAL" | "RETIREMENT" | null
   >(null);
   const [modalItem, setModalItem] = useState<any>(null); // for edit mode
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -203,25 +207,33 @@ export default function Client360Page({
   const [invSearch, setInvSearch] = useState("");
   const [invClassFilter, setInvClassFilter] = useState("ALL");
 
+  const isMarketAsset = (a: any) => {
+    const cat = (a.asset_category || "").toLowerCase();
+    const desc = (a.description || "").toLowerCase();
+    const notes = (a.notes || "").toLowerCase();
+    return (
+      cat.includes("mutual") ||
+      cat.includes("fund") ||
+      cat.includes("equity") ||
+      cat.includes("stock") ||
+      cat.includes("share") ||
+      desc.includes("(folio:") ||
+      desc.includes("fund") ||
+      notes.includes("imported via cams") ||
+      notes.includes("isin:")
+    );
+  };
+
   const visibleAssets = useMemo(() => {
     if (!data) return [];
-    const list = viewScope === "HOUSEHOLD" ? data.assets : data.assets.filter((a) => a.client_id === clientId);
-    return list.filter((a: any) => {
-      const cat = (a.asset_category || "").toLowerCase();
-      const desc = (a.description || "").toLowerCase();
-      const notes = (a.notes || "").toLowerCase();
-      return !(
-        cat.includes("mutual") ||
-        cat.includes("fund") ||
-        cat.includes("equity") ||
-        cat.includes("stock") ||
-        cat.includes("share") ||
-        desc.includes("(folio:") ||
-        desc.includes("fund") ||
-        notes.includes("imported via cams") ||
-        notes.includes("isin:")
-      );
-    });
+    const list = viewScope === "HOUSEHOLD" ? data.assets : data.assets.filter((a: any) => a.client_id === clientId);
+    return list.filter((a: any) => !isMarketAsset(a) && !isRetirementAsset(a));
+  }, [data, viewScope, clientId]);
+
+  const visibleRetirementAssets = useMemo(() => {
+    if (!data) return [];
+    const list = viewScope === "HOUSEHOLD" ? data.assets : data.assets.filter((a: any) => a.client_id === clientId);
+    return list.filter((a: any) => isRetirementAsset(a));
   }, [data, viewScope, clientId]);
 
   const visibleInvestments = useMemo(() => {
@@ -502,7 +514,7 @@ export default function Client360Page({
         {[
           { key: "overview", label: "Household & Overview", icon: Home, count: householdMembers.length },
           { key: "cashflow", label: "Income & Cash Flow", icon: DollarSign, count: visibleIncomes.length + visibleExpenses.length },
-          { key: "assets", label: "Assets & Investments", icon: Wallet, count: visibleAssets.length + visibleInvestments.length },
+          { key: "assets", label: "Assets & Investments", icon: Wallet, count: visibleAssets.length + visibleInvestments.length + visibleRetirementAssets.length },
           { key: "liabilities", label: "Liabilities & Debt", icon: CreditCard, count: visibleLiabilities.length },
           { key: "goals", label: "Life Goals & Projections", icon: Target, count: visibleGoals.length },
           { key: "suggestions", label: "Future Suggestions & Action Plan", icon: Sparkles, count: suggestionsCount },
@@ -933,19 +945,26 @@ export default function Client360Page({
             <div>
               <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
                 <Wallet className="h-4 w-4 text-sky-400" />
-                Comprehensive Asset Portfolio ({visibleAssets.length + visibleInvestments.length} Holdings)
+                Comprehensive Asset Portfolio ({visibleAssets.length + visibleInvestments.length + visibleRetirementAssets.length} Holdings)
               </h3>
               <p className="text-xs text-slate-400">
-                Tracking physical assets, bank deposits, real estate, mutual funds, and equities.
+                Tracking physical assets, bank deposits, real estate, mutual funds, NPS, and provident funds.
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => { setModalItem(null); setModalType("ASSET"); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs shadow-sm transition"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span>+ Physical / Fixed Asset</span>
+              </button>
+              <button
+                onClick={() => { setModalItem(null); setModalType("RETIREMENT"); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-sm transition"
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span>+ NPS / Provident Fund</span>
               </button>
               <button
                 onClick={() => { setModalItem(null); setModalType("INVESTMENT"); }}
@@ -1221,6 +1240,179 @@ export default function Client360Page({
                         </td>
                       </tr>
                     ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Section 3: NPS & Provident Funds (EPF, PPF, VPF, NPS) */}
+          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-purple-400" />
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                  NPS &amp; Provident Funds (EPF, PPF, VPF, NPS) ({visibleRetirementAssets.length})
+                </h4>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-bold text-slate-300">
+                  Current Corpus: <span className="text-white">{formatINR(visibleRetirementAssets.reduce((sum, a) => sum + Number(a.current_market_value || 0), 0))}</span>
+                </span>
+                <span className="text-xs font-bold text-sky-400">
+                  Monthly Deposits: {formatINR(visibleRetirementAssets.reduce((sum, a) => sum + Number(a.monthly_deposit || 0), 0))}/mo
+                </span>
+                <span className="text-xs font-bold text-purple-400">
+                  Projected at Tenure End: {formatINR(visibleRetirementAssets.reduce((sum, a) => sum + Number(a.expected_maturity_value || a.expected_liquidation_value || a.current_market_value || 0), 0))}
+                </span>
+                <button
+                  onClick={() => { setModalItem(null); setModalType("RETIREMENT"); }}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition shadow-sm"
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>+ Add NPS / Provident Fund</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400">
+                    <th className="pb-2 font-semibold">Account / Scheme Category</th>
+                    <th className="pb-2 font-semibold">Owner</th>
+                    <th className="pb-2 font-semibold text-right">Current Value</th>
+                    <th className="pb-2 font-semibold text-right">Interest Rate</th>
+                    <th className="pb-2 font-semibold text-right">Monthly Deposit</th>
+                    <th className="pb-2 font-semibold text-right">Expected ROI (Deposit)</th>
+                    <th className="pb-2 font-semibold text-center">Target Date / Tenure</th>
+                    <th className="pb-2 font-semibold text-right">Expected Value at Tenure End</th>
+                    <th className="pb-2 font-semibold">Earmarked Goal</th>
+                    <th className="pb-2 font-semibold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {visibleRetirementAssets.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="py-8 text-center text-slate-500">
+                        <div className="space-y-2">
+                          <p>No NPS or Provident Fund accounts recorded.</p>
+                          <button
+                            onClick={() => { setModalItem(null); setModalType("RETIREMENT"); }}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-purple-400 hover:underline"
+                          >
+                            <Plus className="h-3 w-3" />
+                            <span>Add EPF, PPF, VPF or NPS Account</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    visibleRetirementAssets.map((ast) => {
+                      const curVal = Number(ast.current_market_value || 0);
+                      const roi = ast.rate_of_interest !== undefined && ast.rate_of_interest !== null ? Number(ast.rate_of_interest) : (ast.expected_cagr || 8.0);
+                      const mDeposit = Number(ast.monthly_deposit || 0);
+                      const roiMonthly = ast.expected_roi_monthly !== undefined && ast.expected_roi_monthly !== null ? Number(ast.expected_roi_monthly) : roi;
+                      const targetDateStr = ast.target_date || ast.target_liquidation_date || null;
+                      
+                      const calc = calculateRetirementMaturityValue({
+                        currentValue: curVal,
+                        rateOfInterest: roi,
+                        monthlyDeposit: mDeposit,
+                        expectedRoiMonthly: roiMonthly,
+                        targetDate: targetDateStr,
+                      });
+
+                      const maturityVal = ast.expected_maturity_value || calc.expectedMaturityValue;
+                      const totalInvested = curVal + (mDeposit * calc.tenureMonths);
+                      const gain = maturityVal - totalInvested;
+                      const gainPct = totalInvested > 0 ? Number(((gain / totalInvested) * 100).toFixed(1)) : 0;
+
+                      return (
+                        <tr key={ast.asset_id} className="hover:bg-slate-800/20 transition group">
+                          <td className="py-3">
+                            <div className="font-bold text-white flex items-center gap-1.5">
+                              <Landmark className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                              <span>{ast.asset_category}</span>
+                            </div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">{ast.description}</div>
+                          </td>
+                          <td className="py-3 text-slate-300">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300">
+                              <User className="h-3 w-3" />
+                              {ast.owner_name}
+                            </span>
+                          </td>
+                          <td className="py-3 text-right font-bold text-white font-mono">
+                            {formatINR(curVal)}
+                          </td>
+                          <td className="py-3 text-right font-semibold text-emerald-400 font-mono">
+                            {roi}% p.a.
+                          </td>
+                          <td className="py-3 text-right font-medium text-slate-300 font-mono">
+                            {mDeposit > 0 ? `${formatINR(mDeposit)}/mo` : "—"}
+                          </td>
+                          <td className="py-3 text-right font-semibold text-sky-400 font-mono">
+                            {mDeposit > 0 ? `${roiMonthly}% p.a.` : "—"}
+                          </td>
+                          <td className="py-3 text-center">
+                            {targetDateStr ? (
+                              <div className="inline-flex flex-col items-center">
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-purple-300 border border-slate-700 font-mono">
+                                  <Clock className="h-2.5 w-2.5" />
+                                  {new Date(targetDateStr).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}
+                                </span>
+                                {calc.tenureYears > 0 && (
+                                  <span className="text-[9px] text-slate-500 mt-0.5">
+                                    {calc.tenureYears} yrs ({calc.tenureMonths}m)
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-500 font-mono">Not Set</span>
+                            )}
+                          </td>
+                          <td className="py-3 text-right">
+                            <div className="font-bold text-purple-400 font-mono text-xs">
+                              {formatINR(maturityVal)}
+                            </div>
+                            {gain > 0 && (
+                              <div className="text-[10px] font-bold text-emerald-400">
+                                +{formatINR(gain)} (+{gainPct}%)
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3">
+                            {ast.linked_goal_id ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                <Target className="h-2.5 w-2.5" />
+                                {data?.goals?.find((g: any) => g.goal_id === ast.linked_goal_id)?.goal_name || "Linked Goal"}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-slate-500 font-mono">Unassigned</span>
+                            )}
+                          </td>
+                          <td className="py-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => { setModalItem(ast); setModalType("RETIREMENT"); }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                                title="Edit Account"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteItem("assets", "asset_id", ast.asset_id)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
+                                title="Delete Account"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -2120,6 +2312,23 @@ export default function Client360Page({
         </ModalWrapper>
       )}
 
+      {/* Modal: Add / Edit NPS & Provident Fund Account */}
+      {modalType === "RETIREMENT" && (
+        <RetirementAssetModal
+          clientId={clientId}
+          client={client}
+          goals={data?.goals || []}
+          modalItem={modalItem}
+          onClose={() => setModalType(null)}
+          onSuccess={() => {
+            setModalType(null);
+            fetch360Data();
+            showToast("NPS / Provident Fund account saved successfully.");
+          }}
+          showToast={showToast}
+        />
+      )}
+
       {/* 7. Modal: Add / Edit Investment Holding */}
       {modalType === "INVESTMENT" && (
         <ModalWrapper title={modalItem ? "Edit Portfolio Holding" : "Add Mutual Fund / Equity Holding"} onClose={() => setModalType(null)}>
@@ -2950,6 +3159,316 @@ function GoalModalForm({
           onCancel={onClose}
           isSubmitting={isSubmitting}
           submitLabel={modalItem ? "Save Goal & Recalculate" : "Create Goal & Link Assets"}
+        />
+      </form>
+    </ModalWrapper>
+  );
+}
+
+// Modal Component for NPS & Provident Funds
+function RetirementAssetModal({
+  clientId,
+  client,
+  goals,
+  modalItem,
+  onClose,
+  onSuccess,
+  showToast,
+}: {
+  clientId: string;
+  client: any;
+  goals: any[];
+  modalItem: any;
+  onClose: () => void;
+  onSuccess: () => void;
+  showToast: (msg: string, type?: "success" | "error") => void;
+}) {
+  const [category, setCategory] = useState(
+    modalItem?.asset_category || "National Pension System (NPS - Tier 1)"
+  );
+  const [description, setDescription] = useState(modalItem?.description || "");
+  const [ownerName, setOwnerName] = useState(modalItem?.owner_name || client.full_name);
+  const [currentValue, setCurrentValue] = useState<string>(
+    modalItem?.current_market_value !== undefined ? String(modalItem.current_market_value) : ""
+  );
+  const [rateOfInterest, setRateOfInterest] = useState<string>(
+    modalItem?.rate_of_interest !== undefined && modalItem?.rate_of_interest !== null
+      ? String(modalItem.rate_of_interest)
+      : String(getDefaultAssetCagr(modalItem?.asset_category || "National Pension System (NPS - Tier 1)"))
+  );
+  const [monthlyDeposit, setMonthlyDeposit] = useState<string>(
+    modalItem?.monthly_deposit !== undefined && modalItem?.monthly_deposit !== null
+      ? String(modalItem.monthly_deposit)
+      : ""
+  );
+  const [expectedRoiMonthly, setExpectedRoiMonthly] = useState<string>(
+    modalItem?.expected_roi_monthly !== undefined && modalItem?.expected_roi_monthly !== null
+      ? String(modalItem.expected_roi_monthly)
+      : (modalItem?.rate_of_interest !== undefined ? String(modalItem.rate_of_interest) : "10.0")
+  );
+
+  const defaultTargetDate = useMemo(() => {
+    if (modalItem?.target_date) return modalItem.target_date.substring(0, 10);
+    if (modalItem?.target_liquidation_date) return modalItem.target_liquidation_date.substring(0, 10);
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 15);
+    return d.toISOString().substring(0, 10);
+  }, [modalItem]);
+
+  const [targetDate, setTargetDate] = useState<string>(defaultTargetDate);
+  const [linkedGoalId, setLinkedGoalId] = useState<string>(modalItem?.linked_goal_id || "none");
+  const [notes, setNotes] = useState<string>(modalItem?.clean_notes || modalItem?.notes || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleCategoryChange = (newCat: string) => {
+    setCategory(newCat);
+    const defRoi = getDefaultAssetCagr(newCat);
+    setRateOfInterest(String(defRoi));
+    setExpectedRoiMonthly(String(defRoi));
+  };
+
+  const calc = useMemo(() => {
+    return calculateRetirementMaturityValue({
+      currentValue: Number(currentValue) || 0,
+      rateOfInterest: Number(rateOfInterest) || 0,
+      monthlyDeposit: Number(monthlyDeposit) || 0,
+      expectedRoiMonthly: Number(expectedRoiMonthly) || 0,
+      targetDate: targetDate || null,
+    });
+  }, [currentValue, rateOfInterest, monthlyDeposit, expectedRoiMonthly, targetDate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const valNum = Number(currentValue);
+    if (isNaN(valNum) || valNum < 0) {
+      showToast("Please provide a valid non-negative current balance.", "error");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const payload = {
+        asset_id: modalItem?.asset_id,
+        asset_category: category,
+        description: description.trim() || category,
+        owner_name: ownerName.trim() || client.full_name,
+        current_market_value: valNum,
+        is_liquid: false,
+        rate_of_interest: Number(rateOfInterest) || 0,
+        monthly_deposit: Number(monthlyDeposit) || 0,
+        expected_roi_monthly: Number(expectedRoiMonthly) || 0,
+        target_date: targetDate || null,
+        expected_maturity_value: calc.expectedMaturityValue,
+        linked_goal_id: linkedGoalId === "none" ? null : linkedGoalId,
+        notes: notes.trim() || null,
+      };
+
+      const res = await fetch(`/api/clients/${clientId}/assets`, {
+        method: modalItem ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || "Failed to save NPS / Provident Fund account.");
+      onSuccess();
+    } catch (err: any) {
+      showToast(err.message, "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <ModalWrapper
+      title={modalItem ? "Edit NPS / Provident Fund Holding" : "Add NPS / Provident Fund Account"}
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Account Category *</label>
+            <select
+              value={category}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+            >
+              <option value="National Pension System (NPS - Tier 1)">National Pension System (NPS - Tier 1)</option>
+              <option value="National Pension System (NPS - Tier 2)">National Pension System (NPS - Tier 2)</option>
+              <option value="Employees' Provident Fund (EPF)">Employees&apos; Provident Fund (EPF)</option>
+              <option value="Public Provident Fund (PPF)">Public Provident Fund (PPF)</option>
+              <option value="Voluntary Provident Fund (VPF)">Voluntary Provident Fund (VPF)</option>
+              <option value="Superannuation / Pension Trust">Superannuation / Pension Trust</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Owner Mapping</label>
+            <input
+              type="text"
+              value={ownerName}
+              onChange={(e) => setOwnerName(e.target.value)}
+              placeholder="e.g. Self / Spouse / Primary"
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-300 mb-1">Account Description / PRAN / UAN</label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. PRAN 110045239128 (HDFC Pension Fund), SBI PPF Account"
+            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Current Value / Balance (₹) *</label>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              required
+              value={currentValue}
+              onChange={(e) => setCurrentValue(e.target.value)}
+              placeholder="e.g. 500000"
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+            />
+            {Number(currentValue) > 0 && (
+              <span className="text-[10px] text-sky-400 mt-0.5 block">{formatINR(Number(currentValue))}</span>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Rate of Interest on Current Value (% p.a.)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={rateOfInterest}
+              onChange={(e) => setRateOfInterest(e.target.value)}
+              placeholder="e.g. 10.0"
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+            />
+            <span className="text-[10px] text-slate-500 mt-0.5 block">EPF: 8.25%, PPF: 7.10%, NPS: ~10.0%</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Monthly Deposit (₹)</label>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              value={monthlyDeposit}
+              onChange={(e) => setMonthlyDeposit(e.target.value)}
+              placeholder="e.g. 12500"
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+            />
+            <span className="text-[10px] text-slate-500 mt-0.5 block">Ongoing monthly contribution</span>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Expected ROI for Monthly Deposit (% p.a.)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={expectedRoiMonthly}
+              onChange={(e) => setExpectedRoiMonthly(e.target.value)}
+              placeholder="e.g. 10.0"
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+            />
+            <span className="text-[10px] text-slate-500 mt-0.5 block">Compounding on future deposits</span>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Target Date / End of Tenure</label>
+            <input
+              type="date"
+              value={targetDate}
+              onChange={(e) => setTargetDate(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+            />
+            <span className="text-[10px] text-slate-500 mt-0.5 block">Retirement / Maturity date</span>
+          </div>
+        </div>
+
+        {/* Live Tenure Compounding & Maturity Value Calculation Card */}
+        <div className="p-4 rounded-xl bg-purple-950/30 border border-purple-500/30 space-y-3">
+          <div className="flex items-center justify-between border-b border-purple-500/20 pb-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-purple-300">
+              <Sparkles className="h-4 w-4 text-purple-400" />
+              <span>Tenure Projection &amp; Maturity Calculation</span>
+            </div>
+            <span className="text-[11px] font-mono text-purple-200 bg-purple-900/60 px-2 py-0.5 rounded border border-purple-500/30">
+              {calc.tenureYears > 0 ? `${calc.tenureYears} Years (${calc.tenureMonths} Months)` : "Set Target Date"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+            <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+              <div className="text-[10px] text-slate-400">Current Balance Growth</div>
+              <div className="text-xs font-bold text-white mt-0.5 font-mono">{formatINR(calc.corpusGrowth)}</div>
+            </div>
+            <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+              <div className="text-[10px] text-slate-400">Future Monthly Deposits</div>
+              <div className="text-xs font-bold text-slate-200 mt-0.5 font-mono">{formatINR(calc.totalDeposits)}</div>
+            </div>
+            <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+              <div className="text-[10px] text-slate-400">Deposit Growth / Interest</div>
+              <div className="text-xs font-bold text-emerald-400 mt-0.5 font-mono">+{formatINR(calc.depositsGrowth)}</div>
+            </div>
+            <div className="bg-purple-900/40 p-2.5 rounded-lg border border-purple-500/30">
+              <div className="text-[10px] text-purple-300 font-semibold">Expected Value at Tenure End</div>
+              <div className="text-xs font-black text-white mt-0.5 font-mono">{formatINR(calc.expectedMaturityValue)}</div>
+              {calc.totalGain > 0 && (
+                <div className="text-[9px] font-bold text-emerald-400">
+                  +{formatINR(calc.totalGain)} total gain
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Earmark for Financial Goal</label>
+            <select
+              value={linkedGoalId}
+              onChange={(e) => setLinkedGoalId(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+            >
+              <option value="none">Unassigned / General Retirement</option>
+              {goals.map((g: any) => (
+                <option key={g.goal_id} value={g.goal_id}>
+                  {g.goal_name} ({g.target_year})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Account Notes / Remarks</label>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="e.g. Employer matched contribution, Tier 1 Corporate NPS"
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+            />
+          </div>
+        </div>
+
+        <ModalFooter
+          onCancel={onClose}
+          isSubmitting={isSubmitting}
+          submitLabel={modalItem ? "Update Account" : "Save Account"}
         />
       </form>
     </ModalWrapper>

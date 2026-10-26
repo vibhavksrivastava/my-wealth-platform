@@ -60,6 +60,11 @@ export async function POST(
       expected_cagr,
       expected_liquidation_value,
       linked_goal_id,
+      rate_of_interest,
+      monthly_deposit,
+      expected_roi_monthly,
+      target_date,
+      expected_maturity_value,
     } = body;
 
     const assignedClientId = target_client_id || clientId;
@@ -69,14 +74,17 @@ export async function POST(
       return NextResponse.json({ error: "Valid asset category and non-negative market value are required." }, { status: 400 });
     }
 
-    const cagrNum = expected_cagr !== undefined && expected_cagr !== null && expected_cagr !== ""
-      ? Number(expected_cagr)
-      : getDefaultAssetCagr(asset_category);
+    const effectiveTargetDate = target_date || target_liquidation_date || null;
+    const cagrNum = rate_of_interest !== undefined && rate_of_interest !== null && rate_of_interest !== ""
+      ? Number(rate_of_interest)
+      : (expected_cagr !== undefined && expected_cagr !== null && expected_cagr !== ""
+        ? Number(expected_cagr)
+        : getDefaultAssetCagr(asset_category));
 
-    let liquidationValNum = Number(expected_liquidation_value || 0);
-    if ((!liquidationValNum || liquidationValNum <= 0) && target_liquidation_date) {
+    let liquidationValNum = Number(expected_maturity_value || expected_liquidation_value || 0);
+    if ((!liquidationValNum || liquidationValNum <= 0) && effectiveTargetDate) {
       const currentYear = new Date().getFullYear();
-      const liqYear = new Date(target_liquidation_date).getFullYear() || (currentYear + 5);
+      const liqYear = new Date(effectiveTargetDate).getFullYear() || (currentYear + 5);
       const years = Math.max(0, liqYear - currentYear);
       liquidationValNum = Math.round(valueNum * Math.pow(1 + cagrNum / 100, years));
     } else if (!liquidationValNum) {
@@ -95,7 +103,7 @@ export async function POST(
       current_market_value: valueNum,
       is_liquid: Boolean(is_liquid),
       notes: notes ? String(notes).trim() : null,
-      target_liquidation_date: target_liquidation_date ? String(target_liquidation_date).trim() : null,
+      target_liquidation_date: effectiveTargetDate ? String(effectiveTargetDate).trim() : null,
       expected_cagr: cagrNum,
       expected_liquidation_value: liquidationValNum,
       linked_goal_id: linked_goal_id && linked_goal_id !== "none" ? linked_goal_id : null,
@@ -106,10 +114,15 @@ export async function POST(
     if (res1.error && res1.error.code === "PGRST204") {
       // Column does not exist yet in schema cache -> fallback to pack in notes
       const packedNotes = packAssetNotes(notes, {
-        target_liquidation_date,
+        target_liquidation_date: effectiveTargetDate,
         expected_cagr: cagrNum,
         expected_liquidation_value: liquidationValNum,
         linked_goal_id: linked_goal_id && linked_goal_id !== "none" ? linked_goal_id : null,
+        rate_of_interest: rate_of_interest !== undefined && rate_of_interest !== null ? Number(rate_of_interest) : null,
+        monthly_deposit: monthly_deposit !== undefined && monthly_deposit !== null ? Number(monthly_deposit) : null,
+        expected_roi_monthly: expected_roi_monthly !== undefined && expected_roi_monthly !== null ? Number(expected_roi_monthly) : null,
+        target_date: effectiveTargetDate,
+        expected_maturity_value: liquidationValNum,
       });
 
       const fallbackPayload = {
@@ -214,6 +227,11 @@ export async function PUT(
       expected_cagr,
       expected_liquidation_value,
       linked_goal_id,
+      rate_of_interest,
+      monthly_deposit,
+      expected_roi_monthly,
+      target_date,
+      expected_maturity_value,
     } = body;
 
     if (!asset_id) {
@@ -236,21 +254,26 @@ export async function PUT(
     }
     if (is_liquid !== undefined) updates.is_liquid = Boolean(is_liquid);
 
-    const cagrNum = expected_cagr !== undefined && expected_cagr !== null && expected_cagr !== ""
-      ? Number(expected_cagr)
-      : undefined;
+    const effectiveTargetDate = target_date || target_liquidation_date;
+    const cagrNum = rate_of_interest !== undefined && rate_of_interest !== null && rate_of_interest !== ""
+      ? Number(rate_of_interest)
+      : (expected_cagr !== undefined && expected_cagr !== null && expected_cagr !== ""
+        ? Number(expected_cagr)
+        : undefined);
 
     let liqValNum: number | undefined;
-    if (expected_liquidation_value !== undefined && expected_liquidation_value !== null && expected_liquidation_value !== "") {
+    if (expected_maturity_value !== undefined && expected_maturity_value !== null && expected_maturity_value !== "") {
+      liqValNum = Number(expected_maturity_value);
+    } else if (expected_liquidation_value !== undefined && expected_liquidation_value !== null && expected_liquidation_value !== "") {
       liqValNum = Number(expected_liquidation_value);
-    } else if (target_liquidation_date && numVal !== undefined && cagrNum !== undefined) {
+    } else if (effectiveTargetDate && numVal !== undefined && cagrNum !== undefined) {
       const currentYear = new Date().getFullYear();
-      const liqYear = new Date(target_liquidation_date).getFullYear() || (currentYear + 5);
+      const liqYear = new Date(effectiveTargetDate).getFullYear() || (currentYear + 5);
       const years = Math.max(0, liqYear - currentYear);
       liqValNum = Math.round(numVal * Math.pow(1 + cagrNum / 100, years));
     }
 
-    if (target_liquidation_date !== undefined) updates.target_liquidation_date = target_liquidation_date || null;
+    if (effectiveTargetDate !== undefined) updates.target_liquidation_date = effectiveTargetDate || null;
     if (cagrNum !== undefined) updates.expected_cagr = cagrNum;
     if (liqValNum !== undefined) updates.expected_liquidation_value = liqValNum;
     if (linked_goal_id !== undefined) updates.linked_goal_id = linked_goal_id && linked_goal_id !== "none" ? linked_goal_id : null;
@@ -275,10 +298,15 @@ export async function PUT(
       delete cleanUpdates.linked_goal_id;
 
       cleanUpdates.notes = packAssetNotes(notes, {
-        target_liquidation_date,
+        target_liquidation_date: effectiveTargetDate,
         expected_cagr: cagrNum,
         expected_liquidation_value: liqValNum,
         linked_goal_id: linked_goal_id && linked_goal_id !== "none" ? linked_goal_id : null,
+        rate_of_interest: rate_of_interest !== undefined && rate_of_interest !== null ? Number(rate_of_interest) : null,
+        monthly_deposit: monthly_deposit !== undefined && monthly_deposit !== null ? Number(monthly_deposit) : null,
+        expected_roi_monthly: expected_roi_monthly !== undefined && expected_roi_monthly !== null ? Number(expected_roi_monthly) : null,
+        target_date: effectiveTargetDate,
+        expected_maturity_value: liqValNum,
       });
 
       const res2 = await supabaseAdmin

@@ -2,7 +2,7 @@ import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
-import { unpackAsset, unpackInvestment, unpackGoal } from "@/lib/goalAssetAlignment";
+import { unpackAsset, unpackInvestment, unpackGoal, isRetirementAsset } from "@/lib/goalAssetAlignment";
 
 
 const isMarketAsset = (a: any) => {
@@ -196,9 +196,10 @@ export async function GET(
       const filteredIncomes = incomes.filter((inc) => cIds.includes(inc.client_id));
       const filteredExpenses = expenses.filter((e) => cIds.includes(e.client_id));
 
-      const physicalAssets = filteredPhysicalAssets.reduce((sum, a) => sum + Number(a.current_market_value || 0), 0);
+      const physicalAssets = filteredPhysicalAssets.filter((a) => !isRetirementAsset(a)).reduce((sum, a) => sum + Number(a.current_market_value || 0), 0);
+      const retirementAssets = filteredPhysicalAssets.filter((a) => isRetirementAsset(a)).reduce((sum, a) => sum + Number(a.current_market_value || 0), 0);
       const investmentAssets = filteredInvestments.reduce((sum, i) => sum + Number(i.currentValue || 0), 0);
-      const totalAssets = physicalAssets + investmentAssets;
+      const totalAssets = physicalAssets + retirementAssets + investmentAssets;
 
       const liquidPhysical = filteredPhysicalAssets
         .filter((a) => a.is_liquid)
@@ -221,6 +222,7 @@ export async function GET(
       return {
         totalAssets,
         physicalAssets,
+        retirementAssets,
         investmentAssets,
         liquidAssets,
         illiquidAssets,

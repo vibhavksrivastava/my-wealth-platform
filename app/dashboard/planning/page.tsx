@@ -26,8 +26,13 @@ import {
   Sparkles,
   ExternalLink,
   Home,
-  User
+  User,
+  Landmark
 } from "lucide-react";
+import {
+  calculateRetirementMaturityValue,
+  isRetirementAsset,
+} from "@/lib/goalAssetAlignment";
 import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 
 function formatINR(val: number) {
@@ -131,25 +136,33 @@ function InvestmentPlanningContent() {
     });
   }, [data?.households, searchQuery]);
 
-  // Filtered physical assets (strictly excluding mutual funds and equities)
+  const isMarketAsset = (a: any) => {
+    const cat = (a.asset_category || "").toLowerCase();
+    const desc = (a.description || "").toLowerCase();
+    const notes = (a.notes || "").toLowerCase();
+    return (
+      cat.includes("mutual") ||
+      cat.includes("fund") ||
+      cat.includes("equity") ||
+      cat.includes("stock") ||
+      cat.includes("share") ||
+      desc.includes("(folio:") ||
+      desc.includes("fund") ||
+      notes.includes("imported via cams") ||
+      notes.includes("isin:")
+    );
+  };
+
+  // Filtered physical assets (strictly excluding mutual funds, equities, and NPS/provident funds)
   const physicalAssets = useMemo(() => {
     if (!data?.assets) return [];
-    return data.assets.filter((a: any) => {
-      const cat = (a.asset_category || "").toLowerCase();
-      const desc = (a.description || "").toLowerCase();
-      const notes = (a.notes || "").toLowerCase();
-      return !(
-        cat.includes("mutual") ||
-        cat.includes("fund") ||
-        cat.includes("equity") ||
-        cat.includes("stock") ||
-        cat.includes("share") ||
-        desc.includes("(folio:") ||
-        desc.includes("fund") ||
-        notes.includes("imported via cams") ||
-        notes.includes("isin:")
-      );
-    });
+    return data.assets.filter((a: any) => !isMarketAsset(a) && !isRetirementAsset(a));
+  }, [data?.assets]);
+
+  // Filtered NPS & Provident Funds (EPF, PPF, VPF, NPS)
+  const retirementAssets = useMemo(() => {
+    if (!data?.assets) return [];
+    return data.assets.filter((a: any) => isRetirementAsset(a));
   }, [data?.assets]);
 
   // Filtered mutual funds & direct equity holdings
@@ -291,7 +304,7 @@ function InvestmentPlanningContent() {
               {formatINR(metrics.totalAssets || 0)}
             </div>
             <div className="text-[11px] text-slate-500">
-              Investments: {formatINR(metrics.investmentAssets || 0)} | Physical: {formatINR(metrics.physicalAssets || 0)}
+              Investments: {formatINR(metrics.investmentAssets || 0)} | Physical: {formatINR(metrics.physicalAssets || 0)} | NPS &amp; PF: {formatINR(metrics.retirementAssets || 0)}
             </div>
           </div>
 
@@ -583,6 +596,171 @@ function InvestmentPlanningContent() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Section 3: NPS & Provident Funds (EPF, PPF, VPF, NPS) */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-purple-500" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                NPS &amp; Provident Funds (EPF, PPF, VPF, NPS) ({retirementAssets.length})
+              </h3>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                Current Corpus: <span className="text-slate-900 dark:text-white">{formatINR(retirementAssets.reduce((sum: number, a: any) => sum + Number(a.current_market_value || 0), 0))}</span>
+              </span>
+              <span className="text-xs font-bold text-sky-600 dark:text-sky-400">
+                Monthly Inflows: {formatINR(retirementAssets.reduce((sum: number, a: any) => sum + Number(a.monthly_deposit || 0), 0))}/mo
+              </span>
+              <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
+                Projected at Tenure End: {formatINR(retirementAssets.reduce((sum: number, a: any) => sum + Number(a.expected_maturity_value || a.expected_liquidation_value || a.current_market_value || 0), 0))}
+              </span>
+              <Link
+                href={`/dashboard/clients/${client.client_id}/360`}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-xs font-bold transition shadow-xs"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Manage in Client 360°</span>
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-950/60 text-slate-500 uppercase tracking-wider font-semibold border-y border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th className="py-3 px-3">Account / Scheme Category</th>
+                  <th className="py-3 px-3">Owner</th>
+                  <th className="py-3 px-3 text-right">Current Value</th>
+                  <th className="py-3 px-3 text-right">Interest Rate</th>
+                  <th className="py-3 px-3 text-right">Monthly Deposit</th>
+                  <th className="py-3 px-3 text-right">Expected ROI (Deposit)</th>
+                  <th className="py-3 px-3 text-center">Target Date / Tenure</th>
+                  <th className="py-3 px-3 text-right">Expected Value at Tenure End</th>
+                  <th className="py-3 px-3">Earmarked Goal</th>
+                  <th className="py-3 px-3 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium text-slate-700 dark:text-slate-300">
+                {retirementAssets.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="py-8 text-center text-slate-400">
+                      <div className="space-y-2">
+                        <p>No NPS or Provident Fund accounts recorded.</p>
+                        <Link
+                          href={`/dashboard/clients/${client.client_id}/360`}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline"
+                        >
+                          <Plus className="h-3 w-3" />
+                          <span>Add EPF, PPF, VPF or NPS Account in Client 360°</span>
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  retirementAssets.map((ast: any) => {
+                    const curVal = Number(ast.current_market_value || 0);
+                    const roi = ast.rate_of_interest !== undefined && ast.rate_of_interest !== null ? Number(ast.rate_of_interest) : (ast.expected_cagr || 8.0);
+                    const mDeposit = Number(ast.monthly_deposit || 0);
+                    const roiMonthly = ast.expected_roi_monthly !== undefined && ast.expected_roi_monthly !== null ? Number(ast.expected_roi_monthly) : roi;
+                    const targetDateStr = ast.target_date || ast.target_liquidation_date || null;
+
+                    const calc = calculateRetirementMaturityValue({
+                      currentValue: curVal,
+                      rateOfInterest: roi,
+                      monthlyDeposit: mDeposit,
+                      expectedRoiMonthly: roiMonthly,
+                      targetDate: targetDateStr,
+                    });
+
+                    const maturityVal = ast.expected_maturity_value || calc.expectedMaturityValue;
+                    const totalInvested = curVal + (mDeposit * calc.tenureMonths);
+                    const gain = maturityVal - totalInvested;
+                    const gainPct = totalInvested > 0 ? Number(((gain / totalInvested) * 100).toFixed(1)) : 0;
+
+                    return (
+                      <tr key={ast.asset_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition group">
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                            <Landmark className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+                            <span>{ast.asset_category}</span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{ast.description}</div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            <User className="h-3 w-3" />
+                            {ast.owner_name}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-right font-bold text-slate-900 dark:text-white font-mono">
+                          {formatINR(curVal)}
+                        </td>
+                        <td className="py-3 px-3 text-right font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                          {roi}% p.a.
+                        </td>
+                        <td className="py-3 px-3 text-right font-medium text-slate-700 dark:text-slate-300 font-mono">
+                          {mDeposit > 0 ? `${formatINR(mDeposit)}/mo` : "—"}
+                        </td>
+                        <td className="py-3 px-3 text-right font-semibold text-sky-600 dark:text-sky-400 font-mono">
+                          {mDeposit > 0 ? `${roiMonthly}% p.a.` : "—"}
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          {targetDateStr ? (
+                            <div className="inline-flex flex-col items-center">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-800 text-purple-600 dark:text-purple-300 border border-slate-200 dark:border-slate-700 font-mono">
+                                <Clock className="h-2.5 w-2.5" />
+                                {new Date(targetDateStr).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}
+                              </span>
+                              {calc.tenureYears > 0 && (
+                                <span className="text-[9px] text-slate-400 mt-0.5">
+                                  {calc.tenureYears} yrs ({calc.tenureMonths}m)
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-mono">Not Set</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <div className="font-bold text-purple-600 dark:text-purple-400 font-mono text-xs">
+                            {formatINR(maturityVal)}
+                          </div>
+                          {gain > 0 && (
+                            <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                              +{formatINR(gain)} (+{gainPct}%)
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-3">
+                          {ast.linked_goal_id ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20">
+                              <Target className="h-2.5 w-2.5" />
+                              {goals.find((g: any) => g.goal_id === ast.linked_goal_id)?.goal_name || "Linked Goal"}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-mono">Unassigned</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <Link
+                            href={`/dashboard/clients/${client.client_id}/360`}
+                            className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900 transition inline-flex items-center gap-1 shadow-sm"
+                          >
+                            <span>Edit in 360°</span>
+                            <ChevronRight className="h-3 w-3" />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

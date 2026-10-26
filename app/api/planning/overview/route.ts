@@ -1,6 +1,7 @@
 import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
+import { unpackAsset, isRetirementAsset } from "@/lib/goalAssetAlignment";
 
 export const maxDuration = 60;
 
@@ -105,9 +106,10 @@ export async function GET(req: Request) {
       const investments = investmentsRes.data || [];
       const goals = goalsRes.data || [];
 
-      // Filter out market investments from physical assets
-      const physicalAssetsList = assets.filter((a) => !isMarketAsset(a));
-      const physicalAssets = physicalAssetsList.reduce((sum, a) => sum + Number(a.current_market_value || 0), 0);
+      // Filter out market investments from physical assets and unpack metadata
+      const physicalAssetsList = assets.filter((a) => !isMarketAsset(a)).map(unpackAsset);
+      const physicalAssets = physicalAssetsList.filter((a) => !isRetirementAsset(a)).reduce((sum, a) => sum + Number(a.current_market_value || 0), 0);
+      const retirementAssets = physicalAssetsList.filter((a) => isRetirementAsset(a)).reduce((sum, a) => sum + Number(a.current_market_value || 0), 0);
 
       // Enrich investments with latest NAV from mfd_nav_history
       const isinSet = new Set<string>();
@@ -198,7 +200,7 @@ export async function GET(req: Request) {
       });
 
       const investmentAssets = enrichedInvestments.reduce((sum, i) => sum + Number(i.currentValue || 0), 0);
-      const totalAssets = physicalAssets + investmentAssets;
+      const totalAssets = physicalAssets + retirementAssets + investmentAssets;
       const liquidAssets = physicalAssetsList.filter((a) => a.is_liquid).reduce((sum, a) => sum + Number(a.current_market_value || 0), 0) + investmentAssets;
       const totalLiabilities = liabilities.reduce((sum, l) => sum + Number(l.outstanding_principal || 0), 0);
       const netWorth = totalAssets - totalLiabilities;
@@ -215,6 +217,7 @@ export async function GET(req: Request) {
         metrics: {
           totalAssets,
           physicalAssets,
+          retirementAssets,
           investmentAssets,
           liquidAssets,
           totalLiabilities,
