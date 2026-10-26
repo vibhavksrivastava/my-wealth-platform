@@ -21,6 +21,8 @@ def extract_cas_pdf(pdf_path, password=None):
         text += "\n" + page_text
 
     text = text.replace('\xad', '').replace('\ufffd', '')
+    text = re.sub(r'\bT\s+empleton\b', 'Templeton', text)
+    text = re.sub(r'\bT\s+otal\b', 'Total', text)
 
     # Extract Investor Name & PAN
     investor_name = ""
@@ -199,7 +201,8 @@ def extract_cas_pdf(pdf_path, password=None):
                 parts = d_raw.split('-')
                 fmt_date = f'{parts[2]}-{parts[1]}-{parts[0]}'
 
-                tx_type = 'SIP' if any(w in desc.lower() for w in ['systematic', 'sip', 'instalment']) else 'PURCHASE'
+                sip_keywords = ['systematic', 'sip', 'instalment', 'installment', 'sys.', 'sys ', 'sys-', 'auto debit', 'nach', 'mandate']
+                tx_type = 'SIP' if any(w in desc.lower() for w in sip_keywords) else 'PURCHASE'
                 if any(w in desc.lower() for w in ['redemption', 'switch-out', 'withdr']):
                     tx_type = 'REDEMPTION'
                 elif 'switch-in' in desc.lower():
@@ -229,7 +232,7 @@ def extract_cas_pdf(pdf_path, password=None):
                 "isin": h.get("isin", ""),
                 "folioNumber": h["folio"],
                 "schemeName": h["scheme"],
-                "type": "SIP",
+                "type": "PURCHASE",
                 "date": "2026-09-01",
                 "units": h["units"],
                 "nav": h["nav"],

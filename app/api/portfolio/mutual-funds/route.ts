@@ -435,6 +435,7 @@ export async function GET(req: Request) {
         const dayChange = clientDayChange;
         const dayChangePct = value > 0 ? Number(((dayChange / value) * 100).toFixed(2)) : 0.48;
 
+        const realSipsCount = clientInvs.filter((i) => Number(i.monthly_sip_amount || 0) > 0).length;
         return {
           clientId: client.client_id,
           clientName: client.full_name,
@@ -452,7 +453,7 @@ export async function GET(req: Request) {
           dayChangePct,
           xirr,
           monthlySipAmount: monthlySip,
-          activeSipsCount: monthlySip > 0 ? Math.max(1, Math.round(monthlySip / 20000)) : 0,
+          activeSipsCount: realSipsCount > 0 ? realSipsCount : (monthlySip > 0 ? Math.max(1, Math.round(monthlySip / 20000)) : 0),
         };
       });
 
@@ -1139,7 +1140,7 @@ export async function GET(req: Request) {
     const totalReturnPct = totalCost > 0 ? Number(((totalGain / totalCost) * 100).toFixed(2)) : 0;
     const totalDayChange = activeHoldings.reduce((sum, h) => sum + h.dayChange, 0);
     const totalDayChangePct = totalValue > 0 ? Number(((totalDayChange / totalValue) * 100).toFixed(2)) : 0;
-    const totalSipBook = activeHoldings.reduce((sum, h) => sum + (h.monthlySip || 0), 0);
+    let totalSipBook = activeHoldings.reduce((sum, h) => sum + (h.monthlySip || 0), 0);
 
     const weightedXirr = totalValue > 0
       ? Number((activeHoldings.reduce((sum, h) => sum + h.xirr * h.currentValue, 0) / totalValue).toFixed(2))
@@ -1155,7 +1156,7 @@ export async function GET(req: Request) {
         id: t.id,
         folioNumber: t.external_order_id || "FOL-" + t.id.slice(0, 8).toUpperCase(),
         schemeName: t.instruments?.scheme_name || "Mutual Fund Scheme",
-        type: t.transaction_type === "BUY" ? "SIP" : t.transaction_type,
+        type: t.transaction_type || "BUY",
         date: t.transaction_date,
         units: Number(t.units),
         nav: Number(t.nav),
@@ -1171,7 +1172,7 @@ export async function GET(req: Request) {
         id: `txn-${h.id || i + 1}`,
         folioNumber: h.folioNumber,
         schemeName: h.schemeName,
-        type: "SIP",
+        type: (h.monthlySip || 0) > 0 ? "SIP" : "BUY",
         date: "2026-09-28",
         units: h.units,
         nav: h.currentNav,
@@ -1206,7 +1207,78 @@ export async function GET(req: Request) {
       }
     } catch {}
 
+    // Derive active SIP mandates dynamically from holdings or recent SIP transactions
     if (sips.length === 0) {
+      const sipHoldings = activeHoldings.filter((h) => (h.monthlySip || 0) > 0);
+      if (sipHoldings.length > 0) {
+        sips = sipHoldings.map((h, idx) => {
+          const matchTx = (transactions || []).find(
+            (t: any) =>
+              (t.type === "SIP" || t.type === "BUY") &&
+              ((h.folioNumber && t.folioNumber === h.folioNumber) ||
+                (h.schemeName && t.schemeName && (
+                  t.schemeName.toLowerCase() === h.schemeName.toLowerCase() ||
+                  t.schemeName.toLowerCase().includes(h.schemeName.toLowerCase().slice(0, 15)) ||
+                  h.schemeName.toLowerCase().includes(t.schemeName.toLowerCase().slice(0, 15))
+                )))
+          );
+          const sipDay = matchTx?.date ? parseInt(matchTx.date.split("-")[2], 10) || 10 : 10;
+          const dayStr = String(sipDay).padStart(2, "0");
+          const nextDueDate = `2026-11-${dayStr}`;
+          const installments = Math.max(1, Math.round(h.investedCost / h.monthlySip));
+
+          return {
+            id: `sip-${h.id || idx + 1}`,
+            schemeName: h.schemeName,
+            folioNumber: h.folioNumber || "Folio N/A",
+            monthlyAmount: h.monthlySip,
+            sipDay,
+            frequency: "Monthly",
+            status: "ACTIVE",
+            nextDueDate,
+            mandateBank: "Registered Bank Mandate (NACH)",
+            totalInvested: installments,
+            clientName: h.clientName || primaryClient?.full_name || "Self",
+          };
+        });
+      } else {
+        // Derive from SIP transactions if monthlySip not yet populated on holdings
+        const sipTxns = (transactions || []).filter(
+          (t: any) => t.type === "SIP" && !t.description?.toLowerCase().includes("consolidated")
+        );
+        const seenSchemes = new Set<string>();
+        for (const stx of sipTxns) {
+          const key = stx.folioNumber || stx.schemeName;
+          if (!seenSchemes.has(key)) {
+            seenSchemes.add(key);
+            const sipDay = stx.date ? parseInt(stx.date.split("-")[2], 10) || 10 : 10;
+            const dayStr = String(sipDay).padStart(2, "0");
+            sips.push({
+              id: `sip-${stx.id || sips.length + 1}`,
+              schemeName: stx.schemeName,
+              folioNumber: stx.folioNumber || "Folio N/A",
+              monthlyAmount: Math.round(Number(stx.amount || 0)),
+              sipDay,
+              frequency: "Monthly",
+              status: "ACTIVE",
+              nextDueDate: `2026-11-${dayStr}`,
+              mandateBank: "Registered Bank Mandate (NACH)",
+              totalInvested: 1,
+              clientName: primaryClient?.full_name || "Self",
+            });
+          }
+        }
+      }
+    }
+
+    // Keep totalSipBook synced with resolved SIPs
+    if (totalSipBook === 0 && sips.length > 0) {
+      totalSipBook = sips.reduce((sum, s) => sum + (Number(s.monthlyAmount) || 0), 0);
+    }
+
+    // Only inject fallback demo mock SIPs if there are ZERO database holdings/assets (pure demo environment)
+    const hasRealDbAssets = (rawInvestments && rawInvestments.length > 0) || (rawMfAssets && rawMfAssets.length > 0);
+    if (sips.length === 0 && !hasRealDbAssets) {
       sips = [
         {
           id: "sip-01",

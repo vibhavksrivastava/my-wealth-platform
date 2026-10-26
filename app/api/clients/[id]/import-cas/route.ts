@@ -265,18 +265,36 @@ export async function POST(
     }
 
     // 2. Also insert into investment_portfolio so it appears in Mutual Fund Portfolio console
+    const parsedTransactions = body.transactions || [];
     try {
-      const portfolioRecords = parsedHoldings.map((h) => ({
-        client_id: clientId,
-        asset_class: "Equity Mutual Fund",
-        scheme_instrument_name: h.scheme,
-        owner_name: client.full_name || "Self",
-        invested_amount: h.cost || Math.round(h.valuation * 0.75),
-        current_value: h.valuation,
-        monthly_sip_amount: 0,
-        notes: (h.isin ? `ISIN: ${h.isin} | ` : "") + (h.folio ? `Folio: ${h.folio} | ` : "") + `Imported via CAMS/KFintech CAS. Units: ${h.units ?? "N/A"} | NAV: ${h.nav ? "₹" + h.nav : "N/A"}`,
-        updated_at: new Date().toISOString(),
-      }));
+      const portfolioRecords = parsedHoldings.map((h) => {
+        // Detect if this holding has an active monthly SIP transaction in the statement
+        const matchingSip = parsedTransactions.find(
+          (t: any) =>
+            (t.type === "SIP" || t.transaction_type === "SIP") &&
+            !t.description?.toLowerCase().includes("consolidated") &&
+            ((t.isin && h.isin && t.isin === h.isin) ||
+              (t.folioNumber && h.folio && t.folioNumber === h.folio) ||
+              (t.schemeName && h.scheme && (
+                t.schemeName.toLowerCase() === h.scheme.toLowerCase() ||
+                t.schemeName.toLowerCase().includes(h.scheme.toLowerCase().slice(0, 20)) ||
+                h.scheme.toLowerCase().includes(t.schemeName.toLowerCase().slice(0, 20))
+              )))
+        );
+        const monthlySip = matchingSip ? Math.round(Number(matchingSip.amount || 0)) : 0;
+
+        return {
+          client_id: clientId,
+          asset_class: "Equity Mutual Fund",
+          scheme_instrument_name: h.scheme,
+          owner_name: client.full_name || "Self",
+          invested_amount: h.cost || Math.round(h.valuation * 0.75),
+          current_value: h.valuation,
+          monthly_sip_amount: monthlySip,
+          notes: (h.isin ? `ISIN: ${h.isin} | ` : "") + (h.folio ? `Folio: ${h.folio} | ` : "") + `Imported via CAMS/KFintech CAS. Units: ${h.units ?? "N/A"} | NAV: ${h.nav ? "₹" + h.nav : "N/A"}`,
+          updated_at: new Date().toISOString(),
+        };
+      });
 
       await supabaseAdmin
         .from("investment_portfolio")
@@ -307,7 +325,6 @@ export async function POST(
     }
 
     // 3b. Ingest Transactions if provided
-    const parsedTransactions = body.transactions || [];
     if (parsedTransactions.length > 0) {
       try {
         const userId = client.user_id || session.sub;
@@ -373,7 +390,7 @@ export async function POST(
                 portfolio_id: portfolioId,
                 client_id: userId,
                 instrument_id: instrumentId,
-                transaction_type: tx.type === "SIP" ? "BUY" : tx.type || "BUY",
+                transaction_type: tx.type || "BUY",
                 transaction_date: tx.date || new Date().toISOString().split("T")[0],
                 units: tx.units || 1,
                 nav: tx.nav || 10,
