@@ -197,3 +197,4 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: err.message || "Failed to load rebalancing preview." }, { status: 500 });
   }
 }
+

@@ -127,52 +127,66 @@ export async function generateGeminiRebalancing(
 }
 
 /**
- * Real API call to Google Gemini (gemini-1.5-flash / gemini-2.0-flash)
+ * Real API call to Google Gemini (supports current active models with multi-model fallback)
  */
 async function callGeminiApi(
   context: ClientPortfolioContext,
   apiKey: string
 ): Promise<GeminiRebalancingResult | null> {
   const prompt = buildGeminiPrompt(context);
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const candidateModels = [
+    "gemini-flash-lite-latest",
+    "gemini-flash-latest",
+    "gemini-3.8-flash",
+    "gemini-3.5-flash",
+  ];
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        responseMimeType: "application/json",
-      },
-    }),
-  });
+  for (const model of candidateModels) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-  if (!response.ok) {
-    const errText = await response.text();
-    console.warn(`Gemini API returned error ${response.status}: ${errText}`);
-    return null;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            responseMimeType: "application/json",
+          },
+        }),
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          const parsed = JSON.parse(rawText) as GeminiRebalancingResult;
+          parsed.aiModelUsed = `Google Gemini (${model} - Live Cloud)`;
+          parsed.isSimulatedFallback = false;
+          parsed.analysisTimestamp = new Date().toISOString();
+          return parsed;
+        }
+      } else {
+        const errText = await response.text();
+        console.warn(`Gemini API model ${model} responded with HTTP ${response.status}: ${errText.slice(0, 150)}`);
+      }
+    } catch (err: any) {
+      console.warn(`Gemini API call to ${model} notice: ${err?.message || err}`);
+    }
   }
 
-  const data = await response.json();
-  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!rawText) return null;
-
-  try {
-    const parsed = JSON.parse(rawText) as GeminiRebalancingResult;
-    parsed.aiModelUsed = "Google Gemini 1.5 Flash (Live Cloud)";
-    parsed.isSimulatedFallback = false;
-    parsed.analysisTimestamp = new Date().toISOString();
-    return parsed;
-  } catch (parseErr) {
-    console.error("Failed to parse Gemini JSON output:", parseErr, rawText);
-    return null;
-  }
+  return null;
 }
 
 /**
