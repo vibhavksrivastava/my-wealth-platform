@@ -148,6 +148,15 @@ function MutualFundPortfolioContent() {
   const [holdingSearch, setHoldingSearch] = useState("");
   const [holdingClassFilter, setHoldingClassFilter] = useState("ALL");
 
+  // Gemini AI Rebalancing States
+  const [geminiLoading, setGeminiLoading] = useState(false);
+  const [advisorDirectives, setAdvisorDirectives] = useState("");
+  const [customApiKey, setCustomApiKey] = useState("");
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [geminiResult, setGeminiResult] = useState<any>(null);
+  const [pushSuccessMsg, setPushSuccessMsg] = useState<string | null>(null);
+  const [isPushingPlan, setIsPushingPlan] = useState(false);
+
   // Update selectedClientId if URL query param changes
   useEffect(() => {
     if (paramClientId) {
@@ -158,6 +167,63 @@ function MutualFundPortfolioContent() {
       setSelectedClientId("ALL");
     }
   }, [paramClientId, paramHouseholdId, isAdvisor]);
+
+  // Synchronize Gemini rebalancing results when portfolioData loads
+  useEffect(() => {
+    if (portfolioData?.rebalancing?.gemini) {
+      setGeminiResult(portfolioData.rebalancing.gemini);
+    }
+  }, [portfolioData]);
+
+  // Run Gemini AI Rebalance On Demand or Push to Suggestions
+  const handleRunGeminiRebalance = async (saveToSuggestions = false) => {
+    const targetCid =
+      portfolioData?.clientId ||
+      (selectedClientId && !selectedClientId.startsWith("hh:") && selectedClientId !== "ALL"
+        ? selectedClientId
+        : null) ||
+      portfolioData?.clients?.[0]?.clientId;
+
+    if (!targetCid) return;
+
+    if (saveToSuggestions) {
+      setIsPushingPlan(true);
+    } else {
+      setGeminiLoading(true);
+    }
+    setPushSuccessMsg(null);
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch("/api/portfolio/mutual-funds/rebalance-ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          clientId: targetCid,
+          advisorInstructions: advisorDirectives,
+          apiKey: customApiKey || undefined,
+          saveToSuggestions,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.rebalancing) {
+        setGeminiResult(data.rebalancing);
+        if (saveToSuggestions) {
+          setPushSuccessMsg("Gemini AI Rebalancing Plan was successfully saved to client suggestions!");
+          setTimeout(() => setPushSuccessMsg(null), 6000);
+        }
+      }
+    } catch (e: any) {
+      console.error("Gemini AI Rebalance error:", e);
+    } finally {
+      setGeminiLoading(false);
+      setIsPushingPlan(false);
+    }
+  };
 
   // Fetch portfolio data from API
   const fetchPortfolio = async () => {
@@ -1628,41 +1694,198 @@ function MutualFundPortfolioContent() {
               </div>
             )}
 
-            {/* TAB 4: REBALANCING TAB */}
+            {/* TAB 4: REBALANCING TAB WITH GEMINI AI */}
             {activeTab === "rebalancing" && (
               <div className="space-y-6">
-                <div className="p-4 rounded-xl bg-sky-500/5 border border-sky-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                      <Scale className="h-4 w-4 text-sky-500" />
-                      <span>Model Allocation vs. Actual Portfolio Distribution</span>
-                    </h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Compares current mutual fund asset class exposure with the client&rsquo;s strategic asset allocation target.
-                    </p>
+                {/* 1. Gemini AI Control Ribbon */}
+                <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-sky-500/10 border border-indigo-500/30 shadow-sm space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20">
+                        <Sparkles className="h-5 w-5 animate-pulse" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                            Google Gemini AI &bull; Intelligent Mutual Fund Rebalancing
+                          </h4>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-500 border border-indigo-500/30 uppercase tracking-wider">
+                            {geminiResult?.aiModelUsed ? "Gemini 1.5 Active" : "AI Powered"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Multi-factor quantitative rebalancing engine analyzing scheme beta, small-cap concentration, Section 112A capital gains, and monthly SIP optimization.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+                        className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors"
+                        title="Configure Gemini Cloud API key"
+                      >
+                        <SlidersHorizontal className="h-3.5 w-3.5" />
+                        <span>API Settings</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRunGeminiRebalance(false)}
+                        disabled={geminiLoading || isPushingPlan}
+                        className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-500/20 transition-all disabled:opacity-60"
+                      >
+                        {geminiLoading ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>Analyzing Portfolio...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-3.5 w-3.5" />
+                            <span>Re-Analyze with Gemini AI</span>
+                          </>
+                        )}
+                      </button>
+
+                      {isAdvisor && (
+                        <button
+                          type="button"
+                          onClick={() => handleRunGeminiRebalance(true)}
+                          disabled={geminiLoading || isPushingPlan}
+                          className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-indigo-500/30 hover:border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-60"
+                        >
+                          {isPushingPlan ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              <span>Saving...</span>
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="h-3.5 w-3.5" />
+                              <span>Save to Client Proposal</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-sky-500/10 text-sky-500 border border-sky-500/20">
-                      Standard Aggressive Model
-                    </span>
+
+                  {/* Advisor Directives Prompt Input */}
+                  <div className="pt-2 border-t border-indigo-500/10 flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={advisorDirectives}
+                      onChange={(e) => setAdvisorDirectives(e.target.value)}
+                      placeholder="Add custom advisor directives (e.g. 'Reduce small-cap allocation to 10%', 'Harvest ₹1.25L LTCG tax exemption', 'Prepare for retirement in 6 years')..."
+                      className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRunGeminiRebalance(false)}
+                      disabled={geminiLoading}
+                      className="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-semibold text-xs shrink-0 hover:opacity-90 transition-opacity"
+                    >
+                      Apply Directives
+                    </button>
                   </div>
+
+                  {/* Optional Custom Gemini API Key Collapsible */}
+                  {showApiKeyInput && (
+                    <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs space-y-2 animate-in fade-in">
+                      <div className="font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                        <span>Custom Google Gemini API Key (Optional)</span>
+                        <span className="text-[10px] text-slate-400">Default: Platform GEMINI_API_KEY</span>
+                      </div>
+                      <input
+                        type="password"
+                        value={customApiKey}
+                        onChange={(e) => setCustomApiKey(e.target.value)}
+                        placeholder="AIzaSy... (Leave empty to use built-in engine)"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs font-mono"
+                      />
+                    </div>
+                  )}
+
+                  {/* Success Alert Banner */}
+                  {pushSuccessMsg && (
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-2 animate-in fade-in">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                      <span className="font-semibold">{pushSuccessMsg}</span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Allocation Matrix Cards */}
+                {/* 2. Executive Summary & Diagnostic Overview */}
+                {geminiResult?.executiveSummary && (
+                  <div className="p-5 rounded-2xl border border-indigo-500/20 bg-white dark:bg-slate-950 shadow-sm space-y-3">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          <span>Gemini AI Executive Diagnostic</span>
+                        </div>
+                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                          {geminiResult.executiveSummary}
+                        </p>
+                      </div>
+
+                      {/* Risk Alignment Meter */}
+                      {geminiResult.clientRiskAssessment && (
+                        <div className="shrink-0 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center min-w-[140px]">
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Alignment Score
+                          </div>
+                          <div className={`text-2xl font-black mt-0.5 ${
+                            geminiResult.clientRiskAssessment.alignmentScore >= 80
+                              ? "text-emerald-500"
+                              : geminiResult.clientRiskAssessment.alignmentScore >= 65
+                              ? "text-amber-500"
+                              : "text-rose-500"
+                          }`}>
+                            {geminiResult.clientRiskAssessment.alignmentScore}%
+                          </div>
+                          <div className="text-[10px] font-semibold text-slate-500 mt-0.5">
+                            {geminiResult.clientRiskAssessment.statedProfile} Profile
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {geminiResult.clientRiskAssessment?.volatilityWarning && (
+                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-2 font-medium">
+                        <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" />
+                        <span>{geminiResult.clientRiskAssessment.volatilityWarning}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 3. Allocation Matrix Cards (Current vs Gemini Target) */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Equity */}
                   <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 shadow-sm space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-slate-900 dark:text-white">Equity Funds</span>
-                      <span className="font-mono text-slate-500">Target: {portfolioData?.rebalancing?.target?.equity}%</span>
+                      <span className="font-mono text-slate-500">
+                        Target: {geminiResult?.targetAllocation?.equityPct || portfolioData?.rebalancing?.target?.equity || 65}%
+                      </span>
                     </div>
                     <div className="text-2xl font-black text-sky-500">
-                      {portfolioData?.rebalancing?.current?.equity}%
+                      {geminiResult?.currentAllocation?.largeCapPct !== undefined
+                        ? (100 - (geminiResult.currentAllocation.debtPct || 0) - (geminiResult.currentAllocation.hybridPct || 0))
+                        : portfolioData?.rebalancing?.current?.equity || 70}%
                     </div>
                     <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-sky-500 rounded-full"
-                        style={{ width: `${Math.min(100, portfolioData?.rebalancing?.current?.equity || 0)}%` }}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            portfolioData?.rebalancing?.current?.equity || 70
+                          )}%`,
+                        }}
                       />
                     </div>
                     <div className="text-[11px] text-slate-500 flex items-center justify-between">
@@ -1672,21 +1895,37 @@ function MutualFundPortfolioContent() {
                         {portfolioData?.rebalancing?.deviations?.equity}%
                       </span>
                     </div>
+                    {geminiResult?.targetAllocation?.equityBreakdown && (
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
+                        <span>Large: {geminiResult.targetAllocation.equityBreakdown.largeCapPct}%</span>
+                        <span>Mid: {geminiResult.targetAllocation.equityBreakdown.midCapPct}%</span>
+                        <span>Small: {geminiResult.targetAllocation.equityBreakdown.smallCapPct}%</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Debt */}
                   <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 shadow-sm space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-slate-900 dark:text-white">Debt / Fixed Income</span>
-                      <span className="font-mono text-slate-500">Target: {portfolioData?.rebalancing?.target?.debt}%</span>
+                      <span className="font-mono text-slate-500">
+                        Target: {geminiResult?.targetAllocation?.debtPct || portfolioData?.rebalancing?.target?.debt || 25}%
+                      </span>
                     </div>
                     <div className="text-2xl font-black text-indigo-500">
-                      {portfolioData?.rebalancing?.current?.debt}%
+                      {geminiResult?.currentAllocation?.debtPct !== undefined
+                        ? geminiResult.currentAllocation.debtPct
+                        : portfolioData?.rebalancing?.current?.debt || 0}%
                     </div>
                     <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-indigo-500 rounded-full"
-                        style={{ width: `${Math.min(100, portfolioData?.rebalancing?.current?.debt || 0)}%` }}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            portfolioData?.rebalancing?.current?.debt || 0
+                          )}%`,
+                        }}
                       />
                     </div>
                     <div className="text-[11px] text-slate-500 flex items-center justify-between">
@@ -1696,21 +1935,33 @@ function MutualFundPortfolioContent() {
                         {portfolioData?.rebalancing?.deviations?.debt}%
                       </span>
                     </div>
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[10px] text-slate-400">
+                      <span>Stability &amp; capital preservation cushion</span>
+                    </div>
                   </div>
 
                   {/* Hybrid */}
                   <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 shadow-sm space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-slate-900 dark:text-white">Hybrid / Balanced</span>
-                      <span className="font-mono text-slate-500">Target: {portfolioData?.rebalancing?.target?.hybrid}%</span>
+                      <span className="font-mono text-slate-500">
+                        Target: {geminiResult?.targetAllocation?.hybridPct || portfolioData?.rebalancing?.target?.hybrid || 10}%
+                      </span>
                     </div>
                     <div className="text-2xl font-black text-emerald-500">
-                      {portfolioData?.rebalancing?.current?.hybrid}%
+                      {geminiResult?.currentAllocation?.hybridPct !== undefined
+                        ? geminiResult.currentAllocation.hybridPct
+                        : portfolioData?.rebalancing?.current?.hybrid || 0}%
                     </div>
                     <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-emerald-500 rounded-full"
-                        style={{ width: `${Math.min(100, portfolioData?.rebalancing?.current?.hybrid || 0)}%` }}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            portfolioData?.rebalancing?.current?.hybrid || 0
+                          )}%`,
+                        }}
                       />
                     </div>
                     <div className="text-[11px] text-slate-500 flex items-center justify-between">
@@ -1720,16 +1971,25 @@ function MutualFundPortfolioContent() {
                         {portfolioData?.rebalancing?.deviations?.hybrid}%
                       </span>
                     </div>
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[10px] text-slate-400">
+                      <span>Dynamic counter-cyclical allocation</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Recommended Shifts Action Plan */}
+                {/* 4. Actionable Step-by-Step Rebalancing Orders */}
                 <div className="space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Recommended Investment Shifts &amp; Rebalancing Plan
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <Scale className="h-3.5 w-3.5 text-indigo-500" />
+                      <span>Gemini AI Actionable Trade Orders &amp; Rebalancing Shifts</span>
+                    </h4>
+                    <span className="text-[11px] text-slate-500">
+                      {(geminiResult?.actionPlan || portfolioData?.rebalancing?.shiftsNeeded || []).length} recommendations
+                    </span>
+                  </div>
 
-                  {(portfolioData?.rebalancing?.shiftsNeeded || []).length === 0 ? (
+                  {(geminiResult?.actionPlan || portfolioData?.rebalancing?.shiftsNeeded || []).length === 0 ? (
                     <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4" />
                       <span>
@@ -1737,31 +1997,166 @@ function MutualFundPortfolioContent() {
                       </span>
                     </div>
                   ) : (
-                    portfolioData.rebalancing.shiftsNeeded.map((shift: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 shadow-sm space-y-2"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase tracking-wider">
-                            {shift.action}
-                          </span>
-                          <span className="text-sm font-bold text-slate-900 dark:text-white">
-                            Shift {formatINR(shift.recommendedAmount)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          <span className="text-slate-500">From:</span>
-                          <span className="text-rose-500">{shift.sourceAssetClass}</span>
-                          <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
-                          <span className="text-slate-500">Into:</span>
-                          <span className="text-emerald-500">{shift.targetAssetClass}</span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 leading-relaxed">{shift.rational}</p>
-                      </div>
-                    ))
+                    (geminiResult?.actionPlan || portfolioData?.rebalancing?.shiftsNeeded || []).map(
+                      (shift: any, idx: number) => {
+                        const actionType = shift.actionType || shift.action || "SWITCH";
+                        const amount = shift.amount || shift.recommendedAmount || 0;
+                        const source = shift.sourceScheme || shift.sourceAssetClass || "Source Fund";
+                        const target = shift.targetScheme || shift.targetAssetClass || "Target Allocation";
+                        const rationale = shift.rationale || shift.rational || "";
+                        const taxImpact = shift.taxImpact || "";
+                        const priority = shift.priority || "MEDIUM";
+
+                        return (
+                          <div
+                            key={idx}
+                            className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 shadow-sm space-y-2.5"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                  actionType === "SWITCH"
+                                    ? "bg-indigo-500/10 text-indigo-500 border border-indigo-500/20"
+                                    : actionType === "TRIM"
+                                    ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                                    : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                                }`}>
+                                  {actionType}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                  priority === "HIGH"
+                                    ? "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                                }`}>
+                                  {priority} Priority
+                                </span>
+                              </div>
+                              <span className="text-sm font-bold text-slate-900 dark:text-white">
+                                Shift {formatINR(amount)}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                              <span className="text-slate-500">From:</span>
+                              <span className="text-rose-500">{source}</span>
+                              <ArrowRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                              <span className="text-slate-500">Into:</span>
+                              <span className="text-emerald-500">{target}</span>
+                            </div>
+
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                              {rationale}
+                            </p>
+
+                            {taxImpact && (
+                              <div className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/80 p-2 rounded-lg border border-slate-100 dark:border-slate-800 font-mono">
+                                <span className="font-bold text-indigo-400">Tax Note:</span> {taxImpact}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                    )
                   )}
                 </div>
+
+                {/* 5. Recurring SIP Realignment Strategy */}
+                {geminiResult?.sipRealignment?.recommendations && (
+                  <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <Repeat className="h-3.5 w-3.5 text-indigo-500" />
+                          <span>Gemini AI Recurring Monthly SIP Realignment</span>
+                        </h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {geminiResult.sipRealignment.rationale}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs font-black text-indigo-500">
+                          {formatINR(geminiResult.sipRealignment.recommendedTotalSip)}/mo
+                        </div>
+                        <div className="text-[10px] text-slate-400">Recommended Book</div>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            <th className="py-2">Scheme Name</th>
+                            <th className="py-2 text-right">Current SIP</th>
+                            <th className="py-2 text-right">Target SIP</th>
+                            <th className="py-2 text-center">Action</th>
+                            <th className="py-2 pl-3">AI Rationale</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                          {geminiResult.sipRealignment.recommendations.map((rec: any, rIdx: number) => (
+                            <tr key={rIdx} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                              <td className="py-2.5 font-semibold text-slate-900 dark:text-white">
+                                {rec.schemeName}
+                              </td>
+                              <td className="py-2.5 text-right font-mono text-slate-500">
+                                {formatINR(rec.currentSip)}
+                              </td>
+                              <td className="py-2.5 text-right font-mono font-bold text-indigo-500">
+                                {formatINR(rec.recommendedSip)}
+                              </td>
+                              <td className="py-2.5 text-center">
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                  rec.action === "DECREASE"
+                                    ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                                    : rec.action === "INCREASE" || rec.action === "START_NEW"
+                                    ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                                }`}>
+                                  {rec.action.replace("_", " ")}
+                                </span>
+                              </td>
+                              <td className="py-2.5 pl-3 text-[11px] text-slate-500 leading-snug">
+                                {rec.reason}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. Tax and Cost Optimization Guidance */}
+                {geminiResult?.taxAndCostOptimization && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 shadow-sm space-y-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">
+                        Section 112A LTCG Harvesting
+                      </div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {geminiResult.taxAndCostOptimization.ltcgGuidance}
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 shadow-sm space-y-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-rose-500">
+                        STCG Avoidance Strategy
+                      </div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {geminiResult.taxAndCostOptimization.stcgRisk}
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 shadow-sm space-y-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-sky-500">
+                        Exit Load &amp; Cost Guard
+                      </div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {geminiResult.taxAndCostOptimization.exitLoadAdvice}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

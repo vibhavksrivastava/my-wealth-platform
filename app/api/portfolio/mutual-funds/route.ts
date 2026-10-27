@@ -2,6 +2,7 @@ import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
 import { isFeatureAccessible } from "@/lib/featureFlags";
+import { generateGeminiRebalancing, ClientPortfolioContext } from "@/lib/gemini";
 
 /**
  * Robust XIRR solver using Newton-Raphson with bisection fallback
@@ -973,7 +974,7 @@ export async function GET(req: Request) {
         holdingsList.push(
           {
             id: "mf-hdfc-top100",
-            clientId: targetClientId,
+            clientId: targetClientId || "ALL",
             clientName: pName,
             schemeName: "HDFC Top 100 Large Cap Fund - Direct Plan Growth",
             assetClass: "Equity - Large Cap",
@@ -994,7 +995,7 @@ export async function GET(req: Request) {
           },
           {
             id: "mf-parag-flexicap",
-            clientId: targetClientId,
+            clientId: targetClientId || "ALL",
             clientName: pName,
             schemeName: "Parag Parikh Flexi Cap Fund - Direct Growth",
             assetClass: "Equity - Flexi Cap",
@@ -1036,7 +1037,7 @@ export async function GET(req: Request) {
           },
           {
             id: "mf-sbi-shortterm",
-            clientId: targetClientId,
+            clientId: targetClientId || "ALL",
             clientName: pName,
             schemeName: "SBI Short Term Debt Fund - Direct Growth",
             assetClass: "Debt - Short Duration",
@@ -1082,7 +1083,7 @@ export async function GET(req: Request) {
         holdingsList.push(
           {
             id: `mf-${targetClientId}-1`,
-            clientId: targetClientId,
+            clientId: targetClientId || "ALL",
             clientName: pName,
             schemeName: "Parag Parikh Flexi Cap Fund - Direct Growth",
             assetClass: "Equity - Flexi Cap",
@@ -1103,7 +1104,7 @@ export async function GET(req: Request) {
           },
           {
             id: `mf-${targetClientId}-2`,
-            clientId: targetClientId,
+            clientId: targetClientId || "ALL",
             clientName: pName,
             schemeName: "HDFC Small Cap Fund - Growth Direct",
             assetClass: "Equity - Small Cap",
@@ -1335,7 +1336,7 @@ export async function GET(req: Request) {
       ];
     }
 
-    // 11. Rebalancing Analysis
+    // 11. Rebalancing Analysis with Google Gemini AI Integration
     let equityValue = 0;
     let debtValue = 0;
     let hybridValue = 0;
@@ -1352,44 +1353,88 @@ export async function GET(req: Request) {
     const currentDebtPct = totalValue > 0 ? Number(((debtValue / totalValue) * 100).toFixed(1)) : 20;
     const currentHybridPct = totalValue > 0 ? Number(((hybridValue / totalValue) * 100).toFixed(1)) : 10;
 
-    const targetEquityPct = 65;
-    const targetDebtPct = 25;
-    const targetHybridPct = 10;
+    // Run Gemini AI Rebalancing Engine
+    let geminiRebalanceResult = null;
+    try {
+      const rebalanceContext: ClientPortfolioContext = {
+        clientId: targetClientId || "ALL",
+        clientName: primaryClient?.full_name || "Client",
+        riskProfile: primaryClient?.risk_profile || "Moderate",
+        age: 44,
+        planningHorizonYears: primaryClient?.planning_horizon_years || 6,
+        taxRegime: primaryClient?.tax_regime || "New",
+        totalValue,
+        totalCost,
+        totalGain,
+        totalSipBook,
+        holdings: activeHoldings.map((h) => ({
+          id: h.id,
+          schemeName: h.schemeName,
+          assetClass: h.assetClass || "Equity Mutual Fund",
+          units: h.units,
+          currentNav: h.currentNav,
+          investedCost: h.investedCost,
+          currentValue: h.currentValue,
+          monthlySip: h.monthlySip || 0,
+          cagr: h.cagr,
+          xirr: h.xirr,
+        })),
+      };
+      geminiRebalanceResult = await generateGeminiRebalancing(rebalanceContext);
+    } catch (gErr) {
+      console.warn("Gemini rebalance integration notice:", gErr);
+    }
+
+    const targetEquityPct = geminiRebalanceResult?.targetAllocation?.equityPct || 65;
+    const targetDebtPct = geminiRebalanceResult?.targetAllocation?.debtPct || 25;
+    const targetHybridPct = geminiRebalanceResult?.targetAllocation?.hybridPct || 10;
 
     const equityDeviation = Number((currentEquityPct - targetEquityPct).toFixed(1));
     const debtDeviation = Number((currentDebtPct - targetDebtPct).toFixed(1));
     const hybridDeviation = Number((currentHybridPct - targetHybridPct).toFixed(1));
 
-    const shiftsNeeded: any[] = [];
-    if (equityDeviation > 3) {
-      const excessRupees = Math.round((totalValue * (equityDeviation / 100)));
-      shiftsNeeded.push({
-        action: "TRIM / SWITCH",
-        sourceAssetClass: "Large & Midcap Equity (Overweight)",
-        targetAssetClass: "Short-Duration Debt / Liquid",
-        recommendedAmount: excessRupees,
-        rational: `Equity has expanded beyond target (${currentEquityPct}% vs target ${targetEquityPct}%). Harvest gains into fixed income to preserve capital against drawdown.`,
-      });
-    } else if (equityDeviation < -3) {
-      const deficitRupees = Math.round((totalValue * (Math.abs(equityDeviation) / 100)));
-      shiftsNeeded.push({
-        action: "DEPLOY / SIP TOP-UP",
-        sourceAssetClass: "Debt (Overweight)",
-        targetAssetClass: "Large & Midcap Equity",
-        recommendedAmount: deficitRupees,
-        rational: `Equity exposure is under target (${currentEquityPct}% vs ${targetEquityPct}%). Increase equity SIPs to meet target lifecycle goal feasibility.`,
-      });
-    }
+    let shiftsNeeded: any[] = [];
+    if (geminiRebalanceResult && geminiRebalanceResult.actionPlan?.length > 0) {
+      shiftsNeeded = geminiRebalanceResult.actionPlan.map((act) => ({
+        action: act.actionType,
+        sourceAssetClass: act.sourceScheme,
+        targetAssetClass: act.targetScheme || "Target Allocation",
+        recommendedAmount: act.amount,
+        rational: act.rationale,
+        taxImpact: act.taxImpact,
+        priority: act.priority,
+      }));
+    } else {
+      if (equityDeviation > 3) {
+        const excessRupees = Math.round((totalValue * (equityDeviation / 100)));
+        shiftsNeeded.push({
+          action: "TRIM / SWITCH",
+          sourceAssetClass: "Large & Midcap Equity (Overweight)",
+          targetAssetClass: "Short-Duration Debt / Liquid",
+          recommendedAmount: excessRupees,
+          rational: `Equity has expanded beyond target (${currentEquityPct}% vs target ${targetEquityPct}%). Harvest gains into fixed income to preserve capital against drawdown.`,
+        });
+      } else if (equityDeviation < -3) {
+        const deficitRupees = Math.round((totalValue * (Math.abs(equityDeviation) / 100)));
+        shiftsNeeded.push({
+          action: "DEPLOY / SIP TOP-UP",
+          sourceAssetClass: "Debt (Overweight)",
+          targetAssetClass: "Large & Midcap Equity",
+          recommendedAmount: deficitRupees,
+          rational: `Equity exposure is under target (${currentEquityPct}% vs ${targetEquityPct}%). Increase equity SIPs to meet target lifecycle goal feasibility.`,
+        });
+      }
 
-    if (debtDeviation < -3) {
-      const deficitDebt = Math.round((totalValue * (Math.abs(debtDeviation) / 100)));
-      shiftsNeeded.push({
-        action: "ALLOCATE",
-        sourceAssetClass: "Surplus / Fresh Cashflows",
-        targetAssetClass: "Target Maturity Debt Funds",
-        recommendedAmount: deficitDebt,
-        rational: `Debt cushion is currently ${currentDebtPct}%, below desired 25%. Strengthen stability bucket to insulate near-term milestones.`,
-      });
+      if (debtDeviation < -3) {
+        const deficitDebt = Math.round((totalValue * (Math.abs(debtDeviation) / 100)));
+        shiftsNeeded.push({
+          action: "ALLOCATE",
+          sourceAssetClass: "Surplus / Fresh Cashflows",
+          targetAssetClass: "Target Maturity Debt Funds",
+          recommendedAmount: deficitDebt,
+          rational: `Debt cushion is currently ${currentDebtPct}%, below desired 25%. Strengthen stability bucket to insulate near-term milestones.`,
+        });
+      }
     }
 
     // 12. Portfolio Journey Trajectory Chart
@@ -1444,6 +1489,7 @@ export async function GET(req: Request) {
           hybrid: hybridDeviation,
         },
         shiftsNeeded,
+        gemini: geminiRebalanceResult,
       },
     });
   } catch (error: any) {
