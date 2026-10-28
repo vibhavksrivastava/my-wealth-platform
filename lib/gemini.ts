@@ -520,3 +520,286 @@ function generateDeterministicRebalancing(
     },
   };
 }
+
+export interface TaxAdvisoryContext {
+  clientId?: string | null;
+  clientName: string;
+  pan?: string;
+  fiscalYear?: string;
+  grossIncome: number;
+  regimeComparison: {
+    newRegimeTotalTax: number;
+    oldRegimeTotalTax: number;
+    recommendedRegime: "NEW" | "OLD";
+    taxSavings: number;
+    breakevenDeductionsNeeded: number;
+  };
+  ltcgHarvesting: {
+    annualExemptionLimit: number;
+    utilizedExemptionThisFY: number;
+    remainingHeadroom: number;
+    harvestableGain: number;
+    taxSavedPermanently: number;
+  };
+  taxLossHarvesting: {
+    totalUnrealizedLosses: number;
+    stclAvailable: number;
+    ltclAvailable: number;
+    totalTaxAlphaPotential: number;
+    opportunitiesCount: number;
+  };
+  scheduleCGSummary: {
+    totalRealizedSTCG: number;
+    totalRealizedLTCG: number;
+    totalCapitalGainsTax: number;
+  };
+  customInstructions?: string;
+}
+
+export interface GeminiTaxAdvisoryResult {
+  aiModelUsed: string;
+  isSimulatedFallback: boolean;
+  analysisTimestamp: string;
+  executiveSummary: string;
+  regimeStrategy: {
+    recommendedRegime: "NEW" | "OLD";
+    rationale: string;
+    actionableDeductionGuidance: string;
+  };
+  harvestingRoadmap: Array<{
+    stepNumber: number;
+    actionType: "LTCG_STEP_UP" | "TAX_LOSS_OFFSET" | "ADVANCE_TAX_PAYMENT" | "REGIME_DECLARATION";
+    schemeOrAsset: string;
+    amount: number;
+    taxImpact: string;
+    statutorySection: string;
+    instructions: string;
+  }>;
+  itrFilingGuidance: {
+    recommendedItrForm: "ITR-2" | "ITR-3";
+    scheduleCGNotes: string;
+    advanceTaxReminder: string;
+  };
+  advisorDisclaimers: string;
+}
+
+/**
+ * Generate Gemini AI Tax Advisory Memo & Harvesting Roadmap
+ */
+export async function generateAiTaxAdvisory(
+  context: TaxAdvisoryContext,
+  overrideApiKey?: string
+): Promise<GeminiTaxAdvisoryResult> {
+  const apiKey =
+    overrideApiKey ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+  if (apiKey && apiKey.trim().length > 10) {
+    try {
+      const liveResult = await callGeminiTaxApi(context, apiKey.trim());
+      if (liveResult) return liveResult;
+    } catch (err) {
+      console.warn("Gemini Tax API call failed, falling back to deterministic CA engine:", err);
+    }
+  }
+
+  return generateDeterministicTaxAdvisory(context);
+}
+
+async function callGeminiTaxApi(
+  context: TaxAdvisoryContext,
+  apiKey: string
+): Promise<GeminiTaxAdvisoryResult | null> {
+  const prompt = `You are a Chartered Accountant and SEBI-registered Quant Wealth Advisory AI specializing in Indian Income Tax planning, Section 112A/111A Capital Gains, and Section 115BAC optimization.
+Generate an institutional-grade, highly actionable Tax Advisory and Harvesting Memo for the following client formatted strictly as JSON:
+
+Client Profile & Financial Summary:
+- Client Name: ${context.clientName}
+- Gross Annual Income: ₹${context.grossIncome.toLocaleString("en-IN")}
+- Fiscal Year: ${context.fiscalYear || "FY 2026-27 (AY 2027-28)"}
+- Recommended Regime: ${context.regimeComparison.recommendedRegime} (Saves ₹${context.regimeComparison.taxSavings.toLocaleString("en-IN")})
+- New Regime Tax: ₹${context.regimeComparison.newRegimeTotalTax.toLocaleString("en-IN")}
+- Old Regime Tax: ₹${context.regimeComparison.oldRegimeTotalTax.toLocaleString("en-IN")}
+- Breakeven Deductions for Old Regime: ₹${context.regimeComparison.breakevenDeductionsNeeded.toLocaleString("en-IN")}
+- Section 112A LTCG Annual Exemption Headroom: ₹${context.ltcgHarvesting.remainingHeadroom.toLocaleString("en-IN")} (Harvestable: ₹${context.ltcgHarvesting.harvestableGain.toLocaleString("en-IN")})
+- Unrealized Tax-Losses Available: ₹${context.taxLossHarvesting.totalUnrealizedLosses.toLocaleString("en-IN")} (STCL: ₹${context.taxLossHarvesting.stclAvailable.toLocaleString("en-IN")}, LTCL: ₹${context.taxLossHarvesting.ltclAvailable.toLocaleString("en-IN")})
+- Potential Tax Alpha from Harvesting: ₹${context.taxLossHarvesting.totalTaxAlphaPotential.toLocaleString("en-IN")}
+- Schedule CG Liability: ₹${context.scheduleCGSummary.totalCapitalGainsTax.toLocaleString("en-IN")}
+${context.customInstructions ? `- Advisor Instructions: "${context.customInstructions}"` : ""}
+
+Requirements:
+1. Provide a crisp executive summary detailing the optimal strategy to maximize post-tax portfolio alpha.
+2. Outline specific step-by-step harvesting actions (e.g. step-up redemption and same-day reinvestment for LTCG, loss-booking and peer switch for STCG/LTCG).
+3. State applicable statutory sections (Section 112A, 111A, 70, 71, 115BAC, 80C, 80D).
+4. Give precise ITR-2 / ITR-3 filing notes for Schedule CG and advance tax compliance.
+
+Output Schema:
+Return ONLY valid JSON matching this interface:
+{
+  "executiveSummary": "string",
+  "regimeStrategy": {
+    "recommendedRegime": "NEW" | "OLD",
+    "rationale": "string",
+    "actionableDeductionGuidance": "string"
+  },
+  "harvestingRoadmap": [
+    {
+      "stepNumber": 1,
+      "actionType": "LTCG_STEP_UP" | "TAX_LOSS_OFFSET" | "ADVANCE_TAX_PAYMENT" | "REGIME_DECLARATION",
+      "schemeOrAsset": "string",
+      "amount": number,
+      "taxImpact": "string",
+      "statutorySection": "string",
+      "instructions": "string"
+    }
+  ],
+  "itrFilingGuidance": {
+    "recommendedItrForm": "ITR-2",
+    "scheduleCGNotes": "string",
+    "advanceTaxReminder": "string"
+  },
+  "advisorDisclaimers": "string"
+}`;
+
+  const candidateModels = [
+    "gemini-flash-lite-latest",
+    "gemini-flash-latest",
+    "gemini-3.8-flash",
+    "gemini-3.5-flash",
+  ];
+
+  for (const model of candidateModels) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: "application/json",
+          },
+        }),
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          const parsed = JSON.parse(rawText) as GeminiTaxAdvisoryResult;
+          parsed.aiModelUsed = `Google Gemini (${model} - Live Cloud)`;
+          parsed.isSimulatedFallback = false;
+          parsed.analysisTimestamp = new Date().toISOString();
+          return parsed;
+        }
+      }
+    } catch (e: any) {
+      console.warn(`Gemini Tax call notice for ${model}:`, e?.message || e);
+    }
+  }
+
+  return null;
+}
+
+function generateDeterministicTaxAdvisory(context: TaxAdvisoryContext): GeminiTaxAdvisoryResult {
+  const isNew = context.regimeComparison.recommendedRegime === "NEW";
+  const savings = context.regimeComparison.taxSavings;
+  const headroom = context.ltcgHarvesting.remainingHeadroom;
+  const ltcgHarvestGain = context.ltcgHarvesting.harvestableGain;
+  const stclLoss = context.taxLossHarvesting.stclAvailable;
+  const ltclLoss = context.taxLossHarvesting.ltclAvailable;
+
+  const roadmap: GeminiTaxAdvisoryResult["harvestingRoadmap"] = [];
+  let step = 1;
+
+  // Step 1: Regime declaration
+  roadmap.push({
+    stepNumber: step++,
+    actionType: "REGIME_DECLARATION",
+    schemeOrAsset: "Employer Tax Declaration / Form 10-IEA",
+    amount: context.grossIncome,
+    taxImpact: `Saves ₹${savings.toLocaleString("en-IN")} vs alternative regime`,
+    statutorySection: isNew ? "Section 115BAC(1A)" : "Section 115BAC(6) Opt-out",
+    instructions: isNew
+      ? `Declare New Tax Regime (Section 115BAC) with employer. With ₹75,000 standard deduction and revised slabs, total tax liability is ₹${context.regimeComparison.newRegimeTotalTax.toLocaleString("en-IN")}. Total eligible deductions must exceed ₹${context.regimeComparison.breakevenDeductionsNeeded.toLocaleString("en-IN")} to make Old Regime viable.`
+      : `File Form 10-IEA before ITR due date to opt into the Old Tax Regime. Ensure full proof of Section 80C (₹1.5L), 80D (₹75k), 80CCD(1B) NPS (₹50k), and Section 24(b) (₹2L) is submitted.`,
+  });
+
+  // Step 2: LTCG harvesting
+  if (ltcgHarvestGain > 0) {
+    const ltcgTaxSaved = Math.round(ltcgHarvestGain * 0.125);
+    roadmap.push({
+      stepNumber: step++,
+      actionType: "LTCG_STEP_UP",
+      schemeOrAsset: "Appreciated Equity Mutual Funds (Held > 365 Days)",
+      amount: ltcgHarvestGain,
+      taxImpact: `Harvests ₹${ltcgHarvestGain.toLocaleString("en-IN")} completely tax-free; saves ₹${ltcgTaxSaved.toLocaleString("en-IN")} permanently`,
+      statutorySection: "Section 112A (₹1,25,000 Annual Exemption)",
+      instructions: `Redeem units with accumulated unrealized gains up to ₹${ltcgHarvestGain.toLocaleString("en-IN")}. Re-invest the entire proceeds back into the same fund or an equivalent index fund on the next business day. This resets the acquisition NAV base price higher with ZERO tax liability.`,
+    });
+  }
+
+  // Step 3: STCL / LTCL harvesting
+  if (stclLoss > 0 || ltclLoss > 0) {
+    const totalLoss = stclLoss + ltclLoss;
+    const taxOffset = Math.round(stclLoss * 0.20 + ltclLoss * 0.125);
+    roadmap.push({
+      stepNumber: step++,
+      actionType: "TAX_LOSS_OFFSET",
+      schemeOrAsset: "Underperforming Equity Holdings (Unrealized Loss Positions)",
+      amount: totalLoss,
+      taxImpact: `Offsets realized capital gains, generating ₹${taxOffset.toLocaleString("en-IN")} post-tax alpha`,
+      statutorySection: "Section 70(2) & Section 74(1)",
+      instructions: `Redeem loss-making positions before 31st March. Reallocate proceeds immediately into peer category schemes to maintain target asset allocation and avoid market timing drag while harvesting losses. Unabsorbed losses can be carried forward for 8 consecutive Assessment Years.`,
+    });
+  }
+
+  // Step 4: Advance tax schedule
+  const advanceTax = context.scheduleCGSummary.totalCapitalGainsTax;
+  if (advanceTax > 10000) {
+    roadmap.push({
+      stepNumber: step++,
+      actionType: "ADVANCE_TAX_PAYMENT",
+      schemeOrAsset: "Challan 280 (Self-Assessment / Advance Tax Code 100)",
+      amount: advanceTax,
+      taxImpact: "Prevents interest penalties under Section 234B (1% pm) and Section 234C (1% pm)",
+      statutorySection: "Sections 208, 211, 234B & 234C",
+      instructions: `Pay advance tax on realized capital gains in 4 installments: 15% by 15 June, 45% by 15 September, 75% by 15 December, and 100% by 15 March. Note: Interest under Section 234C is waived if the remaining installments are paid immediately after capital gains are realized.`,
+    });
+  }
+
+  return {
+    aiModelUsed: "Deterministic SEBI Wealth Tax Engine (Finance Act 2024 / 2025)",
+    isSimulatedFallback: true,
+    analysisTimestamp: new Date().toISOString(),
+    executiveSummary: `Post-tax alpha optimization for ${context.clientName}: Total annual income of ₹${context.grossIncome.toLocaleString("en-IN")} yields ₹${savings.toLocaleString("en-IN")} in structural savings by electing the ${isNew ? "New Tax Regime (Section 115BAC)" : "Old Tax Regime"}. Algorithmic tax-loss harvesting identified ₹${context.taxLossHarvesting.totalTaxAlphaPotential.toLocaleString("en-IN")} in realizable tax credits, while ₹${ltcgHarvestGain.toLocaleString("en-IN")} in Section 112A LTCG can be stepped up tax-free before fiscal year close.`,
+    regimeStrategy: {
+      recommendedRegime: isNew ? "NEW" : "OLD",
+      rationale: isNew
+        ? `The New Regime provides a lower initial tax burden (₹${context.regimeComparison.newRegimeTotalTax.toLocaleString("en-IN")}) with a ₹75,000 standard deduction and simplified slabs. To make Old Regime favorable, total deductions would need to exceed ₹${context.regimeComparison.breakevenDeductionsNeeded.toLocaleString("en-IN")}.`
+        : `Deductions claimed under Section 80C, 80D, 80CCD(1B), and 24(b) surpass the breakeven threshold of ₹${context.regimeComparison.breakevenDeductionsNeeded.toLocaleString("en-IN")}, resulting in a net tax saving of ₹${savings.toLocaleString("en-IN")} under the Old Regime.`,
+      actionableDeductionGuidance: isNew
+        ? "No need to lock liquidity into restrictive Section 80C instruments (ELSS 3-year lock-in, PPF 15-year lock-in) purely for tax purposes; deploy capital into high-growth equity funds and emergency debt reserves instead."
+        : "Ensure full proof of Section 80C (₹1.5L), 80D health insurance (₹25k self + ₹50k senior parents), 80CCD(1B) NPS (₹50k), and Section 24(b) home loan interest (up to ₹2L) are submitted before payroll freeze.",
+    },
+    harvestingRoadmap: roadmap,
+    itrFilingGuidance: {
+      recommendedItrForm: "ITR-2",
+      scheduleCGNotes:
+        "Report equity capital gains under Schedule CG (Table A for STCG u/s 111A @ 20%, Table B for LTCG u/s 112A @ 12.5% with ₹1.25L exemption applied). Debt fund gains acquired after April 1, 2023 must be reported under Section 50AA at slab rates.",
+      advanceTaxReminder:
+        "Ensure advance tax liability (if net tax exceeds ₹10,000) is serviced before March 15 to avoid Section 234B and 234C penal interest.",
+    },
+    advisorDisclaimers:
+      "This advisory memo is generated for institutional wealth planning and portfolio optimization. Calculations incorporate amendments enacted under Finance Act 2024. Taxpayers should consult their Chartered Accountant before final submission of ITR.",
+  };
+}
