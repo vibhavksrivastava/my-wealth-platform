@@ -9,15 +9,11 @@ import {
   Sparkles,
   Receipt,
   Calendar,
-  ArrowRight,
   ChevronRight,
   CheckCircle2,
   AlertTriangle,
-  Layers,
-  ShieldCheck,
   Scale,
   FileText,
-  Download,
   Printer,
   RefreshCw,
   Copy,
@@ -25,12 +21,10 @@ import {
   Info,
   Sliders,
   User,
-  Wallet,
-  ArrowUpRight,
-  SlidersHorizontal,
-  ChevronDown,
-  BadgePercent,
+  ArrowRight,
   CheckCheck,
+  Percent,
+  SlidersHorizontal,
 } from "lucide-react";
 
 function formatINR(val: number) {
@@ -69,17 +63,18 @@ function TaxPlanningContent() {
   // Client and fiscal year controls
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [fiscalYear, setFiscalYear] = useState<string>("2026-2027");
-  const [activeTab, setActiveTab] = useState<"harvesting" | "simulator" | "schedule-cg" | "ai-advisory">("harvesting");
+  const [activeTab, setActiveTab] = useState<"harvesting" | "schedule-cg" | "ai-advisory">("harvesting");
 
-  // Simulator controls
-  const [simGrossIncome, setSimGrossIncome] = useState<number>(4600000);
+  // Interactive Regime Simulator controls
+  const [grossIncome, setGrossIncome] = useState<number>(4600000);
+  const [showDeductionTuning, setShowDeductionTuning] = useState(false);
   const [sim80C, setSim80C] = useState<number>(150000);
   const [sim80D, setSim80D] = useState<number>(25000);
   const [sim80CCD, setSim80CCD] = useState<number>(50000);
   const [sim24b, setSim24b] = useState<number>(200000);
   const [simHRA, setSimHRA] = useState<number>(120000);
   const [simOther, setSimOther] = useState<number>(0);
-  const [simComparison, setSimComparison] = useState<any>(null);
+  const [regimeComparison, setRegimeComparison] = useState<any>(null);
   const [isSimulating, setIsSimulating] = useState(false);
 
   // AI Advisory controls
@@ -115,7 +110,7 @@ function TaxPlanningContent() {
       setData(resData);
       if (resData.selectedClient) {
         setSelectedClientId(resData.selectedClient.clientId);
-        setSimGrossIncome(resData.selectedClient.annualGrossIncome || 4600000);
+        setGrossIncome(resData.selectedClient.annualGrossIncome || 4600000);
       }
       if (resData.baselineDeductions) {
         setSim80C(resData.baselineDeductions.section80C || 150000);
@@ -125,7 +120,7 @@ function TaxPlanningContent() {
         setSimHRA(resData.baselineDeductions.hraExemption || 120000);
       }
       if (resData.regimeComparison) {
-        setSimComparison(resData.regimeComparison);
+        setRegimeComparison(resData.regimeComparison);
       }
     } catch (err: any) {
       console.error("Tax planning load error:", err);
@@ -151,7 +146,7 @@ function TaxPlanningContent() {
 
   // Recalculate regime simulator dynamically
   const runSimulatorRecalc = async (
-    gross = simGrossIncome,
+    gross = grossIncome,
     c80 = sim80C,
     d80 = sim80D,
     ccd = sim80CCD,
@@ -181,7 +176,7 @@ function TaxPlanningContent() {
       });
       const resJson = await res.json();
       if (resJson.success && resJson.comparison) {
-        setSimComparison(resJson.comparison);
+        setRegimeComparison(resJson.comparison);
       }
     } catch (err) {
       console.error("Simulator recalculation error:", err);
@@ -210,8 +205,8 @@ function TaxPlanningContent() {
           action: "generate_ai_tax_advisory",
           clientId: selectedClientId || data?.selectedClient?.clientId,
           clientName: data?.selectedClient?.fullName,
-          grossIncome: simGrossIncome,
-          regimeComparison: simComparison || data?.regimeComparison,
+          grossIncome,
+          regimeComparison: regimeComparison || data?.regimeComparison,
           ltcgHarvesting: data?.ltcgHarvesting,
           taxLossHarvesting: data?.taxLossHarvesting,
           scheduleCGSummary: {
@@ -254,7 +249,7 @@ function TaxPlanningContent() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <RefreshCw className="h-8 w-8 text-emerald-500 animate-spin" />
-        <p className="text-xs text-slate-400 font-medium">Scanning client holdings &amp; capital gains tax exposure...</p>
+        <p className="text-xs text-slate-400 font-medium">Scanning client holdings &amp; computing tax regime liability...</p>
       </div>
     );
   }
@@ -278,8 +273,14 @@ function TaxPlanningContent() {
   const client = data?.selectedClient;
   const ltcg = data?.ltcgHarvesting;
   const tlh = data?.taxLossHarvesting;
-  const comp = simComparison || data?.regimeComparison;
+  const comp = regimeComparison || data?.regimeComparison;
   const scheduleCG = data?.scheduleCG;
+
+  const isNewOptimal = comp?.recommendedRegime === "NEW";
+
+  // Separate Short-Term vs Long-Term loss opportunities
+  const stclOpportunities = (tlh?.opportunities || []).filter((o: any) => o.gainType === "STCL");
+  const ltclOpportunities = (tlh?.opportunities || []).filter((o: any) => o.gainType === "LTCL");
 
   // LTCG Headroom percentage
   const ltcgHeadroomPct = ltcg
@@ -296,7 +297,7 @@ function TaxPlanningContent() {
             <ChevronRight className="h-3 w-3" />
             <Link href="/dashboard/planning" className="hover:text-white transition">Planning</Link>
             <ChevronRight className="h-3 w-3" />
-            <span className="text-emerald-400 font-medium">Capital Gains &amp; Tax Alpha</span>
+            <span className="text-emerald-400 font-medium">Tax Planning &amp; Alpha</span>
           </div>
           <div className="flex items-center gap-3 mt-1">
             <div className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
@@ -304,13 +305,13 @@ function TaxPlanningContent() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                Capital Gains Optimization &amp; Tax-Loss Harvesting
+                Tax Planning &amp; Capital Gains Alpha
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   Live Engine
                 </span>
               </h1>
               <p className="text-xs text-slate-400">
-                Algorithmic Section 112A LTCG step-up, Section 111A loss-harvesting scanner &amp; Section 115BAC liability simulator
+                Finance Act 2024 / FY 2025-26 &amp; 2026-27 Slabs &bull; Section 112A LTCG Step-Up &bull; Section 111A STCG Loss Scanner
               </p>
             </div>
           </div>
@@ -318,7 +319,6 @@ function TaxPlanningContent() {
 
         {/* Client & Fiscal Year Selector */}
         <div className="flex items-center gap-3">
-          {/* Client Switcher */}
           {data?.clientList && data.clientList.length > 0 && (
             <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 shadow-sm">
               <User className="h-3.5 w-3.5 text-slate-400" />
@@ -336,7 +336,6 @@ function TaxPlanningContent() {
             </div>
           )}
 
-          {/* Fiscal Year Switcher */}
           <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 shadow-sm">
             <Calendar className="h-3.5 w-3.5 text-emerald-400" />
             <select
@@ -359,77 +358,391 @@ function TaxPlanningContent() {
         </div>
       </div>
 
-      {/* Top Level KPI Alpha Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Total Post-Tax Alpha */}
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-emerald-950/20 to-slate-900 border border-emerald-500/30 relative overflow-hidden">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="font-medium">Total Post-Tax Alpha</span>
-            <Sparkles className="h-4 w-4 text-emerald-400" />
+      {/* ========================================================================= */}
+      {/* 1. FRONT-AND-CENTER REGIME RECOMMENDATION HERO (Matching my-wealth-App) */}
+      {/* ========================================================================= */}
+      {comp && (
+        <div
+          className={`p-6 rounded-3xl border transition shadow-xl relative overflow-hidden ${
+            isNewOptimal
+              ? "bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border-emerald-500/40"
+              : "bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border-indigo-500/40"
+          }`}
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className={`h-5 w-5 ${isNewOptimal ? "text-emerald-400" : "text-indigo-400"}`} />
+                <span
+                  className={`text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                    isNewOptimal
+                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                      : "bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+                  }`}
+                >
+                  RECOMMENDED: {isNewOptimal ? "NEW TAX REGIME (SECTION 115BAC)" : "OLD TAX REGIME"}
+                </span>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black text-white">
+                Choosing the {isNewOptimal ? "New Tax Regime" : "Old Tax Regime"} saves you{" "}
+                <span className={isNewOptimal ? "text-emerald-400" : "text-indigo-400"}>
+                  {formatINR(comp.taxSavingsWithRecommended)}
+                </span>{" "}
+                in net annual tax liability.
+              </h2>
+
+              <p className="text-xs text-slate-300 leading-relaxed max-w-3xl">
+                {isNewOptimal
+                  ? `For ${client?.fullName}'s gross income of ${formatINR(
+                      grossIncome
+                    )}, the New Regime provides a lower total tax liability of ${formatINR(
+                      comp.newRegime.totalTax
+                    )} (effective rate ${comp.newRegime.effectiveTaxRatePct}%) with ₹75,000 standard deduction and lower slab rates. Total deductions must exceed ${formatINR(
+                      comp.breakevenDeductionsNeededForOldRegime
+                    )} under Chapter VI-A to justify opting for the Old Regime.`
+                  : `Eligible Chapter VI-A deductions under Section 80C, 80D, 80CCD(1B), and Section 24(b) total ${formatINR(
+                      comp.oldRegime.totalDeductions
+                    )}, which surpasses the breakeven threshold of ${formatINR(
+                      comp.breakevenDeductionsNeededForOldRegime
+                    )}. Opting into the Old Regime lowers your total tax to ${formatINR(
+                      comp.oldRegime.totalTax
+                    )}.`}
+              </p>
+            </div>
+
+            {/* Quick summary comparison pill */}
+            <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 shrink-0 text-right space-y-1">
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                Total Applicable Tax
+              </div>
+              <div className="text-2xl font-black text-white font-mono">
+                {formatINR(isNewOptimal ? comp.newRegime.totalTax : comp.oldRegime.totalTax)}
+              </div>
+              <div className="text-[11px] text-emerald-400 font-semibold">
+                Effective Rate: {isNewOptimal ? comp.newRegime.effectiveTaxRatePct : comp.oldRegime.effectiveTaxRatePct}%
+              </div>
+            </div>
           </div>
-          <div className="text-2xl font-black text-emerald-300">
-            {formatINR(data?.totalTaxSavedAlpha || 0)}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 2. INTERACTIVE GROSS INCOME & DEDUCTIONS SIMULATOR (Side-by-side) */}
+      {/* ========================================================================= */}
+      <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <Scale className="h-4 w-4 text-emerald-400" />
+              Annual Gross Income &amp; Total Applicable Tax Slabs
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Adjust gross income or Chapter VI-A deductions to recalculate total applicable tax in real time.
+            </p>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
-            LTCG step-up gains + loss offset savings
-          </p>
+
+          <button
+            onClick={() => setShowDeductionTuning(!showDeductionTuning)}
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition flex items-center gap-1.5 border border-slate-700 self-start sm:self-auto"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            {showDeductionTuning ? "Hide Deduction Controls" : "Tune Old Regime Deductions"}
+          </button>
         </div>
 
-        {/* Metric 2: Section 112A LTCG Headroom */}
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 relative">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="font-medium">Section 112A Headroom</span>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              ₹1.25L Window
-            </span>
-          </div>
-          <div className="text-2xl font-black text-white">
-            {formatINR(ltcg?.remainingExemptionHeadroom || 125000)}
-          </div>
-          <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
-            <div
-              className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-              style={{ width: `${Math.max(5, ltcgHeadroomPct)}%` }}
+        {/* Gross Income Input */}
+        <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+          <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex justify-between mb-2">
+            <span>Annual Gross Salary / Business Income</span>
+            <span className="text-emerald-400 font-mono text-sm">{formatINR(grossIncome)}</span>
+          </label>
+          <div className="flex items-center gap-3">
+            <span className="text-lg font-bold text-emerald-400 font-mono">₹</span>
+            <input
+              type="number"
+              step="50000"
+              value={grossIncome}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setGrossIncome(val);
+                runSimulatorRecalc(val, sim80C, sim80D, sim80CCD, sim24b, simHRA, simOther);
+              }}
+              placeholder="e.g. 4600000"
+              className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-emerald-500 font-mono"
             />
           </div>
-          <p className="text-[10px] text-slate-400 mt-1 flex justify-between">
-            <span>Utilized: {formatINR(ltcg?.utilizedExemptionThisFY || 0)}</span>
-            <span>Annual Cap: ₹1,25,000</span>
-          </p>
         </div>
 
-        {/* Metric 3: Tax Loss Harvesting Alpha */}
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="font-medium">Loss Harvest Scanner</span>
-            <TrendingDown className="h-4 w-4 text-amber-400" />
-          </div>
-          <div className="text-2xl font-black text-amber-300">
-            {formatINR(tlh?.totalTaxAlphaPotential || 0)}
-          </div>
-          <p className="text-[11px] text-slate-400 mt-1">
-            {tlh?.opportunities?.length || 0} schemes &bull; {formatINR(tlh?.totalUnrealizedLosses || 0)} gross loss
-          </p>
-        </div>
+        {/* Collapsible Deduction Controls */}
+        {showDeductionTuning && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 animate-in fade-in duration-200">
+            {/* 80C */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                <span>Section 80C (EPF/PPF/ELSS, max 1.5L)</span>
+                <span className="text-slate-400 font-mono">{formatINR(sim80C)}</span>
+              </label>
+              <input
+                type="number"
+                max="150000"
+                step="10000"
+                value={sim80C}
+                onChange={(e) => {
+                  const val = Math.min(150000, Number(e.target.value));
+                  setSim80C(val);
+                  runSimulatorRecalc(grossIncome, val, sim80D, sim80CCD, sim24b, simHRA, simOther);
+                }}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
 
-        {/* Metric 4: Optimal Regime Recommendation */}
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="font-medium">Optimal Tax Regime</span>
-            <Scale className="h-4 w-4 text-indigo-400" />
+            {/* 80D */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                <span>Section 80D (Health Insurance, max 1L)</span>
+                <span className="text-slate-400 font-mono">{formatINR(sim80D)}</span>
+              </label>
+              <input
+                type="number"
+                max="100000"
+                step="5000"
+                value={sim80D}
+                onChange={(e) => {
+                  const val = Math.min(100000, Number(e.target.value));
+                  setSim80D(val);
+                  runSimulatorRecalc(grossIncome, sim80C, val, sim80CCD, sim24b, simHRA, simOther);
+                }}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            {/* 80CCD */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                <span>Section 80CCD(1B) (NPS, max 50k)</span>
+                <span className="text-slate-400 font-mono">{formatINR(sim80CCD)}</span>
+              </label>
+              <input
+                type="number"
+                max="50000"
+                step="5000"
+                value={sim80CCD}
+                onChange={(e) => {
+                  const val = Math.min(50000, Number(e.target.value));
+                  setSim80CCD(val);
+                  runSimulatorRecalc(grossIncome, sim80C, sim80D, val, sim24b, simHRA, simOther);
+                }}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            {/* 24b */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                <span>Section 24b (Home Loan Interest, max 2L)</span>
+                <span className="text-slate-400 font-mono">{formatINR(sim24b)}</span>
+              </label>
+              <input
+                type="number"
+                max="200000"
+                step="10000"
+                value={sim24b}
+                onChange={(e) => {
+                  const val = Math.min(200000, Number(e.target.value));
+                  setSim24b(val);
+                  runSimulatorRecalc(grossIncome, sim80C, sim80D, sim80CCD, val, simHRA, simOther);
+                }}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            {/* HRA */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                <span>Section 10(13A) (HRA Exemption)</span>
+                <span className="text-slate-400 font-mono">{formatINR(simHRA)}</span>
+              </label>
+              <input
+                type="number"
+                step="10000"
+                value={simHRA}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setSimHRA(val);
+                  runSimulatorRecalc(grossIncome, sim80C, sim80D, sim80CCD, sim24b, val, simOther);
+                }}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xl font-black text-white">
-              {comp?.recommendedRegime === "NEW" ? "New Regime (115BAC)" : "Old Tax Regime"}
-            </span>
+        )}
+
+        {/* Side-by-Side Regime Cards (Direct parity with my-wealth-App) */}
+        {comp && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* New Regime Card */}
+            <div
+              className={`p-6 rounded-3xl border transition relative ${
+                isNewOptimal
+                  ? "bg-slate-900/90 border-emerald-500/60 shadow-xl shadow-emerald-950/30 ring-1 ring-emerald-500/30"
+                  : "bg-slate-900/40 border-slate-800"
+              }`}
+            >
+              {isNewOptimal && (
+                <div className="absolute top-4 right-4">
+                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> LOWER TAX
+                  </span>
+                </div>
+              )}
+
+              <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-0.5">
+                Section 115BAC
+              </div>
+              <h4 className="text-xl font-black text-white">New Tax Regime</h4>
+              <p className="text-xs text-slate-400">
+                ₹75,000 standard deduction with streamlined slabs
+              </p>
+
+              <div className="my-4 py-3 border-y border-slate-800 space-y-1">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                  Total Applicable Tax Due
+                </div>
+                <div className="text-3xl font-black text-white font-mono">
+                  {formatINR(comp.newRegime.totalTax)}
+                </div>
+                <div className="text-xs text-emerald-400 font-semibold">
+                  Effective Rate: {comp.newRegime.effectiveTaxRatePct}%
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between text-slate-400">
+                  <span>Gross Income:</span>
+                  <span className="text-white font-mono">{formatINR(comp.newRegime.grossIncome)}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Standard Deduction:</span>
+                  <span className="text-emerald-400 font-mono">-{formatINR(comp.newRegime.standardDeduction)}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Taxable Income:</span>
+                  <span className="text-white font-mono font-bold">{formatINR(comp.newRegime.taxableIncome)}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Slab Tax:</span>
+                  <span className="text-white font-mono">{formatINR(comp.newRegime.slabTax)}</span>
+                </div>
+                {comp.newRegime.surcharge > 0 && (
+                  <div className="flex justify-between text-slate-400">
+                    <span>Surcharge:</span>
+                    <span className="text-white font-mono">{formatINR(comp.newRegime.surcharge)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-slate-400">
+                  <span>Health &amp; Education Cess (4%):</span>
+                  <span className="text-white font-mono">{formatINR(comp.newRegime.cess)}</span>
+                </div>
+              </div>
+
+              {/* Slabs */}
+              <div className="mt-4 pt-3 border-t border-slate-800 space-y-1 text-[11px]">
+                <div className="font-semibold text-slate-300 mb-1">New Regime Slabs:</div>
+                {comp.newRegime.slabBreakdown.map((s: any, idx: number) => (
+                  <div key={idx} className="flex justify-between py-0.5 text-slate-400">
+                    <span>{s.slab} ({s.rate})</span>
+                    <span className="font-mono text-slate-200">{formatINR(s.tax)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Old Regime Card */}
+            <div
+              className={`p-6 rounded-3xl border transition relative ${
+                !isNewOptimal
+                  ? "bg-slate-900/90 border-indigo-500/60 shadow-xl shadow-indigo-950/30 ring-1 ring-indigo-500/30"
+                  : "bg-slate-900/40 border-slate-800"
+              }`}
+            >
+              {!isNewOptimal && (
+                <div className="absolute top-4 right-4">
+                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> LOWER TAX
+                  </span>
+                </div>
+              )}
+
+              <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-0.5">
+                Conventional Slabs
+              </div>
+              <h4 className="text-xl font-black text-white">Old Tax Regime</h4>
+              <p className="text-xs text-slate-400">
+                Utilizes 80C, 80D, 80CCD, Section 24(b) &amp; HRA deductions
+              </p>
+
+              <div className="my-4 py-3 border-y border-slate-800 space-y-1">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                  Total Applicable Tax Due
+                </div>
+                <div className="text-3xl font-black text-white font-mono">
+                  {formatINR(comp.oldRegime.totalTax)}
+                </div>
+                <div className="text-xs text-indigo-400 font-semibold">
+                  Effective Rate: {comp.oldRegime.effectiveTaxRatePct}%
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between text-slate-400">
+                  <span>Gross Income:</span>
+                  <span className="text-white font-mono">{formatINR(comp.oldRegime.grossIncome)}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Standard Deduction:</span>
+                  <span className="text-emerald-400 font-mono">-{formatINR(comp.oldRegime.standardDeduction)}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Total Chapter VI-A Deductions:</span>
+                  <span className="text-emerald-400 font-mono">-{formatINR(comp.oldRegime.totalDeductions)}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Taxable Income:</span>
+                  <span className="text-white font-mono font-bold">{formatINR(comp.oldRegime.taxableIncome)}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Slab Tax:</span>
+                  <span className="text-white font-mono">{formatINR(comp.oldRegime.slabTax)}</span>
+                </div>
+                {comp.oldRegime.surcharge > 0 && (
+                  <div className="flex justify-between text-slate-400">
+                    <span>Surcharge:</span>
+                    <span className="text-white font-mono">{formatINR(comp.oldRegime.surcharge)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-slate-400">
+                  <span>Health &amp; Education Cess (4%):</span>
+                  <span className="text-white font-mono">{formatINR(comp.oldRegime.cess)}</span>
+                </div>
+              </div>
+
+              {/* Slabs */}
+              <div className="mt-4 pt-3 border-t border-slate-800 space-y-1 text-[11px]">
+                <div className="font-semibold text-slate-300 mb-1">Old Regime Slabs:</div>
+                {comp.oldRegime.slabBreakdown.map((s: any, idx: number) => (
+                  <div key={idx} className="flex justify-between py-0.5 text-slate-400">
+                    <span>{s.slab} ({s.rate})</span>
+                    <span className="font-mono text-slate-200">{formatINR(s.tax)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-          <p className="text-[11px] text-emerald-400 font-medium mt-1">
-            Saves {formatINR(comp?.taxSavingsWithRecommended || 0)} vs alternate
-          </p>
-        </div>
+        )}
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Navigation Tabs for Deep Dive Features */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto text-xs font-semibold">
         <button
           onClick={() => setActiveTab("harvesting")}
@@ -440,19 +753,7 @@ function TaxPlanningContent() {
           }`}
         >
           <TrendingUp className="h-4 w-4" />
-          Tax-Loss &amp; LTCG Harvesting Scanner
-        </button>
-
-        <button
-          onClick={() => setActiveTab("simulator")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
-            activeTab === "simulator"
-              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
-          }`}
-        >
-          <Scale className="h-4 w-4" />
-          Old vs New Regime Simulator
+          Tax Harvesting Suggestions (LTCG &amp; STCG)
         </button>
 
         <button
@@ -479,50 +780,56 @@ function TaxPlanningContent() {
           }`}
         >
           <Sparkles className="h-4 w-4 text-purple-400" />
-          Gemini AI Wealth Tax Advisory
+          Gemini AI Wealth Tax Advisory Memo
         </button>
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: TAX-LOSS & LTCG HARVESTING SCANNER */}
+      {/* 3. TAX HARVESTING SUGGESTIONS: LONG TERM (LTCG) & SHORT TERM (STCG) */}
       {/* ========================================================================= */}
       {activeTab === "harvesting" && (
         <div className="space-y-6">
-          {/* Section A: Year-End LTCG Harvesting (₹1,25,000 Tax-Free Window) */}
+          {/* Section A: Long-Term Capital Gain (LTCG) Harvesting (Section 112A ₹1,25,000 Window) */}
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    Section 112A
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                    <Percent className="h-3 w-3" /> Section 112A Quota
                   </span>
-                  <h2 className="text-lg font-bold text-white">
-                    Year-End LTCG Harvesting (₹1,25,000 Annual Tax-Free Window)
-                  </h2>
+                  <h3 className="text-lg font-bold text-white">
+                    Long-Term Capital Gain (LTCG) Tax Harvesting
+                  </h3>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Redeem appreciated equity holdings to lock in up to ₹1,25,000 tax-free gains every financial year, then immediately re-buy to step up the NAV cost base.
+                  Harvest up to ₹1,25,000 in equity gains tax-free every financial year. Reinvest same-day to step up the NAV cost base and permanently eliminate future 12.5% tax.
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 bg-slate-950/80 px-4 py-2 rounded-2xl border border-slate-800 text-xs">
+              {/* Progress metrics */}
+              <div className="flex items-center gap-3 bg-slate-950/80 px-4 py-2.5 rounded-2xl border border-slate-800 text-xs">
                 <div>
-                  <div className="text-[10px] text-slate-400">Harvestable Headroom</div>
+                  <div className="text-[10px] text-slate-400">Annual Exemption Limit</div>
+                  <div className="text-sm font-bold text-white">₹1,25,000</div>
+                </div>
+                <div className="h-6 w-px bg-slate-800" />
+                <div>
+                  <div className="text-[10px] text-slate-400">Harvestable Gains</div>
                   <div className="text-sm font-bold text-emerald-400">
                     {formatINR(ltcg?.harvestableGain || 0)}
                   </div>
                 </div>
                 <div className="h-6 w-px bg-slate-800" />
                 <div>
-                  <div className="text-[10px] text-slate-400">Permanent Tax Saved</div>
-                  <div className="text-sm font-bold text-white">
+                  <div className="text-[10px] text-slate-400">Tax Saved Permanently (12.5%)</div>
+                  <div className="text-sm font-bold text-emerald-300">
                     {formatINR(Math.round((ltcg?.harvestableGain || 0) * 0.125))}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Trades Table */}
+            {/* Recommended LTCG Step-Up Trades Table */}
             {ltcg?.recommendedTrades && ltcg.recommendedTrades.length > 0 ? (
               <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/50">
                 <table className="w-full text-left text-xs">
@@ -589,24 +896,24 @@ function TaxPlanningContent() {
             )}
           </div>
 
-          {/* Section B: Real-Time STCG/LTCG Tax-Loss Harvesting Scanner */}
+          {/* Section B: Short-Term Capital Gain (STCG) & Capital Loss Harvesting Scanner */}
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    Sections 111A, 112A &amp; 70
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                    <TrendingDown className="h-3 w-3" /> Section 111A Offset
                   </span>
-                  <h2 className="text-lg font-bold text-white">
-                    Real-Time Tax-Loss Harvesting Scanner
-                  </h2>
+                  <h3 className="text-lg font-bold text-white">
+                    Short-Term Capital Gain (STCG) &amp; Loss Harvesting Scanner
+                  </h3>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Harvest loss-making positions to offset realized Short-Term Capital Gains (20%) and Long-Term Capital Gains (12.5%). Immediately reallocate into peer funds to maintain portfolio exposure.
+                  Book Short-Term Capital Losses (STCL) to offset realized STCG (20%) and LTCG (12.5%). Reallocate proceeds into wash-sale safe peer schemes to maintain target exposure.
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 bg-slate-950/80 px-4 py-2 rounded-2xl border border-slate-800 text-xs">
+              <div className="flex items-center gap-3 bg-slate-950/80 px-4 py-2.5 rounded-2xl border border-slate-800 text-xs">
                 <div>
                   <div className="text-[10px] text-slate-400">Total Unrealized Losses</div>
                   <div className="text-sm font-bold text-amber-400">
@@ -636,7 +943,7 @@ function TaxPlanningContent() {
                       <th className="py-3 px-4 text-right">Tax Offset Rate</th>
                       <th className="py-3 px-4 text-right">Tax Alpha Saved</th>
                       <th className="py-3 px-4">Wash-Sale Safe Reinvestment Peer</th>
-                      <th className="py-3 px-4 text-center">Recommendation</th>
+                      <th className="py-3 px-4 text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 text-slate-300">
@@ -694,35 +1001,35 @@ function TaxPlanningContent() {
               </div>
             ) : (
               <div className="p-6 rounded-2xl bg-slate-950/40 border border-slate-800/60 text-center text-xs text-slate-400">
-                No loss-making positions detected in the current portfolio. All holdings are currently in unrealized profit.
+                All portfolio holdings are currently in profit. No short-term or long-term loss-making positions detected.
               </div>
             )}
           </div>
 
-          {/* Statutory Explainer Cards */}
+          {/* Section C: Statutory Explainer & Set-Off Rules */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-1.5">
               <div className="font-bold text-white flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" /> Section 112A LTCG Step-Up
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" /> LTCG 112A Step-Up Rules
               </div>
               <p className="text-slate-400 text-[11px] leading-relaxed">
-                Equity LTCG is taxed at 12.5% on gains exceeding ₹1.25 lakh per financial year. Redeeming and repurchasing units before March 31 utilizes the annual tax-free window without altering portfolio asset allocation.
+                Section 112A grants an annual tax exemption on equity LTCG up to ₹1,25,000. Redeeming and repurchasing units before March 31 resets the acquisition cost base to today&apos;s market price completely tax-free.
               </p>
             </div>
             <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-1.5">
               <div className="font-bold text-white flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-amber-400" /> Section 70 Set-Off Rules
+                <CheckCircle2 className="h-4 w-4 text-amber-400" /> STCL Set-Off (Section 70)
               </div>
               <p className="text-slate-400 text-[11px] leading-relaxed">
-                Short-Term Capital Loss (STCL) can be set off against both STCG and LTCG. Long-Term Capital Loss (LTCL) can only be set off against LTCG. Unabsorbed losses can be carried forward for 8 consecutive Assessment Years.
+                Short-Term Capital Loss (STCL) can offset both STCG (taxed at 20%) and LTCG (taxed at 12.5%). Any unabsorbed loss can be carried forward for 8 consecutive Assessment Years to offset future gains.
               </p>
             </div>
             <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-1.5">
               <div className="font-bold text-white flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-purple-400" /> Wash-Sale Safe Peer Switches
+                <CheckCircle2 className="h-4 w-4 text-purple-400" /> Wash-Sale Safe Peer Schemes
               </div>
               <p className="text-slate-400 text-[11px] leading-relaxed">
-                While Indian tax law has no strict 30-day wash-sale rule for mutual funds, reinvesting into an equivalent peer scheme (e.g. Nippon Small Cap to SBI Small Cap) avoids any challenge while eliminating uncompensated fund risk.
+                Reallocating redemption proceeds into equivalent peer schemes (e.g. Parag Parikh Flexi Cap or Mirae Asset Large &amp; Midcap) avoids tax challenges while maintaining 100% active compounding in the market.
               </p>
             </div>
           </div>
@@ -730,351 +1037,17 @@ function TaxPlanningContent() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: OLD VS NEW REGIME TAX LIABILITY SIMULATOR */}
-      {/* ========================================================================= */}
-      {activeTab === "simulator" && (
-        <div className="space-y-6">
-          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Scale className="h-5 w-5 text-emerald-400" />
-                  Old vs New Tax Regime Liability Simulator
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Finance Act 2024 revised slabs: ₹75,000 standard deduction under New Regime vs Section 80C, 80D, 80CCD(1B), and Section 24(b) under Old Regime.
-                </p>
-              </div>
-
-              {comp && (
-                <div className="px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-right">
-                  <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
-                    Recommended Regime
-                  </div>
-                  <div className="text-base font-black text-white">
-                    {comp.recommendedRegime === "NEW" ? "New Tax Regime (Sec 115BAC)" : "Old Tax Regime"}
-                  </div>
-                  <div className="text-[10px] text-emerald-300">
-                    Saves {formatINR(comp.taxSavingsWithRecommended)} in tax liability
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Interactive Inputs Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
-              {/* Gross Annual Income */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
-                  <span>Gross Annual Income (₹)</span>
-                  <span className="text-emerald-400 font-mono">{formatINR(simGrossIncome)}</span>
-                </label>
-                <input
-                  type="number"
-                  step="50000"
-                  value={simGrossIncome}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setSimGrossIncome(val);
-                    runSimulatorRecalc(val, sim80C, sim80D, sim80CCD, sim24b, simHRA, simOther);
-                  }}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              {/* Section 80C */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
-                  <span>Section 80C (EPF, PPF, ELSS) [Max ₹1.5L]</span>
-                  <span className="text-slate-400 font-mono">{formatINR(sim80C)}</span>
-                </label>
-                <input
-                  type="number"
-                  max="150000"
-                  step="10000"
-                  value={sim80C}
-                  onChange={(e) => {
-                    const val = Math.min(150000, Number(e.target.value));
-                    setSim80C(val);
-                    runSimulatorRecalc(simGrossIncome, val, sim80D, sim80CCD, sim24b, simHRA, simOther);
-                  }}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              {/* Section 80D */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
-                  <span>Section 80D (Health Insurance) [Max ₹1L]</span>
-                  <span className="text-slate-400 font-mono">{formatINR(sim80D)}</span>
-                </label>
-                <input
-                  type="number"
-                  max="100000"
-                  step="5000"
-                  value={sim80D}
-                  onChange={(e) => {
-                    const val = Math.min(100000, Number(e.target.value));
-                    setSim80D(val);
-                    runSimulatorRecalc(simGrossIncome, sim80C, val, sim80CCD, sim24b, simHRA, simOther);
-                  }}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              {/* Section 80CCD(1B) NPS */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
-                  <span>Section 80CCD(1B) (NPS) [Max ₹50k]</span>
-                  <span className="text-slate-400 font-mono">{formatINR(sim80CCD)}</span>
-                </label>
-                <input
-                  type="number"
-                  max="50000"
-                  step="5000"
-                  value={sim80CCD}
-                  onChange={(e) => {
-                    const val = Math.min(50000, Number(e.target.value));
-                    setSim80CCD(val);
-                    runSimulatorRecalc(simGrossIncome, sim80C, sim80D, val, sim24b, simHRA, simOther);
-                  }}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              {/* Section 24(b) Home Loan Interest */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
-                  <span>Section 24(b) (Home Loan Interest) [Max ₹2L]</span>
-                  <span className="text-slate-400 font-mono">{formatINR(sim24b)}</span>
-                </label>
-                <input
-                  type="number"
-                  max="200000"
-                  step="10000"
-                  value={sim24b}
-                  onChange={(e) => {
-                    const val = Math.min(200000, Number(e.target.value));
-                    setSim24b(val);
-                    runSimulatorRecalc(simGrossIncome, sim80C, sim80D, sim80CCD, val, simHRA, simOther);
-                  }}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              {/* Section 10(13A) HRA Exemption */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
-                  <span>Section 10(13A) (HRA Exemption)</span>
-                  <span className="text-slate-400 font-mono">{formatINR(simHRA)}</span>
-                </label>
-                <input
-                  type="number"
-                  step="10000"
-                  value={simHRA}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setSimHRA(val);
-                    runSimulatorRecalc(simGrossIncome, sim80C, sim80D, sim80CCD, sim24b, val, simOther);
-                  }}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
-
-            {/* Breakeven Deduction Banner */}
-            {comp && (
-              <div className="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-500/30 flex items-center gap-3 text-xs">
-                <Info className="h-5 w-5 text-indigo-400 shrink-0" />
-                <div className="text-slate-300">
-                  <span className="font-bold text-white">Breakeven Analysis: </span>
-                  For a gross income of {formatINR(simGrossIncome)}, the Old Regime requires at least{" "}
-                  <span className="font-bold text-indigo-300">
-                    {formatINR(comp.breakevenDeductionsNeededForOldRegime)}
-                  </span>{" "}
-                  in total deductions to break even with the New Regime. Current deductions total{" "}
-                  <span className="font-bold text-white">
-                    {formatINR(comp.oldRegime.totalDeductions)}
-                  </span>
-                  .
-                </div>
-              </div>
-            )}
-
-            {/* Side by Side Comparison Cards */}
-            {comp && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Card 1: New Tax Regime (Section 115BAC) */}
-                <div
-                  className={`p-6 rounded-3xl border transition relative ${
-                    comp.recommendedRegime === "NEW"
-                      ? "bg-slate-900/90 border-emerald-500/50 shadow-xl shadow-emerald-950/30 ring-1 ring-emerald-500/30"
-                      : "bg-slate-900/40 border-slate-800"
-                  }`}
-                >
-                  {comp.recommendedRegime === "NEW" && (
-                    <div className="absolute top-4 right-4">
-                      <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                        Recommended
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">
-                    Section 115BAC
-                  </div>
-                  <h3 className="text-xl font-black text-white">New Tax Regime</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Includes flat ₹75,000 standard deduction and progressive slabs.
-                  </p>
-
-                  <div className="mt-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-xs">
-                    <div className="flex justify-between text-slate-400">
-                      <span>Gross Income:</span>
-                      <span className="text-white font-mono">{formatINR(comp.newRegime.grossIncome)}</span>
-                    </div>
-                    <div className="flex justify-between text-slate-400">
-                      <span>Standard Deduction:</span>
-                      <span className="text-emerald-400 font-mono">-{formatINR(comp.newRegime.standardDeduction)}</span>
-                    </div>
-                    <div className="flex justify-between text-slate-400">
-                      <span>Taxable Income:</span>
-                      <span className="text-white font-mono font-bold">{formatINR(comp.newRegime.taxableIncome)}</span>
-                    </div>
-                    <div className="border-t border-slate-800 my-1 pt-1 flex justify-between text-slate-400">
-                      <span>Slab Tax:</span>
-                      <span className="text-white font-mono">{formatINR(comp.newRegime.slabTax)}</span>
-                    </div>
-                    {comp.newRegime.surcharge > 0 && (
-                      <div className="flex justify-between text-slate-400">
-                        <span>Surcharge:</span>
-                        <span className="text-white font-mono">{formatINR(comp.newRegime.surcharge)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-slate-400">
-                      <span>Health &amp; Education Cess (4%):</span>
-                      <span className="text-white font-mono">{formatINR(comp.newRegime.cess)}</span>
-                    </div>
-                    <div className="border-t border-slate-700/80 pt-2 flex justify-between text-sm font-black">
-                      <span className="text-white">Total Tax Payable:</span>
-                      <span className="text-emerald-300 font-mono text-base">
-                        {formatINR(comp.newRegime.totalTax)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-[11px] text-slate-400">
-                      <span>Effective Tax Rate:</span>
-                      <span className="font-bold text-slate-200">{comp.newRegime.effectiveTaxRatePct}%</span>
-                    </div>
-                  </div>
-
-                  {/* Slab Breakdown */}
-                  <div className="mt-4 space-y-1.5 text-[11px]">
-                    <div className="font-semibold text-slate-300 mb-1">New Regime Slabs:</div>
-                    {comp.newRegime.slabBreakdown.map((s: any, idx: number) => (
-                      <div key={idx} className="flex justify-between py-1 border-b border-slate-800/40 text-slate-400">
-                        <span>{s.slab} ({s.rate})</span>
-                        <span className="font-mono text-slate-200">{formatINR(s.tax)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Card 2: Old Tax Regime */}
-                <div
-                  className={`p-6 rounded-3xl border transition relative ${
-                    comp.recommendedRegime === "OLD"
-                      ? "bg-slate-900/90 border-emerald-500/50 shadow-xl shadow-emerald-950/30 ring-1 ring-emerald-500/30"
-                      : "bg-slate-900/40 border-slate-800"
-                  }`}
-                >
-                  {comp.recommendedRegime === "OLD" && (
-                    <div className="absolute top-4 right-4">
-                      <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                        Recommended
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">
-                    Conventional Regime
-                  </div>
-                  <h3 className="text-xl font-black text-white">Old Tax Regime</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Utilizes 80C, 80D, 80CCD, Section 24(b) home loan and HRA deductions.
-                  </p>
-
-                  <div className="mt-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-xs">
-                    <div className="flex justify-between text-slate-400">
-                      <span>Gross Income:</span>
-                      <span className="text-white font-mono">{formatINR(comp.oldRegime.grossIncome)}</span>
-                    </div>
-                    <div className="flex justify-between text-slate-400">
-                      <span>Standard Deduction:</span>
-                      <span className="text-emerald-400 font-mono">-{formatINR(comp.oldRegime.standardDeduction)}</span>
-                    </div>
-                    <div className="flex justify-between text-slate-400">
-                      <span>Total Chapter VI-A Deductions:</span>
-                      <span className="text-emerald-400 font-mono">-{formatINR(comp.oldRegime.totalDeductions)}</span>
-                    </div>
-                    <div className="flex justify-between text-slate-400">
-                      <span>Taxable Income:</span>
-                      <span className="text-white font-mono font-bold">{formatINR(comp.oldRegime.taxableIncome)}</span>
-                    </div>
-                    <div className="border-t border-slate-800 my-1 pt-1 flex justify-between text-slate-400">
-                      <span>Slab Tax:</span>
-                      <span className="text-white font-mono">{formatINR(comp.oldRegime.slabTax)}</span>
-                    </div>
-                    {comp.oldRegime.surcharge > 0 && (
-                      <div className="flex justify-between text-slate-400">
-                        <span>Surcharge:</span>
-                        <span className="text-white font-mono">{formatINR(comp.oldRegime.surcharge)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-slate-400">
-                      <span>Health &amp; Education Cess (4%):</span>
-                      <span className="text-white font-mono">{formatINR(comp.oldRegime.cess)}</span>
-                    </div>
-                    <div className="border-t border-slate-700/80 pt-2 flex justify-between text-sm font-black">
-                      <span className="text-white">Total Tax Payable:</span>
-                      <span className="text-indigo-300 font-mono text-base">
-                        {formatINR(comp.oldRegime.totalTax)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-[11px] text-slate-400">
-                      <span>Effective Tax Rate:</span>
-                      <span className="font-bold text-slate-200">{comp.oldRegime.effectiveTaxRatePct}%</span>
-                    </div>
-                  </div>
-
-                  {/* Slab Breakdown */}
-                  <div className="mt-4 space-y-1.5 text-[11px]">
-                    <div className="font-semibold text-slate-300 mb-1">Old Regime Slabs:</div>
-                    {comp.oldRegime.slabBreakdown.map((s: any, idx: number) => (
-                      <div key={idx} className="flex justify-between py-1 border-b border-slate-800/40 text-slate-400">
-                        <span>{s.slab} ({s.rate})</span>
-                        <span className="font-mono text-slate-200">{formatINR(s.tax)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 3: CAPITAL GAINS STATEMENT FOR ITR FILING (SCHEDULE CG) */}
+      {/* 4. TAB 2: CAPITAL GAINS STATEMENT FOR ITR (SCHEDULE CG) */}
       {/* ========================================================================= */}
       {activeTab === "schedule-cg" && (
         <div className="space-y-6">
           <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <FileText className="h-5 w-5 text-emerald-400" />
                   Capital Gains Statement &bull; Schedule CG (ITR-2 / ITR-3)
-                </h2>
+                </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
                   Tax assessment for {client?.fullName || "Client"} (PAN: {client?.pan || "ABCDE1234F"}) for {fiscalYear}.
                 </p>
@@ -1113,7 +1086,7 @@ function TaxPlanningContent() {
                 <div className="text-xl font-bold text-white mt-0.5">
                   {formatINR(scheduleCG?.totalRealizedGains || 0)}
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1">Across all instruments</div>
+                <div className="text-[10px] text-slate-400 mt-1">Across all holdings</div>
               </div>
 
               <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-emerald-950/30 border border-emerald-500/30">
@@ -1125,13 +1098,13 @@ function TaxPlanningContent() {
               </div>
             </div>
 
-            {/* Indian Advance Tax Schedule Calendar */}
+            {/* Advance Tax Schedule Calendar */}
             <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-white flex items-center gap-2">
+                <h4 className="text-xs font-bold text-white flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-emerald-400" />
                   Statutory Advance Tax Calendar &bull; Section 208/211
-                </h3>
+                </h4>
                 <span className="text-[10px] text-slate-400">
                   Total Tax: {formatINR(scheduleCG?.totalCapitalGainsTax || 0)}
                 </span>
@@ -1204,7 +1177,7 @@ function TaxPlanningContent() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 4: GEMINI AI WEALTH TAX ADVISORY */}
+      {/* 5. TAB 3: GEMINI AI WEALTH TAX ADVISORY MEMO */}
       {/* ========================================================================= */}
       {activeTab === "ai-advisory" && (
         <div className="space-y-6">
@@ -1215,9 +1188,9 @@ function TaxPlanningContent() {
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center gap-1">
                     <Sparkles className="h-3 w-3" /> Google Gemini AI
                   </span>
-                  <h2 className="text-lg font-bold text-white">
+                  <h3 className="text-lg font-bold text-white">
                     Institutional Tax Planning &amp; Harvesting Strategy Memo
-                  </h2>
+                  </h3>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
                   Automated CA-grade advisory analyzing post-tax alpha, sequence of redemptions, and Section 112A/111A execution steps.
@@ -1289,7 +1262,6 @@ function TaxPlanningContent() {
             {/* AI Generated Memo Output */}
             {aiAdvisory ? (
               <div className="space-y-6">
-                {/* AI Model Header */}
                 <div className="flex items-center justify-between text-xs text-slate-400 pb-2 border-b border-slate-800">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-white">Engine:</span>
@@ -1300,7 +1272,6 @@ function TaxPlanningContent() {
                   </div>
                 </div>
 
-                {/* Executive Summary */}
                 <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-purple-950/20 border border-purple-500/30 space-y-2">
                   <div className="text-xs font-bold uppercase tracking-wider text-purple-400">
                     Executive Strategy &bull; Post-Tax Alpha Optimization
@@ -1310,12 +1281,11 @@ function TaxPlanningContent() {
                   </p>
                 </div>
 
-                {/* Regime Strategy */}
                 {aiAdvisory.regimeStrategy && (
                   <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
                       Regime Selection Strategy: {aiAdvisory.regimeStrategy.recommendedRegime === "NEW" ? "New Tax Regime (Section 115BAC)" : "Old Tax Regime"}
-                    </h3>
+                    </h4>
                     <p className="text-xs text-slate-300 leading-relaxed">
                       {aiAdvisory.regimeStrategy.rationale}
                     </p>
@@ -1326,12 +1296,11 @@ function TaxPlanningContent() {
                   </div>
                 )}
 
-                {/* Step-by-Step Strategic Harvesting Roadmap */}
                 {aiAdvisory.harvestingRoadmap && aiAdvisory.harvestingRoadmap.length > 0 && (
                   <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
                       Step-by-Step Execution Roadmap
-                    </h3>
+                    </h4>
 
                     <div className="space-y-3">
                       {aiAdvisory.harvestingRoadmap.map((step: any, idx: number) => (
@@ -1369,7 +1338,6 @@ function TaxPlanningContent() {
                   </div>
                 )}
 
-                {/* ITR Filing & Disclaimers */}
                 {aiAdvisory.itrFilingGuidance && (
                   <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-800 text-xs space-y-2">
                     <div className="font-bold text-white flex items-center gap-2">
@@ -1392,7 +1360,7 @@ function TaxPlanningContent() {
             ) : (
               <div className="p-8 rounded-2xl bg-slate-950/40 border border-slate-800/60 text-center space-y-3">
                 <Sparkles className="h-8 w-8 text-purple-400 mx-auto" />
-                <h3 className="text-sm font-bold text-white">Generate Gemini AI Strategy Memo</h3>
+                <h4 className="text-sm font-bold text-white">Generate Gemini AI Strategy Memo</h4>
                 <p className="text-xs text-slate-400 max-w-md mx-auto">
                   Click the button above to have Google Gemini synthesize a CA-grade tax optimization advisory based on {client?.fullName}&apos;s holdings and tax regime.
                 </p>
