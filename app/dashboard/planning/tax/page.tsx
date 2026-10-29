@@ -25,6 +25,13 @@ import {
   CheckCheck,
   Percent,
   SlidersHorizontal,
+  Wallet,
+  ShieldCheck,
+  AlertCircle,
+  Coins,
+  Layers,
+  ArrowDownToLine,
+  Clock,
 } from "lucide-react";
 
 function formatINR(val: number) {
@@ -63,7 +70,8 @@ function TaxPlanningContent() {
   // Client and fiscal year controls
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [fiscalYear, setFiscalYear] = useState<string>("2026-2027");
-  const [activeTab, setActiveTab] = useState<"harvesting" | "schedule-cg" | "ai-advisory">("harvesting");
+  const [activeTab, setActiveTab] = useState<"withdrawals" | "regime" | "schedule-cg" | "ai-advisory">("withdrawals");
+  const [withdrawalFilter, setWithdrawalFilter] = useState<"ALL" | "LTCG" | "STCG" | "DEBT">("ALL");
 
   // Interactive Regime Simulator controls
   const [grossIncome, setGrossIncome] = useState<number>(4600000);
@@ -75,7 +83,6 @@ function TaxPlanningContent() {
   const [simHRA, setSimHRA] = useState<number>(120000);
   const [simOther, setSimOther] = useState<number>(0);
   const [regimeComparison, setRegimeComparison] = useState<any>(null);
-  const [isSimulating, setIsSimulating] = useState(false);
 
   // AI Advisory controls
   const [customAiPrompt, setCustomAiPrompt] = useState("");
@@ -83,7 +90,7 @@ function TaxPlanningContent() {
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [isSavingSuggestion, setIsSavingSuggestion] = useState(false);
   const [savedSuggestionId, setSavedSuggestionId] = useState<string | null>(null);
-  const [copiedTradeIndex, setCopiedTradeIndex] = useState<number | null>(null);
+  const [copiedItemIndex, setCopiedItemIndex] = useState<number | null>(null);
 
   // Fetch initial tax planning data
   const fetchData = async (clientId?: string, fy?: string) => {
@@ -154,7 +161,6 @@ function TaxPlanningContent() {
     hra = simHRA,
     other = simOther
   ) => {
-    setIsSimulating(true);
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") || localStorage.getItem("token") : null;
       const res = await fetch("/api/planning/tax", {
@@ -180,8 +186,6 @@ function TaxPlanningContent() {
       }
     } catch (err) {
       console.error("Simulator recalculation error:", err);
-    } finally {
-      setIsSimulating(false);
     }
   };
 
@@ -234,22 +238,18 @@ function TaxPlanningContent() {
     }
   };
 
-  const copyTrade = (trade: any, index: number) => {
-    const text = `Trade Recommendation: Redeem ${trade.unitsToRedeem} units (${formatINR(
-      trade.redeemAmount
-    )}) of ${trade.schemeName} to harvest ${formatINR(
-      trade.gainBookedTaxFree
-    )} tax-free LTCG under Section 112A. Reinvest into ${trade.reinvestmentScheme} to step up NAV base.`;
+  const copyItemText = (item: any, idx: number) => {
+    const text = `Withdrawal Suggestion: ${item.schemeName} (${item.category.replace(/_/g, " ")}). ${item.actionInstructions}`;
     navigator.clipboard.writeText(text);
-    setCopiedTradeIndex(index);
-    setTimeout(() => setCopiedTradeIndex(null), 2500);
+    setCopiedItemIndex(idx);
+    setTimeout(() => setCopiedItemIndex(null), 2500);
   };
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <RefreshCw className="h-8 w-8 text-emerald-500 animate-spin" />
-        <p className="text-xs text-slate-400 font-medium">Scanning client holdings &amp; computing tax regime liability...</p>
+        <p className="text-xs text-slate-400 font-medium">Scanning client holdings, tax regime &amp; withdrawal quotas...</p>
       </div>
     );
   }
@@ -270,22 +270,22 @@ function TaxPlanningContent() {
     );
   }
 
+  const isAdvisor = data?.isAdvisor !== false;
   const client = data?.selectedClient;
-  const ltcg = data?.ltcgHarvesting;
-  const tlh = data?.taxLossHarvesting;
   const comp = regimeComparison || data?.regimeComparison;
+  const withdrawal = data?.withdrawalStrategy;
   const scheduleCG = data?.scheduleCG;
 
   const isNewOptimal = comp?.recommendedRegime === "NEW";
 
-  // Separate Short-Term vs Long-Term loss opportunities
-  const stclOpportunities = (tlh?.opportunities || []).filter((o: any) => o.gainType === "STCL");
-  const ltclOpportunities = (tlh?.opportunities || []).filter((o: any) => o.gainType === "LTCL");
-
-  // LTCG Headroom percentage
-  const ltcgHeadroomPct = ltcg
-    ? Math.min(100, Math.round(((ltcg.annualExemptionLimit - ltcg.remainingExemptionHeadroom) / ltcg.annualExemptionLimit) * 100))
-    : 0;
+  // Filtered withdrawal suggestions
+  const filteredWithdrawals = useMemo(() => {
+    if (!withdrawal) return [];
+    if (withdrawalFilter === "LTCG") return withdrawal.equityLtcgFunds || [];
+    if (withdrawalFilter === "STCG") return withdrawal.equityStcgFunds || [];
+    if (withdrawalFilter === "DEBT") return withdrawal.debtFunds || [];
+    return withdrawal.allSuggestions || [];
+  }, [withdrawal, withdrawalFilter]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto py-4 px-2 sm:px-4">
@@ -293,11 +293,13 @@ function TaxPlanningContent() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800/60">
         <div>
           <div className="flex items-center gap-2 text-xs text-slate-400">
-            <Link href="/dashboard/advisor" className="hover:text-white transition">Dashboard</Link>
+            <Link href={isAdvisor ? "/dashboard/advisor" : "/dashboard/client"} className="hover:text-white transition">
+              {isAdvisor ? "Advisor Dashboard" : "My Dashboard"}
+            </Link>
             <ChevronRight className="h-3 w-3" />
             <Link href="/dashboard/planning" className="hover:text-white transition">Planning</Link>
             <ChevronRight className="h-3 w-3" />
-            <span className="text-emerald-400 font-medium">Tax Planning &amp; Alpha</span>
+            <span className="text-emerald-400 font-medium">Tax Planning &amp; Withdrawals</span>
           </div>
           <div className="flex items-center gap-3 mt-1">
             <div className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
@@ -305,13 +307,26 @@ function TaxPlanningContent() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                Tax Planning &amp; Capital Gains Alpha
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Live Engine
-                </span>
+                {isAdvisor ? (
+                  <>
+                    Tax Planning &amp; Mutual Fund Withdrawal Strategy
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Advisor View
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    Welcome, {client?.fullName || "Investor"} &bull; Tax Liability &amp; Withdrawal Strategy
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Client View
+                    </span>
+                  </>
+                )}
               </h1>
               <p className="text-xs text-slate-400">
-                Finance Act 2024 / FY 2025-26 &amp; 2026-27 Slabs &bull; Section 112A LTCG Step-Up &bull; Section 111A STCG Loss Scanner
+                {isAdvisor
+                  ? "Select a client to evaluate regime suitability, total applicable tax, tax-free mutual fund withdrawals, and suggested fund redemptions."
+                  : "View your personalized income tax liability, optimal regime recommendation, and tax-free mutual fund withdrawal quota."}
               </p>
             </div>
           </div>
@@ -319,7 +334,8 @@ function TaxPlanningContent() {
 
         {/* Client & Fiscal Year Selector */}
         <div className="flex items-center gap-3">
-          {data?.clientList && data.clientList.length > 0 && (
+          {/* ADVISOR-ONLY: Client Switcher Dropdown (Hidden for Client Login) */}
+          {isAdvisor && data?.clientList && data.clientList.length > 0 && (
             <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 shadow-sm">
               <User className="h-3.5 w-3.5 text-slate-400" />
               <select
@@ -336,6 +352,7 @@ function TaxPlanningContent() {
             </div>
           )}
 
+          {/* Fiscal Year Switcher */}
           <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 shadow-sm">
             <Calendar className="h-3.5 w-3.5 text-emerald-400" />
             <select
@@ -359,7 +376,7 @@ function TaxPlanningContent() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 1. FRONT-AND-CENTER REGIME RECOMMENDATION HERO (Matching my-wealth-App) */}
+      {/* 1. FRONT-AND-CENTER TAX LIABILITY & REGIME RECOMMENDATION HERO */}
       {/* ========================================================================= */}
       {comp && (
         <div
@@ -385,7 +402,7 @@ function TaxPlanningContent() {
               </div>
 
               <h2 className="text-xl sm:text-2xl font-black text-white">
-                Choosing the {isNewOptimal ? "New Tax Regime" : "Old Tax Regime"} saves you{" "}
+                Choosing the {isNewOptimal ? "New Tax Regime" : "Old Tax Regime"} saves {isAdvisor ? `${client?.fullName}` : "you"}{" "}
                 <span className={isNewOptimal ? "text-emerald-400" : "text-indigo-400"}>
                   {formatINR(comp.taxSavingsWithRecommended)}
                 </span>{" "}
@@ -394,32 +411,32 @@ function TaxPlanningContent() {
 
               <p className="text-xs text-slate-300 leading-relaxed max-w-3xl">
                 {isNewOptimal
-                  ? `For ${client?.fullName}'s gross income of ${formatINR(
+                  ? `For an annual gross income of ${formatINR(
                       grossIncome
                     )}, the New Regime provides a lower total tax liability of ${formatINR(
                       comp.newRegime.totalTax
-                    )} (effective rate ${comp.newRegime.effectiveTaxRatePct}%) with ₹75,000 standard deduction and lower slab rates. Total deductions must exceed ${formatINR(
+                    )} (effective rate ${comp.newRegime.effectiveTaxRatePct}%) with ₹75,000 standard deduction and progressive slabs. Eligible Chapter VI-A deductions must exceed ${formatINR(
                       comp.breakevenDeductionsNeededForOldRegime
-                    )} under Chapter VI-A to justify opting for the Old Regime.`
+                    )} to justify opting for the Old Regime.`
                   : `Eligible Chapter VI-A deductions under Section 80C, 80D, 80CCD(1B), and Section 24(b) total ${formatINR(
                       comp.oldRegime.totalDeductions
                     )}, which surpasses the breakeven threshold of ${formatINR(
                       comp.breakevenDeductionsNeededForOldRegime
-                    )}. Opting into the Old Regime lowers your total tax to ${formatINR(
+                    )}. Opting into the Old Regime lowers total tax payable to ${formatINR(
                       comp.oldRegime.totalTax
                     )}.`}
               </p>
             </div>
 
-            {/* Quick summary comparison pill */}
-            <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 shrink-0 text-right space-y-1">
+            {/* Total Applicable Tax Pill */}
+            <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 shrink-0 text-right space-y-1">
               <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                 Total Applicable Tax
               </div>
-              <div className="text-2xl font-black text-white font-mono">
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono">
                 {formatINR(isNewOptimal ? comp.newRegime.totalTax : comp.oldRegime.totalTax)}
               </div>
-              <div className="text-[11px] text-emerald-400 font-semibold">
+              <div className="text-xs text-emerald-400 font-semibold">
                 Effective Rate: {isNewOptimal ? comp.newRegime.effectiveTaxRatePct : comp.oldRegime.effectiveTaxRatePct}%
               </div>
             </div>
@@ -428,332 +445,94 @@ function TaxPlanningContent() {
       )}
 
       {/* ========================================================================= */}
-      {/* 2. INTERACTIVE GROSS INCOME & DEDUCTIONS SIMULATOR (Side-by-side) */}
+      {/* 2. MUTUAL FUND TAX-FREE WITHDRAWAL QUOTA CARD */}
       {/* ========================================================================= */}
-      <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <Scale className="h-4 w-4 text-emerald-400" />
-              Annual Gross Income &amp; Total Applicable Tax Slabs
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Adjust gross income or Chapter VI-A deductions to recalculate total applicable tax in real time.
-            </p>
-          </div>
-
-          <button
-            onClick={() => setShowDeductionTuning(!showDeductionTuning)}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition flex items-center gap-1.5 border border-slate-700 self-start sm:self-auto"
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            {showDeductionTuning ? "Hide Deduction Controls" : "Tune Old Regime Deductions"}
-          </button>
-        </div>
-
-        {/* Gross Income Input */}
-        <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
-          <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex justify-between mb-2">
-            <span>Annual Gross Salary / Business Income</span>
-            <span className="text-emerald-400 font-mono text-sm">{formatINR(grossIncome)}</span>
-          </label>
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-bold text-emerald-400 font-mono">₹</span>
-            <input
-              type="number"
-              step="50000"
-              value={grossIncome}
-              onChange={(e) => {
-                const val = Number(e.target.value);
-                setGrossIncome(val);
-                runSimulatorRecalc(val, sim80C, sim80D, sim80CCD, sim24b, simHRA, simOther);
-              }}
-              placeholder="e.g. 4600000"
-              className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-emerald-500 font-mono"
-            />
-          </div>
-        </div>
-
-        {/* Collapsible Deduction Controls */}
-        {showDeductionTuning && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 animate-in fade-in duration-200">
-            {/* 80C */}
+      {withdrawal && (
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-sky-950/20 to-slate-900 border border-sky-500/30 shadow-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
-                <span>Section 80C (EPF/PPF/ELSS, max 1.5L)</span>
-                <span className="text-slate-400 font-mono">{formatINR(sim80C)}</span>
-              </label>
-              <input
-                type="number"
-                max="150000"
-                step="10000"
-                value={sim80C}
-                onChange={(e) => {
-                  const val = Math.min(150000, Number(e.target.value));
-                  setSim80C(val);
-                  runSimulatorRecalc(grossIncome, val, sim80D, sim80CCD, sim24b, simHRA, simOther);
-                }}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            {/* 80D */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
-                <span>Section 80D (Health Insurance, max 1L)</span>
-                <span className="text-slate-400 font-mono">{formatINR(sim80D)}</span>
-              </label>
-              <input
-                type="number"
-                max="100000"
-                step="5000"
-                value={sim80D}
-                onChange={(e) => {
-                  const val = Math.min(100000, Number(e.target.value));
-                  setSim80D(val);
-                  runSimulatorRecalc(grossIncome, sim80C, val, sim80CCD, sim24b, simHRA, simOther);
-                }}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            {/* 80CCD */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
-                <span>Section 80CCD(1B) (NPS, max 50k)</span>
-                <span className="text-slate-400 font-mono">{formatINR(sim80CCD)}</span>
-              </label>
-              <input
-                type="number"
-                max="50000"
-                step="5000"
-                value={sim80CCD}
-                onChange={(e) => {
-                  const val = Math.min(50000, Number(e.target.value));
-                  setSim80CCD(val);
-                  runSimulatorRecalc(grossIncome, sim80C, sim80D, val, sim24b, simHRA, simOther);
-                }}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            {/* 24b */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
-                <span>Section 24b (Home Loan Interest, max 2L)</span>
-                <span className="text-slate-400 font-mono">{formatINR(sim24b)}</span>
-              </label>
-              <input
-                type="number"
-                max="200000"
-                step="10000"
-                value={sim24b}
-                onChange={(e) => {
-                  const val = Math.min(200000, Number(e.target.value));
-                  setSim24b(val);
-                  runSimulatorRecalc(grossIncome, sim80C, sim80D, sim80CCD, val, simHRA, simOther);
-                }}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            {/* HRA */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
-                <span>Section 10(13A) (HRA Exemption)</span>
-                <span className="text-slate-400 font-mono">{formatINR(simHRA)}</span>
-              </label>
-              <input
-                type="number"
-                step="10000"
-                value={simHRA}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  setSimHRA(val);
-                  runSimulatorRecalc(grossIncome, sim80C, sim80D, sim80CCD, sim24b, val, simOther);
-                }}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Side-by-Side Regime Cards (Direct parity with my-wealth-App) */}
-        {comp && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* New Regime Card */}
-            <div
-              className={`p-6 rounded-3xl border transition relative ${
-                isNewOptimal
-                  ? "bg-slate-900/90 border-emerald-500/60 shadow-xl shadow-emerald-950/30 ring-1 ring-emerald-500/30"
-                  : "bg-slate-900/40 border-slate-800"
-              }`}
-            >
-              {isNewOptimal && (
-                <div className="absolute top-4 right-4">
-                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> LOWER TAX
-                  </span>
-                </div>
-              )}
-
-              <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-0.5">
-                Section 115BAC
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center gap-1">
+                  <ArrowDownToLine className="h-3 w-3" /> Section 112A Tax-Free Quota
+                </span>
+                <h3 className="text-lg font-bold text-white">
+                  Mutual Fund Tax-Free Withdrawal Quota
+                </h3>
               </div>
-              <h4 className="text-xl font-black text-white">New Tax Regime</h4>
               <p className="text-xs text-slate-400">
-                ₹75,000 standard deduction with streamlined slabs
+                How much {isAdvisor ? `${client?.fullName}` : "you"} can withdraw from mutual funds today with ZERO rupees of tax liability.
               </p>
-
-              <div className="my-4 py-3 border-y border-slate-800 space-y-1">
-                <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-                  Total Applicable Tax Due
-                </div>
-                <div className="text-3xl font-black text-white font-mono">
-                  {formatINR(comp.newRegime.totalTax)}
-                </div>
-                <div className="text-xs text-emerald-400 font-semibold">
-                  Effective Rate: {comp.newRegime.effectiveTaxRatePct}%
-                </div>
-              </div>
-
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between text-slate-400">
-                  <span>Gross Income:</span>
-                  <span className="text-white font-mono">{formatINR(comp.newRegime.grossIncome)}</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Standard Deduction:</span>
-                  <span className="text-emerald-400 font-mono">-{formatINR(comp.newRegime.standardDeduction)}</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Taxable Income:</span>
-                  <span className="text-white font-mono font-bold">{formatINR(comp.newRegime.taxableIncome)}</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Slab Tax:</span>
-                  <span className="text-white font-mono">{formatINR(comp.newRegime.slabTax)}</span>
-                </div>
-                {comp.newRegime.surcharge > 0 && (
-                  <div className="flex justify-between text-slate-400">
-                    <span>Surcharge:</span>
-                    <span className="text-white font-mono">{formatINR(comp.newRegime.surcharge)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-slate-400">
-                  <span>Health &amp; Education Cess (4%):</span>
-                  <span className="text-white font-mono">{formatINR(comp.newRegime.cess)}</span>
-                </div>
-              </div>
-
-              {/* Slabs */}
-              <div className="mt-4 pt-3 border-t border-slate-800 space-y-1 text-[11px]">
-                <div className="font-semibold text-slate-300 mb-1">New Regime Slabs:</div>
-                {comp.newRegime.slabBreakdown.map((s: any, idx: number) => (
-                  <div key={idx} className="flex justify-between py-0.5 text-slate-400">
-                    <span>{s.slab} ({s.rate})</span>
-                    <span className="font-mono text-slate-200">{formatINR(s.tax)}</span>
-                  </div>
-                ))}
-              </div>
             </div>
 
-            {/* Old Regime Card */}
-            <div
-              className={`p-6 rounded-3xl border transition relative ${
-                !isNewOptimal
-                  ? "bg-slate-900/90 border-indigo-500/60 shadow-xl shadow-indigo-950/30 ring-1 ring-indigo-500/30"
-                  : "bg-slate-900/40 border-slate-800"
-              }`}
-            >
-              {!isNewOptimal && (
-                <div className="absolute top-4 right-4">
-                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> LOWER TAX
-                  </span>
-                </div>
-              )}
-
-              <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-0.5">
-                Conventional Slabs
+            {/* Total Tax-Free Capacity Big Badge */}
+            <div className="bg-slate-950/80 px-5 py-3 rounded-2xl border border-sky-500/40 text-right">
+              <div className="text-[10px] text-sky-400 font-bold uppercase tracking-wider">
+                Total Tax-Free Cash Withdrawal Capacity
               </div>
-              <h4 className="text-xl font-black text-white">Old Tax Regime</h4>
-              <p className="text-xs text-slate-400">
-                Utilizes 80C, 80D, 80CCD, Section 24(b) &amp; HRA deductions
-              </p>
-
-              <div className="my-4 py-3 border-y border-slate-800 space-y-1">
-                <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-                  Total Applicable Tax Due
-                </div>
-                <div className="text-3xl font-black text-white font-mono">
-                  {formatINR(comp.oldRegime.totalTax)}
-                </div>
-                <div className="text-xs text-indigo-400 font-semibold">
-                  Effective Rate: {comp.oldRegime.effectiveTaxRatePct}%
-                </div>
+              <div className="text-2xl sm:text-3xl font-black text-emerald-300 font-mono">
+                {formatINR(withdrawal.totalTaxFreeGrossWithdrawalCapacity)}
               </div>
-
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between text-slate-400">
-                  <span>Gross Income:</span>
-                  <span className="text-white font-mono">{formatINR(comp.oldRegime.grossIncome)}</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Standard Deduction:</span>
-                  <span className="text-emerald-400 font-mono">-{formatINR(comp.oldRegime.standardDeduction)}</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Total Chapter VI-A Deductions:</span>
-                  <span className="text-emerald-400 font-mono">-{formatINR(comp.oldRegime.totalDeductions)}</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Taxable Income:</span>
-                  <span className="text-white font-mono font-bold">{formatINR(comp.oldRegime.taxableIncome)}</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Slab Tax:</span>
-                  <span className="text-white font-mono">{formatINR(comp.oldRegime.slabTax)}</span>
-                </div>
-                {comp.oldRegime.surcharge > 0 && (
-                  <div className="flex justify-between text-slate-400">
-                    <span>Surcharge:</span>
-                    <span className="text-white font-mono">{formatINR(comp.oldRegime.surcharge)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-slate-400">
-                  <span>Health &amp; Education Cess (4%):</span>
-                  <span className="text-white font-mono">{formatINR(comp.oldRegime.cess)}</span>
-                </div>
-              </div>
-
-              {/* Slabs */}
-              <div className="mt-4 pt-3 border-t border-slate-800 space-y-1 text-[11px]">
-                <div className="font-semibold text-slate-300 mb-1">Old Regime Slabs:</div>
-                {comp.oldRegime.slabBreakdown.map((s: any, idx: number) => (
-                  <div key={idx} className="flex justify-between py-0.5 text-slate-400">
-                    <span>{s.slab} ({s.rate})</span>
-                    <span className="font-mono text-slate-200">{formatINR(s.tax)}</span>
-                  </div>
-                ))}
+              <div className="text-[11px] text-slate-300 flex items-center justify-end gap-1 mt-0.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                <span>Applicable Tax on this Withdrawal: </span>
+                <span className="font-bold text-emerald-400">₹0 (Zero Tax)</span>
               </div>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Navigation Tabs for Deep Dive Features */}
+          {/* Breakdown Pills */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
+            <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-1">
+              <div className="text-[11px] text-slate-400">Tax-Free LTCG Quota (Section 112A)</div>
+              <div className="text-lg font-bold text-white font-mono">
+                {formatINR(withdrawal.totalTaxFreeGainExtracted)} / ₹1,25,000
+              </div>
+              <div className="text-[10px] text-emerald-400">0% Tax Rate on this gain portion</div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-1">
+              <div className="text-[11px] text-slate-400">Principal Cost Basis Returned</div>
+              <div className="text-lg font-bold text-white font-mono">
+                {formatINR(Math.max(0, withdrawal.totalTaxFreeGrossWithdrawalCapacity - withdrawal.totalTaxFreeGainExtracted))}
+              </div>
+              <div className="text-[10px] text-slate-400">Untaxed capital return</div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-1">
+              <div className="text-[11px] text-slate-400">Permanent Tax Saved via Step-Up</div>
+              <div className="text-lg font-bold text-sky-300 font-mono">
+                {formatINR(withdrawal.permanentTaxSaved)}
+              </div>
+              <div className="text-[10px] text-sky-400">12.5% tax permanently saved on future exit</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto text-xs font-semibold">
         <button
-          onClick={() => setActiveTab("harvesting")}
+          onClick={() => setActiveTab("withdrawals")}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
-            activeTab === "harvesting"
+            activeTab === "withdrawals"
               ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
               : "text-slate-400 hover:text-white hover:bg-slate-900"
           }`}
         >
-          <TrendingUp className="h-4 w-4" />
-          Tax Harvesting Suggestions (LTCG &amp; STCG)
+          <ArrowDownToLine className="h-4 w-4" />
+          Suggested Fund Withdrawals (LTCG, STCG, Debt &amp; Equity)
+        </button>
+
+        <button
+          onClick={() => setActiveTab("regime")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
+            activeTab === "regime"
+              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+              : "text-slate-400 hover:text-white hover:bg-slate-900"
+          }`}
+        >
+          <Scale className="h-4 w-4" />
+          Old vs New Regime Slabs &amp; Deductions
         </button>
 
         <button
@@ -785,259 +564,502 @@ function TaxPlanningContent() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. TAX HARVESTING SUGGESTIONS: LONG TERM (LTCG) & SHORT TERM (STCG) */}
+      {/* 3. TAB 1: SUGGESTED FUND WITHDRAWALS (LTCG, STCG, DEBT & EQUITY) */}
       {/* ========================================================================= */}
-      {activeTab === "harvesting" && (
+      {activeTab === "withdrawals" && (
         <div className="space-y-6">
-          {/* Section A: Long-Term Capital Gain (LTCG) Harvesting (Section 112A ₹1,25,000 Window) */}
-          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                    <Percent className="h-3 w-3" /> Section 112A Quota
-                  </span>
-                  <h3 className="text-lg font-bold text-white">
-                    Long-Term Capital Gain (LTCG) Tax Harvesting
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Harvest up to ₹1,25,000 in equity gains tax-free every financial year. Reinvest same-day to step up the NAV cost base and permanently eliminate future 12.5% tax.
-                </p>
-              </div>
+          {/* Optimal 4-Step Withdrawal Hierarchy */}
+          {withdrawal?.hierarchyGuidance && (
+            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <Layers className="h-4 w-4 text-emerald-400" />
+                Optimal Mutual Fund Withdrawal Priority Hierarchy
+              </h3>
 
-              {/* Progress metrics */}
-              <div className="flex items-center gap-3 bg-slate-950/80 px-4 py-2.5 rounded-2xl border border-slate-800 text-xs">
-                <div>
-                  <div className="text-[10px] text-slate-400">Annual Exemption Limit</div>
-                  <div className="text-sm font-bold text-white">₹1,25,000</div>
-                </div>
-                <div className="h-6 w-px bg-slate-800" />
-                <div>
-                  <div className="text-[10px] text-slate-400">Harvestable Gains</div>
-                  <div className="text-sm font-bold text-emerald-400">
-                    {formatINR(ltcg?.harvestableGain || 0)}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                {withdrawal.hierarchyGuidance.map((step: any, idx: number) => (
+                  <div key={idx} className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1.5 flex flex-col justify-between">
+                    <div>
+                      <div className="text-[11px] font-bold text-white">{step.title}</div>
+                      <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{step.description}</p>
+                    </div>
+                    <div className="text-[10px] font-mono font-semibold text-emerald-400 pt-2 border-t border-slate-800/60">
+                      {step.taxImplication}
+                    </div>
                   </div>
-                </div>
-                <div className="h-6 w-px bg-slate-800" />
-                <div>
-                  <div className="text-[10px] text-slate-400">Tax Saved Permanently (12.5%)</div>
-                  <div className="text-sm font-bold text-emerald-300">
-                    {formatINR(Math.round((ltcg?.harvestableGain || 0) * 0.125))}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
+          )}
 
-            {/* Recommended LTCG Step-Up Trades Table */}
-            {ltcg?.recommendedTrades && ltcg.recommendedTrades.length > 0 ? (
-              <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/50">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-900/80 text-slate-400 font-semibold border-b border-slate-800">
-                    <tr>
-                      <th className="py-3 px-4">Scheme / Holding</th>
-                      <th className="py-3 px-4 text-right">Units to Redeem</th>
-                      <th className="py-3 px-4 text-right">Target Redeem Value</th>
-                      <th className="py-3 px-4 text-right">Tax-Free Gain Booked</th>
-                      <th className="py-3 px-4 text-right">Permanent Tax Saved (12.5%)</th>
-                      <th className="py-3 px-4">Reinvestment Action</th>
-                      <th className="py-3 px-4 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                    {ltcg.recommendedTrades.map((trade: any, idx: number) => (
+          {/* Category Filter Pills */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-400 font-semibold">Filter Asset Category:</span>
+              <button
+                onClick={() => setWithdrawalFilter("ALL")}
+                className={`px-3 py-1 rounded-xl transition ${
+                  withdrawalFilter === "ALL"
+                    ? "bg-slate-800 text-white font-bold border border-slate-700"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                All Schemes ({withdrawal?.allSuggestions?.length || 0})
+              </button>
+              <button
+                onClick={() => setWithdrawalFilter("LTCG")}
+                className={`px-3 py-1 rounded-xl transition ${
+                  withdrawalFilter === "LTCG"
+                    ? "bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Equity LTCG ({withdrawal?.equityLtcgFunds?.length || 0})
+              </button>
+              <button
+                onClick={() => setWithdrawalFilter("STCG")}
+                className={`px-3 py-1 rounded-xl transition ${
+                  withdrawalFilter === "STCG"
+                    ? "bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Equity STCG ({withdrawal?.equityStcgFunds?.length || 0})
+              </button>
+              <button
+                onClick={() => setWithdrawalFilter("DEBT")}
+                className={`px-3 py-1 rounded-xl transition ${
+                  withdrawalFilter === "DEBT"
+                    ? "bg-sky-500/20 text-sky-300 font-bold border border-sky-500/40"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Debt / Section 50AA ({withdrawal?.debtFunds?.length || 0})
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-400">
+              Showing {filteredWithdrawals.length} holdings
+            </div>
+          </div>
+
+          {/* Categorized Funds Table */}
+          {filteredWithdrawals.length > 0 ? (
+            <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/50">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-900/80 text-slate-400 font-semibold border-b border-slate-800">
+                  <tr>
+                    <th className="py-3 px-4">Scheme / Folio</th>
+                    <th className="py-3 px-4">Asset Class &amp; Category</th>
+                    <th className="py-3 px-4 text-right">Holding Value</th>
+                    <th className="py-3 px-4 text-right">Gain / (Loss)</th>
+                    <th className="py-3 px-4 text-right">Suggested Tax-Free Withdrawal</th>
+                    <th className="py-3 px-4 text-right">Tax Rate If Withdrawn</th>
+                    <th className="py-3 px-4">Withdrawal Advice &amp; Strategy</th>
+                    <th className="py-3 px-4 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                  {filteredWithdrawals.map((item: any, idx: number) => {
+                    const isLtcg = item.category === "EQUITY_LTCG";
+                    const isStcg = item.category === "EQUITY_STCG";
+                    const isDebt = item.category === "DEBT_SECTION_50AA";
+
+                    return (
                       <tr key={idx} className="hover:bg-slate-900/40 transition">
+                        {/* Scheme */}
                         <td className="py-3 px-4">
-                          <div className="font-semibold text-white">{trade.schemeName}</div>
-                          {trade.folioNumber && (
-                            <div className="text-[10px] text-slate-500">Folio: {trade.folioNumber}</div>
+                          <div className="font-semibold text-white">{item.schemeName}</div>
+                          {item.folioNumber && (
+                            <div className="text-[10px] text-slate-500">Folio: {item.folioNumber}</div>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-medium text-slate-200">
-                          {trade.unitsToRedeem}
+
+                        {/* Category Badge */}
+                        <td className="py-3 px-4">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              isLtcg
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                : isStcg
+                                ? item.unrealizedGain < 0
+                                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                  : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                            }`}
+                          >
+                            {isLtcg ? "Equity LTCG (>1Y)" : isStcg ? "Equity STCG (<1Y)" : "Debt / Sec 50AA"}
+                          </span>
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-white">
-                          {formatINR(trade.redeemAmount)}
+
+                        {/* Holding Value */}
+                        <td className="py-3 px-4 text-right font-mono">
+                          <div className="text-white font-bold">{formatINR(item.currentValue)}</div>
+                          <div className="text-[10px] text-slate-400">Cost: {formatINR(item.investedCost)}</div>
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-emerald-400">
-                          +{formatINR(trade.gainBookedTaxFree)}
+
+                        {/* Gain */}
+                        <td className="py-3 px-4 text-right font-mono">
+                          <div
+                            className={`font-bold ${
+                              item.unrealizedGain >= 0 ? "text-emerald-400" : "text-red-400"
+                            }`}
+                          >
+                            {item.unrealizedGain >= 0 ? "+" : ""}
+                            {formatINR(item.unrealizedGain)}
+                          </div>
+                          <div className="text-[10px] text-slate-500">
+                            {item.holdingPeriodDays} days
+                          </div>
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-emerald-300">
-                          {formatINR(trade.taxSavedPermanently)}
+
+                        {/* Suggested Tax-Free Withdrawal */}
+                        <td className="py-3 px-4 text-right font-mono">
+                          {item.maxTaxFreeWithdrawalAmount > 0 ? (
+                            <>
+                              <div className="text-white font-bold">{formatINR(item.maxTaxFreeWithdrawalAmount)}</div>
+                              <div className="text-[10px] text-emerald-400">
+                                Gain: +{formatINR(item.taxFreeGainBooked)} (0% Tax)
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-slate-500 text-[11px]">—</span>
+                          )}
                         </td>
-                        <td className="py-3 px-4 text-[11px] text-slate-400 max-w-xs">
-                          {trade.rationale}
+
+                        {/* Tax Rate */}
+                        <td className="py-3 px-4 text-right font-mono">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[11px] font-bold ${
+                              item.taxRateIfWithdrawnPct === 0
+                                ? "bg-emerald-500/20 text-emerald-300"
+                                : item.taxRateIfWithdrawnPct === 20
+                                ? "bg-amber-500/20 text-amber-400"
+                                : "bg-slate-800 text-slate-300"
+                            }`}
+                          >
+                            {item.taxRateIfWithdrawnPct}%
+                          </span>
+                          {item.estimatedTaxPayable > 0 && (
+                            <div className="text-[10px] text-slate-400 mt-0.5">
+                              Tax: {formatINR(item.estimatedTaxPayable)}
+                            </div>
+                          )}
                         </td>
+
+                        {/* Action Instructions */}
+                        <td className="py-3 px-4 text-[11px] max-w-sm">
+                          <div className="text-slate-300 leading-relaxed">{item.actionInstructions}</div>
+                        </td>
+
+                        {/* Copy button */}
                         <td className="py-3 px-4 text-center">
                           <button
-                            onClick={() => copyTrade(trade, idx)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold transition inline-flex items-center gap-1"
+                            onClick={() => copyItemText(item, idx)}
+                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold transition inline-flex items-center gap-1 border border-slate-700"
                           >
-                            {copiedTradeIndex === idx ? (
+                            {copiedItemIndex === idx ? (
                               <>
                                 <Check className="h-3 w-3 text-emerald-400" /> Copied
                               </>
                             ) : (
                               <>
-                                <Copy className="h-3 w-3" /> Copy Trade
+                                <Copy className="h-3 w-3" /> Copy
                               </>
                             )}
                           </button>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="p-6 rounded-2xl bg-slate-950/40 border border-slate-800/60 text-center text-xs text-slate-400">
-                No eligible long-term equity holdings with unrealized gains found for LTCG step-up at this time.
-              </div>
-            )}
-          </div>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-8 rounded-2xl bg-slate-950/40 border border-slate-800 text-center text-xs text-slate-400">
+              No holdings found matching the selected asset class filter.
+            </div>
+          )}
+        </div>
+      )}
 
-          {/* Section B: Short-Term Capital Gain (STCG) & Capital Loss Harvesting Scanner */}
-          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* ========================================================================= */}
+      {/* 4. TAB 2: OLD VS NEW REGIME SLABS & DEDUCTIONS */}
+      {/* ========================================================================= */}
+      {activeTab === "regime" && (
+        <div className="space-y-6">
+          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                    <TrendingDown className="h-3 w-3" /> Section 111A Offset
-                  </span>
-                  <h3 className="text-lg font-bold text-white">
-                    Short-Term Capital Gain (STCG) &amp; Loss Harvesting Scanner
-                  </h3>
-                </div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Scale className="h-5 w-5 text-emerald-400" />
+                  Old vs New Regime Liability Simulator
+                </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Book Short-Term Capital Losses (STCL) to offset realized STCG (20%) and LTCG (12.5%). Reallocate proceeds into wash-sale safe peer schemes to maintain target exposure.
+                  Detailed comparison between Section 115BAC and Old Regime with full Chapter VI-A deductions.
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 bg-slate-950/80 px-4 py-2.5 rounded-2xl border border-slate-800 text-xs">
-                <div>
-                  <div className="text-[10px] text-slate-400">Total Unrealized Losses</div>
-                  <div className="text-sm font-bold text-amber-400">
-                    {formatINR(tlh?.totalUnrealizedLosses || 0)}
-                  </div>
-                </div>
-                <div className="h-6 w-px bg-slate-800" />
-                <div>
-                  <div className="text-[10px] text-slate-400">Realizable Tax Offset Alpha</div>
-                  <div className="text-sm font-bold text-emerald-400">
-                    {formatINR(tlh?.totalTaxAlphaPotential || 0)}
-                  </div>
-                </div>
+              <button
+                onClick={() => setShowDeductionTuning(!showDeductionTuning)}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition flex items-center gap-1.5 border border-slate-700 self-start sm:self-auto"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                {showDeductionTuning ? "Hide Deduction Controls" : "Tune Old Regime Deductions"}
+              </button>
+            </div>
+
+            {/* Gross Income Input */}
+            <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+              <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex justify-between mb-2">
+                <span>Annual Gross Salary / Business Income</span>
+                <span className="text-emerald-400 font-mono text-sm">{formatINR(grossIncome)}</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-bold text-emerald-400 font-mono">₹</span>
+                <input
+                  type="number"
+                  step="50000"
+                  value={grossIncome}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setGrossIncome(val);
+                    runSimulatorRecalc(val, sim80C, sim80D, sim80CCD, sim24b, simHRA, simOther);
+                  }}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-emerald-500 font-mono"
+                />
               </div>
             </div>
 
-            {/* Opportunities Table */}
-            {tlh?.opportunities && tlh.opportunities.length > 0 ? (
-              <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/50">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-900/80 text-slate-400 font-semibold border-b border-slate-800">
-                    <tr>
-                      <th className="py-3 px-4">Scheme / Holding</th>
-                      <th className="py-3 px-4">Gain Type</th>
-                      <th className="py-3 px-4 text-right">Cost vs Current Value</th>
-                      <th className="py-3 px-4 text-right">Unrealized Loss</th>
-                      <th className="py-3 px-4 text-right">Tax Offset Rate</th>
-                      <th className="py-3 px-4 text-right">Tax Alpha Saved</th>
-                      <th className="py-3 px-4">Wash-Sale Safe Reinvestment Peer</th>
-                      <th className="py-3 px-4 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                    {tlh.opportunities.map((opp: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-slate-900/40 transition">
-                        <td className="py-3 px-4">
-                          <div className="font-semibold text-white">{opp.schemeName}</div>
-                          {opp.folioNumber && (
-                            <div className="text-[10px] text-slate-500">Folio: {opp.folioNumber}</div>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              opp.gainType === "STCL"
-                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                            }`}
-                          >
-                            {opp.gainType}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono">
-                          <div className="text-slate-400">{formatINR(opp.investedCost)}</div>
-                          <div className="text-white font-bold">{formatINR(opp.currentValue)}</div>
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-red-400">
-                          -{formatINR(opp.unrealizedLoss)}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono text-slate-300">
-                          {opp.taxRateOffsetPct}%
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-emerald-400">
-                          {formatINR(opp.potentialTaxSaved)}
-                        </td>
-                        <td className="py-3 px-4 text-[11px] text-slate-300 max-w-xs">
-                          <div className="font-medium text-emerald-300">{opp.replacementScheme}</div>
-                          <div className="text-[10px] text-slate-500 mt-0.5">{opp.rationale}</div>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                              opp.recommendedAction === "HARVEST_NOW"
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                                : "bg-slate-800 text-slate-400 border border-slate-700"
-                            }`}
-                          >
-                            {opp.recommendedAction === "HARVEST_NOW" ? "Harvest Now" : "Monitor"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="p-6 rounded-2xl bg-slate-950/40 border border-slate-800/60 text-center text-xs text-slate-400">
-                All portfolio holdings are currently in profit. No short-term or long-term loss-making positions detected.
+            {/* Collapsible Deduction Controls */}
+            {showDeductionTuning && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                    <span>Section 80C (EPF/PPF/ELSS, max 1.5L)</span>
+                    <span className="text-slate-400 font-mono">{formatINR(sim80C)}</span>
+                  </label>
+                  <input
+                    type="number"
+                    max="150000"
+                    step="10000"
+                    value={sim80C}
+                    onChange={(e) => {
+                      const val = Math.min(150000, Number(e.target.value));
+                      setSim80C(val);
+                      runSimulatorRecalc(grossIncome, val, sim80D, sim80CCD, sim24b, simHRA, simOther);
+                    }}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                    <span>Section 80D (Health Insurance, max 1L)</span>
+                    <span className="text-slate-400 font-mono">{formatINR(sim80D)}</span>
+                  </label>
+                  <input
+                    type="number"
+                    max="100000"
+                    step="5000"
+                    value={sim80D}
+                    onChange={(e) => {
+                      const val = Math.min(100000, Number(e.target.value));
+                      setSim80D(val);
+                      runSimulatorRecalc(grossIncome, sim80C, val, sim80CCD, sim24b, simHRA, simOther);
+                    }}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                    <span>Section 80CCD(1B) (NPS, max 50k)</span>
+                    <span className="text-slate-400 font-mono">{formatINR(sim80CCD)}</span>
+                  </label>
+                  <input
+                    type="number"
+                    max="50000"
+                    step="5000"
+                    value={sim80CCD}
+                    onChange={(e) => {
+                      const val = Math.min(50000, Number(e.target.value));
+                      setSim80CCD(val);
+                      runSimulatorRecalc(grossIncome, sim80C, sim80D, val, sim24b, simHRA, simOther);
+                    }}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                    <span>Section 24b (Home Loan Interest, max 2L)</span>
+                    <span className="text-slate-400 font-mono">{formatINR(sim24b)}</span>
+                  </label>
+                  <input
+                    type="number"
+                    max="200000"
+                    step="10000"
+                    value={sim24b}
+                    onChange={(e) => {
+                      const val = Math.min(200000, Number(e.target.value));
+                      setSim24b(val);
+                      runSimulatorRecalc(grossIncome, sim80C, sim80D, sim80CCD, val, simHRA, simOther);
+                    }}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                    <span>Section 10(13A) (HRA Exemption)</span>
+                    <span className="text-slate-400 font-mono">{formatINR(simHRA)}</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="10000"
+                    value={simHRA}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setSimHRA(val);
+                      runSimulatorRecalc(grossIncome, sim80C, sim80D, sim80CCD, sim24b, val, simOther);
+                    }}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
             )}
-          </div>
 
-          {/* Section C: Statutory Explainer & Set-Off Rules */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-            <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-1.5">
-              <div className="font-bold text-white flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" /> LTCG 112A Step-Up Rules
+            {/* Side by side cards */}
+            {comp && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* New Regime Card */}
+                <div
+                  className={`p-6 rounded-3xl border transition relative ${
+                    isNewOptimal
+                      ? "bg-slate-900/90 border-emerald-500/60 shadow-xl shadow-emerald-950/30 ring-1 ring-emerald-500/30"
+                      : "bg-slate-900/40 border-slate-800"
+                  }`}
+                >
+                  <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-0.5">
+                    Section 115BAC
+                  </div>
+                  <h4 className="text-xl font-black text-white">New Tax Regime</h4>
+                  <p className="text-xs text-slate-400">
+                    Flat ₹75,000 standard deduction with streamlined slabs
+                  </p>
+
+                  <div className="my-4 py-3 border-y border-slate-800 space-y-1">
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                      Total Applicable Tax Due
+                    </div>
+                    <div className="text-3xl font-black text-white font-mono">
+                      {formatINR(comp.newRegime.totalTax)}
+                    </div>
+                    <div className="text-xs text-emerald-400 font-semibold">
+                      Effective Rate: {comp.newRegime.effectiveTaxRatePct}%
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between text-slate-400">
+                      <span>Gross Income:</span>
+                      <span className="text-white font-mono">{formatINR(comp.newRegime.grossIncome)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Standard Deduction:</span>
+                      <span className="text-emerald-400 font-mono">-{formatINR(comp.newRegime.standardDeduction)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Taxable Income:</span>
+                      <span className="text-white font-mono font-bold">{formatINR(comp.newRegime.taxableIncome)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Slab Tax:</span>
+                      <span className="text-white font-mono">{formatINR(comp.newRegime.slabTax)}</span>
+                    </div>
+                    {comp.newRegime.surcharge > 0 && (
+                      <div className="flex justify-between text-slate-400">
+                        <span>Surcharge:</span>
+                        <span className="text-white font-mono">{formatINR(comp.newRegime.surcharge)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-slate-400">
+                      <span>Health &amp; Education Cess (4%):</span>
+                      <span className="text-white font-mono">{formatINR(comp.newRegime.cess)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Old Regime Card */}
+                <div
+                  className={`p-6 rounded-3xl border transition relative ${
+                    !isNewOptimal
+                      ? "bg-slate-900/90 border-indigo-500/60 shadow-xl shadow-indigo-950/30 ring-1 ring-indigo-500/30"
+                      : "bg-slate-900/40 border-slate-800"
+                  }`}
+                >
+                  <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-0.5">
+                    Conventional Slabs
+                  </div>
+                  <h4 className="text-xl font-black text-white">Old Tax Regime</h4>
+                  <p className="text-xs text-slate-400">
+                    Utilizes 80C, 80D, 80CCD, Section 24(b) &amp; HRA deductions
+                  </p>
+
+                  <div className="my-4 py-3 border-y border-slate-800 space-y-1">
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                      Total Applicable Tax Due
+                    </div>
+                    <div className="text-3xl font-black text-white font-mono">
+                      {formatINR(comp.oldRegime.totalTax)}
+                    </div>
+                    <div className="text-xs text-indigo-400 font-semibold">
+                      Effective Rate: {comp.oldRegime.effectiveTaxRatePct}%
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between text-slate-400">
+                      <span>Gross Income:</span>
+                      <span className="text-white font-mono">{formatINR(comp.oldRegime.grossIncome)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Standard Deduction:</span>
+                      <span className="text-emerald-400 font-mono">-{formatINR(comp.oldRegime.standardDeduction)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Total Chapter VI-A Deductions:</span>
+                      <span className="text-emerald-400 font-mono">-{formatINR(comp.oldRegime.totalDeductions)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Taxable Income:</span>
+                      <span className="text-white font-mono font-bold">{formatINR(comp.oldRegime.taxableIncome)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Slab Tax:</span>
+                      <span className="text-white font-mono">{formatINR(comp.oldRegime.slabTax)}</span>
+                    </div>
+                    {comp.oldRegime.surcharge > 0 && (
+                      <div className="flex justify-between text-slate-400">
+                        <span>Surcharge:</span>
+                        <span className="text-white font-mono">{formatINR(comp.oldRegime.surcharge)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-slate-400">
+                      <span>Health &amp; Education Cess (4%):</span>
+                      <span className="text-white font-mono">{formatINR(comp.oldRegime.cess)}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="text-slate-400 text-[11px] leading-relaxed">
-                Section 112A grants an annual tax exemption on equity LTCG up to ₹1,25,000. Redeeming and repurchasing units before March 31 resets the acquisition cost base to today&apos;s market price completely tax-free.
-              </p>
-            </div>
-            <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-1.5">
-              <div className="font-bold text-white flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-amber-400" /> STCL Set-Off (Section 70)
-              </div>
-              <p className="text-slate-400 text-[11px] leading-relaxed">
-                Short-Term Capital Loss (STCL) can offset both STCG (taxed at 20%) and LTCG (taxed at 12.5%). Any unabsorbed loss can be carried forward for 8 consecutive Assessment Years to offset future gains.
-              </p>
-            </div>
-            <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-1.5">
-              <div className="font-bold text-white flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-purple-400" /> Wash-Sale Safe Peer Schemes
-              </div>
-              <p className="text-slate-400 text-[11px] leading-relaxed">
-                Reallocating redemption proceeds into equivalent peer schemes (e.g. Parag Parikh Flexi Cap or Mirae Asset Large &amp; Midcap) avoids tax challenges while maintaining 100% active compounding in the market.
-              </p>
-            </div>
+            )}
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* 4. TAB 2: CAPITAL GAINS STATEMENT FOR ITR (SCHEDULE CG) */}
+      {/* 5. TAB 3: CAPITAL GAINS STATEMENT FOR ITR (SCHEDULE CG) */}
       {/* ========================================================================= */}
       {activeTab === "schedule-cg" && (
         <div className="space-y-6">
@@ -1177,7 +1199,7 @@ function TaxPlanningContent() {
       )}
 
       {/* ========================================================================= */}
-      {/* 5. TAB 3: GEMINI AI WEALTH TAX ADVISORY MEMO */}
+      {/* 6. TAB 4: GEMINI AI WEALTH TAX ADVISORY MEMO */}
       {/* ========================================================================= */}
       {activeTab === "ai-advisory" && (
         <div className="space-y-6">
@@ -1214,25 +1236,27 @@ function TaxPlanningContent() {
                   )}
                 </button>
 
-                <button
-                  onClick={() => handleGenerateAiTaxAdvisory(true)}
-                  disabled={isSavingSuggestion}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs transition shadow-lg shadow-emerald-600/30 flex items-center gap-2"
-                >
-                  {isSavingSuggestion ? (
-                    <>
-                      <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Saving...
-                    </>
-                  ) : savedSuggestionId ? (
-                    <>
-                      <CheckCheck className="h-3.5 w-3.5" /> Saved to Suggestions
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Save to Client Suggestions
-                    </>
-                  )}
-                </button>
+                {isAdvisor && (
+                  <button
+                    onClick={() => handleGenerateAiTaxAdvisory(true)}
+                    disabled={isSavingSuggestion}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs transition shadow-lg shadow-emerald-600/30 flex items-center gap-2"
+                  >
+                    {isSavingSuggestion ? (
+                      <>
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Saving...
+                      </>
+                    ) : savedSuggestionId ? (
+                      <>
+                        <CheckCheck className="h-3.5 w-3.5" /> Saved to Suggestions
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Save to Client Suggestions
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1240,7 +1264,7 @@ function TaxPlanningContent() {
             <div className="space-y-1.5 p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
               <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <Sliders className="h-3.5 w-3.5 text-purple-400" />
-                Special Advisor Instructions for Gemini AI (Optional):
+                Special Instructions for Gemini AI (Optional):
               </label>
               <div className="flex gap-2">
                 <input

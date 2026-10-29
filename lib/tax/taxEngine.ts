@@ -116,6 +116,48 @@ export interface CapitalGainsScheduleItem {
   estimatedTax: number;
 }
 
+export interface MutualFundWithdrawalItem {
+  holdingId: string;
+  schemeName: string;
+  folioNumber?: string;
+  assetClass: string;
+  assetType: "EQUITY" | "DEBT" | "HYBRID";
+  category: "EQUITY_LTCG" | "EQUITY_STCG" | "DEBT_SECTION_50AA";
+  holdingPeriodDays: number;
+  currentNav: number;
+  units: number;
+  investedCost: number;
+  currentValue: number;
+  unrealizedGain: number; // positive for gain, negative for loss
+  maxTaxFreeWithdrawalAmount: number; // Gross value that can be withdrawn with 0 tax
+  taxFreeGainBooked: number; // LTCG portion under 112A (up to ₹1.25L)
+  taxRateIfWithdrawnPct: number; // 0% if tax-free, 12.5% if excess LTCG, 20% if STCG, or slab (30%) if debt
+  estimatedTaxPayable: number;
+  withdrawalPriority: "HIGH_RECOMMENDED_TAX_FREE" | "HARVEST_LOSS_ALPHA" | "DEBT_LIQUID_WITHDRAWAL" | "AVOID_PENAL_STCG";
+  recommendationBadge: "TAX_FREE_STEP_UP" | "HARVEST_LOSS" | "AVOID_20PCT_STCG" | "SLAB_RATE_WITHDRAWAL";
+  actionInstructions: string;
+  replacementScheme?: string;
+}
+
+export interface MutualFundWithdrawalPlan {
+  annualExemptionLimit: number; // ₹1,25,000
+  utilizedExemptionThisFY: number;
+  remainingExemptionHeadroom: number;
+  totalTaxFreeGrossWithdrawalCapacity: number; // Gross cash out with 0 tax (principal + 112A gain)
+  totalTaxFreeGainExtracted: number; // The ₹1.25L gain component
+  permanentTaxSaved: number; // 12.5% of the extracted gain
+  equityLtcgFunds: MutualFundWithdrawalItem[];
+  equityStcgFunds: MutualFundWithdrawalItem[];
+  debtFunds: MutualFundWithdrawalItem[];
+  allSuggestions: MutualFundWithdrawalItem[];
+  hierarchyGuidance: Array<{
+    stepNumber: number;
+    title: string;
+    description: string;
+    taxImplication: string;
+  }>;
+}
+
 export interface CompleteTaxPlanningSummary {
   clientId: string;
   clientName: string;
@@ -579,6 +621,215 @@ export function generateScheduleCG(
     totalCapitalGainsTax: Math.round(totalCapitalGainsTax),
     items,
     advanceTaxSchedule,
+  };
+}
+
+/**
+ * Computes optimal mutual fund withdrawal strategy
+ * Specifically calculates:
+ * 1. How much can be withdrawn 100% tax-free (Section 112A ₹1,25,000 quota + principal cost basis)
+ * 2. Specific suggested funds to withdraw from for:
+ *    - Equity LTCG (0% up to ₹1.25L, 12.5% beyond)
+ *    - Equity STCG (avoid 20% penal rate, harvest STCL losses)
+ *    - Debt Mutual Funds (Section 50AA slab rate taxation, withdrawal order)
+ */
+export function calculateMutualFundWithdrawalStrategy(
+  holdings: TaxHoldingItem[],
+  utilizedExemptionThisFY = 0,
+  marginalSlabRatePct = 30
+): MutualFundWithdrawalPlan {
+  const ANNUAL_LIMIT = 125000;
+  let remainingHeadroom = Math.max(0, ANNUAL_LIMIT - utilizedExemptionThisFY);
+
+  let totalTaxFreeGrossCapacity = 0;
+  let totalTaxFreeGainExtracted = 0;
+
+  const equityLtcgFunds: MutualFundWithdrawalItem[] = [];
+  const equityStcgFunds: MutualFundWithdrawalItem[] = [];
+  const debtFunds: MutualFundWithdrawalItem[] = [];
+  const allSuggestions: MutualFundWithdrawalItem[] = [];
+
+  // Sort equity LTCG by highest unrealized gains first for step-up efficiency
+  const sortedHoldings = [...holdings].sort((a, b) => b.unrealizedGain - a.unrealizedGain);
+
+  for (const h of sortedHoldings) {
+    const isDebt =
+      h.isDebt ||
+      (h.assetClass || "").toLowerCase().includes("debt") ||
+      h.schemeName.toLowerCase().includes("debt") ||
+      h.schemeName.toLowerCase().includes("liquid") ||
+      h.schemeName.toLowerCase().includes("bond");
+    const isLongTerm = h.isLongTerm; // >= 365 days for equity
+    const gain = h.unrealizedGain;
+    const currentVal = h.currentValue;
+    const cost = h.investedCost;
+
+    if (isDebt) {
+      // 1. Debt Mutual Funds (Section 50AA)
+      const taxRate = marginalSlabRatePct;
+      const estTax = gain > 0 ? Math.round(gain * (taxRate / 100)) : 0;
+      const isLiquid =
+        h.schemeName.toLowerCase().includes("liquid") ||
+        h.schemeName.toLowerCase().includes("overnight") ||
+        h.schemeName.toLowerCase().includes("money");
+
+      const item: MutualFundWithdrawalItem = {
+        holdingId: h.id,
+        schemeName: h.schemeName,
+        folioNumber: h.folioNumber,
+        assetClass: h.assetClass,
+        assetType: "DEBT",
+        category: "DEBT_SECTION_50AA",
+        holdingPeriodDays: h.holdingPeriodDays,
+        currentNav: h.currentNav,
+        units: h.units,
+        investedCost: cost,
+        currentValue: currentVal,
+        unrealizedGain: gain,
+        maxTaxFreeWithdrawalAmount: 0,
+        taxFreeGainBooked: 0,
+        taxRateIfWithdrawnPct: taxRate,
+        estimatedTaxPayable: estTax,
+        withdrawalPriority: "DEBT_LIQUID_WITHDRAWAL",
+        recommendationBadge: "SLAB_RATE_WITHDRAWAL",
+        actionInstructions: isLiquid
+          ? `Priority Cash Buffer: Minimal price volatility. Withdrawing ₹${currentVal.toLocaleString("en-IN")} realizes ₹${Math.max(0, gain).toLocaleString("en-IN")} gains taxed at your income slab rate (${taxRate}%).`
+          : `Fixed Income: Gains taxed at normal slab rate (${taxRate}%) under Section 50AA. Consider reallocating into Equity Arbitrage Funds for future savings (12.5% LTCG).`,
+      };
+      debtFunds.push(item);
+      allSuggestions.push(item);
+    } else if (isLongTerm) {
+      // 2. Equity LTCG (Section 112A)
+      let taxFreeGain = 0;
+      let taxFreeGross = 0;
+      let taxPayable = 0;
+      let taxRate = 12.5;
+
+      if (gain > 0) {
+        if (remainingHeadroom > 0) {
+          taxFreeGain = Math.min(gain, remainingHeadroom);
+          const gainRatio = gain / Math.max(1, currentVal);
+          taxFreeGross = Math.round(taxFreeGain / Math.max(0.01, gainRatio));
+          taxFreeGross = Math.min(taxFreeGross, currentVal);
+          remainingHeadroom -= taxFreeGain;
+          totalTaxFreeGainExtracted += taxFreeGain;
+          totalTaxFreeGrossCapacity += taxFreeGross;
+          taxRate = 0;
+        } else {
+          taxPayable = Math.round(gain * 0.125);
+        }
+      }
+
+      const item: MutualFundWithdrawalItem = {
+        holdingId: h.id,
+        schemeName: h.schemeName,
+        folioNumber: h.folioNumber,
+        assetClass: h.assetClass,
+        assetType: "EQUITY",
+        category: "EQUITY_LTCG",
+        holdingPeriodDays: h.holdingPeriodDays,
+        currentNav: h.currentNav,
+        units: h.units,
+        investedCost: cost,
+        currentValue: currentVal,
+        unrealizedGain: gain,
+        maxTaxFreeWithdrawalAmount: taxFreeGross,
+        taxFreeGainBooked: taxFreeGain,
+        taxRateIfWithdrawnPct: taxRate,
+        estimatedTaxPayable: taxPayable,
+        withdrawalPriority: taxFreeGain > 0 ? "HIGH_RECOMMENDED_TAX_FREE" : "DEBT_LIQUID_WITHDRAWAL",
+        recommendationBadge: taxFreeGain > 0 ? "TAX_FREE_STEP_UP" : "SLAB_RATE_WITHDRAWAL",
+        actionInstructions:
+          taxFreeGain > 0
+            ? `RECOMMENDED: Withdraw ₹${taxFreeGross.toLocaleString("en-IN")} to book ₹${taxFreeGain.toLocaleString("en-IN")} tax-free LTCG under Section 112A. Reinvest next day to step up cost basis with ₹0 tax liability.`
+            : `LTCG Exemption fully utilized. Gains above ₹1.25L attract flat 12.5% LTCG tax.`,
+      };
+      equityLtcgFunds.push(item);
+      allSuggestions.push(item);
+    } else {
+      // 3. Equity STCG (Section 111A, < 365 days)
+      const isLoss = gain < 0;
+      const loss = Math.abs(gain);
+      const daysLeft = Math.max(1, 365 - h.holdingPeriodDays);
+
+      let replacement = "Parag Parikh Flexi Cap Fund / Nifty 50 Index Fund";
+      const sLower = h.schemeName.toLowerCase();
+      if (sLower.includes("small")) replacement = "Nippon India Small Cap Fund / SBI Small Cap Fund";
+      else if (sLower.includes("mid")) replacement = "Motilal Oswal Midcap Fund";
+
+      const item: MutualFundWithdrawalItem = {
+        holdingId: h.id,
+        schemeName: h.schemeName,
+        folioNumber: h.folioNumber,
+        assetClass: h.assetClass,
+        assetType: "EQUITY",
+        category: "EQUITY_STCG",
+        holdingPeriodDays: h.holdingPeriodDays,
+        currentNav: h.currentNav,
+        units: h.units,
+        investedCost: cost,
+        currentValue: currentVal,
+        unrealizedGain: gain,
+        maxTaxFreeWithdrawalAmount: 0,
+        taxFreeGainBooked: 0,
+        taxRateIfWithdrawnPct: 20.0,
+        estimatedTaxPayable: isLoss ? 0 : Math.round(gain * 0.20),
+        withdrawalPriority: isLoss ? "HARVEST_LOSS_ALPHA" : "AVOID_PENAL_STCG",
+        recommendationBadge: isLoss ? "HARVEST_LOSS" : "AVOID_20PCT_STCG",
+        actionInstructions: isLoss
+          ? `HARVEST LOSS: Redeem to book Short-Term Capital Loss of ₹${loss.toLocaleString("en-IN")}, generating ₹${Math.round(loss * 0.20).toLocaleString("en-IN")} in tax credits against STCG/LTCG. Reinvest into ${replacement.split("/")[0].trim()}.`
+          : `AVOID WITHDRAWAL: Held for ${h.holdingPeriodDays} days. Withdrawing now incurs 20% Section 111A STCG tax (₹${Math.round(gain * 0.20).toLocaleString("en-IN")}). Hold for ${daysLeft} more days until 1 year to reduce tax to 0% (up to ₹1.25L) or 12.5%.`,
+        replacementScheme: replacement,
+      };
+      equityStcgFunds.push(item);
+      allSuggestions.push(item);
+    }
+  }
+
+  const permanentTaxSaved = Math.round(totalTaxFreeGainExtracted * 0.125);
+
+  const hierarchyGuidance = [
+    {
+      stepNumber: 1,
+      title: "Priority 1: Section 112A Tax-Free LTCG Step-Up (0% Tax)",
+      description: `Extract up to ₹${totalTaxFreeGrossCapacity.toLocaleString("en-IN")} from long-term equity funds. Locks in ₹${totalTaxFreeGainExtracted.toLocaleString("en-IN")} capital gains with ZERO tax liability.`,
+      taxImplication: "0% Tax Rate (Saves 12.5% permanently)",
+    },
+    {
+      stepNumber: 2,
+      title: "Priority 2: Tax-Loss Harvesting Redemptions (Generates Tax Credit)",
+      description:
+        "Redeem underperforming equity positions held < 1 year to generate STCL credits that offset taxable STCG (20%) and LTCG (12.5%).",
+      taxImplication: "Offsets 20% STCG / 12.5% LTCG (8-year carry-forward)",
+    },
+    {
+      stepNumber: 3,
+      title: "Priority 3: Liquid & Overnight Debt Funds (Operational Cash Needs)",
+      description:
+        "Utilize liquid debt holdings for cash flow. Capital gains are minimal, so slab-rate tax impact is negligible.",
+      taxImplication: "Section 50AA: Taxed at normal slab rate",
+    },
+    {
+      stepNumber: 4,
+      title: "Priority 4: AVOID Short-Term Appreciated Equities (Penal Rate)",
+      description:
+        "Do not withdraw from profitable equity holdings held under 365 days unless critical. Hold until 1-year completion to avoid the 20% tax penalty.",
+      taxImplication: "Section 111A: 20% Flat Tax",
+    },
+  ];
+
+  return {
+    annualExemptionLimit: ANNUAL_LIMIT,
+    utilizedExemptionThisFY,
+    remainingExemptionHeadroom: remainingHeadroom,
+    totalTaxFreeGrossWithdrawalCapacity: totalTaxFreeGrossCapacity,
+    totalTaxFreeGainExtracted,
+    permanentTaxSaved,
+    equityLtcgFunds,
+    equityStcgFunds,
+    debtFunds,
+    allSuggestions,
+    hierarchyGuidance,
   };
 }
 

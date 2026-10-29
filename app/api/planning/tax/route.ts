@@ -6,6 +6,7 @@ import {
   scanTaxLossHarvesting,
   calculateLtcgHarvestingOpportunity,
   generateScheduleCG,
+  calculateMutualFundWithdrawalStrategy,
   TaxHoldingItem,
   TaxDeductionsInput,
 } from "@/lib/tax/taxEngine";
@@ -24,42 +25,114 @@ export async function GET(req: Request) {
     const requestedClientId = searchParams.get("clientId");
     const fiscalYear = searchParams.get("fiscalYear") || "2026-2027";
     const utilizedLtcg = Number(searchParams.get("utilizedLtcg") || 0);
+    const isAdvisor = session.role !== "CLIENT";
 
-    // Fetch clients accessible to advisor or current client
-    let clientsQuery = supabaseAdmin
-      .from("clients")
-      .select("client_id, full_name, email, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, pan_number, marital_status")
-      .order("full_name", { ascending: true });
+    let targetClient: any = null;
+    let clientList: any[] = [];
 
-    if (session.role === "CLIENT") {
-      clientsQuery = clientsQuery.or(`user_id.eq.${session.sub},client_id.eq.${session.sub}`);
-    } else if (session.tenantId && session.role !== "SUPER_ADMIN") {
-      clientsQuery = clientsQuery.eq("tenant_id", session.tenantId);
-    }
-
-    const { data: clients, error: cErr } = await clientsQuery;
-    if (cErr) {
-      console.error("Error fetching clients for tax planning:", cErr);
-    }
-
-    const clientList = clients || [];
-
-    // Select target client: requested ID, or match Vibhav, or first in list
-    let targetClient = clientList.find((c) => c.client_id === requestedClientId);
-    if (!targetClient && requestedClientId && requestedClientId !== "ALL") {
-      const { data: directClient } = await supabaseAdmin
+    if (!isAdvisor) {
+      // 1. CLIENT LOGIN: Directly locate logged-in client record
+      // Check by user_id
+      const { data: uClient } = await supabaseAdmin
         .from("clients")
         .select("*")
-        .eq("client_id", requestedClientId)
+        .eq("user_id", session.sub)
         .maybeSingle();
-      if (directClient) targetClient = directClient;
-    }
 
-    if (!targetClient) {
-      targetClient =
-        clientList.find((c) => c.full_name?.toLowerCase().includes("vibhav")) ||
-        clientList[0] ||
-        null;
+      if (uClient) {
+        targetClient = uClient;
+      } else {
+        // Check by client_id
+        const { data: cById } = await supabaseAdmin
+          .from("clients")
+          .select("*")
+          .eq("client_id", session.sub)
+          .maybeSingle();
+        if (cById) {
+          targetClient = cById;
+        } else if (session.firstName || session.lastName) {
+          // Check by name match
+          const fullName = [session.firstName, session.lastName].filter(Boolean).join(" ").trim();
+          if (fullName) {
+            const { data: cByName } = await supabaseAdmin
+              .from("clients")
+              .select("*")
+              .ilike("full_name", `%${fullName}%`)
+              .maybeSingle();
+            if (cByName) targetClient = cByName;
+          }
+        }
+      }
+
+      // Fallback: check profile household
+      if (!targetClient) {
+        const { data: profile } = await supabaseAdmin
+          .from("client_profiles")
+          .select("household_id")
+          .eq("user_id", session.sub)
+          .maybeSingle();
+
+        if (profile?.household_id) {
+          const { data: hhClient } = await supabaseAdmin
+            .from("clients")
+            .select("*")
+            .eq("household_id", profile.household_id)
+            .limit(1)
+            .maybeSingle();
+          if (hhClient) targetClient = hhClient;
+        }
+      }
+
+      // Default fallback for client if not yet linked
+      if (!targetClient) {
+        const { data: defaultClient } = await supabaseAdmin
+          .from("clients")
+          .select("*")
+          .ilike("full_name", "%vibhav%")
+          .maybeSingle();
+        targetClient = defaultClient;
+      }
+    } else {
+      // 2. ADVISOR LOGIN: Allow selecting client from list
+      let clientsQuery = supabaseAdmin
+        .from("clients")
+        .select("client_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id")
+        .order("full_name", { ascending: true });
+
+      if (session.tenantId && session.role !== "SUPER_ADMIN" && session.tenantId !== "00000000-0000-0000-0000-000000000000") {
+        clientsQuery = clientsQuery.eq("tenant_id", session.tenantId);
+      }
+
+      let { data: clients, error: cErr } = await clientsQuery;
+      if (!clients || clients.length === 0) {
+        const { data: fallbackClients } = await supabaseAdmin
+          .from("clients")
+          .select("client_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id")
+          .order("full_name", { ascending: true });
+        clients = fallbackClients || [];
+      }
+
+      clientList = clients || [];
+
+      // Select target client: requested ID, or match Vibhav, or first in list
+      if (requestedClientId && requestedClientId !== "ALL") {
+        targetClient = clientList.find((c) => c.client_id === requestedClientId);
+        if (!targetClient) {
+          const { data: directClient } = await supabaseAdmin
+            .from("clients")
+            .select("*")
+            .eq("client_id", requestedClientId)
+            .maybeSingle();
+          if (directClient) targetClient = directClient;
+        }
+      }
+
+      if (!targetClient) {
+        targetClient =
+          clientList.find((c) => c.full_name?.toLowerCase().includes("vibhav")) ||
+          clientList[0] ||
+          null;
+      }
     }
 
     if (!targetClient) {
@@ -200,6 +273,7 @@ export async function GET(req: Request) {
     const taxLossHarvesting = scanTaxLossHarvesting(holdings);
     const ltcgHarvesting = calculateLtcgHarvestingOpportunity(holdings, utilizedLtcg);
     const scheduleCG = generateScheduleCG(holdings, fiscalYear);
+    const withdrawalStrategy = calculateMutualFundWithdrawalStrategy(holdings, utilizedLtcg, 30);
 
     // Summary calculations
     const totalTaxSavedAlpha =
@@ -208,13 +282,17 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       success: true,
-      clientList: clientList.map((c) => ({
-        clientId: c.client_id,
-        fullName: c.full_name,
-        annualIncome: c.annual_gross_income || 4600000,
-        taxRegime: c.tax_regime || "New",
-        riskProfile: c.risk_profile || "Moderate",
-      })),
+      isAdvisor,
+      userRole: session.role,
+      clientList: isAdvisor
+        ? clientList.map((c) => ({
+            clientId: c.client_id,
+            fullName: c.full_name,
+            annualIncome: c.annual_gross_income || 4600000,
+            taxRegime: c.tax_regime || "New",
+            riskProfile: c.risk_profile || "Moderate",
+          }))
+        : [],
       selectedClient: {
         clientId: targetClient.client_id,
         fullName: targetClient.full_name,
@@ -230,6 +308,7 @@ export async function GET(req: Request) {
       regimeComparison,
       taxLossHarvesting,
       ltcgHarvesting,
+      withdrawalStrategy,
       scheduleCG,
       totalTaxSavedAlpha,
       holdingsCount: holdings.length,
