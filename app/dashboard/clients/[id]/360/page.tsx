@@ -36,6 +36,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Landmark,
+  Receipt,
 } from "lucide-react";
 import SuggestionsTab from "./SuggestionsTab";
 import {
@@ -377,6 +378,15 @@ export default function Client360Page({
           >
             <TrendingUp className="h-3.5 w-3.5 text-sky-400" />
             <span>MF Portfolio</span>
+          </Link>
+
+          {/* Link to Tax Planning Sheet */}
+          <Link
+            href={`/dashboard/planning/tax?clientId=${clientId}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition shadow-sm"
+          >
+            <Receipt className="h-3.5 w-3.5 text-emerald-400" />
+            <span>Tax Planning</span>
           </Link>
 
           {/* Link to Net Worth Sheet */}

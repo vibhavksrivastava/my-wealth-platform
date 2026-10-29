@@ -17,7 +17,8 @@ import {
   X,
   AlertCircle,
   Loader2,
-  Sparkles
+  Sparkles,
+  Receipt
 } from "lucide-react";
 import AppointmentsManager from "@/components/AppointmentsManager";
 import CasUploadModal from "@/components/CasUploadModal";
@@ -404,6 +405,13 @@ export default function AdvisorDashboard() {
                       className="px-2 py-1 rounded-md text-[10px] font-semibold bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/80 dark:hover:bg-sky-900 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 transition shadow-sm"
                     >
                       MF Portfolio
+                    </Link>
+                    <Link
+                      href={`/dashboard/planning/tax?clientId=${c.client_id}`}
+                      className="px-2 py-1 rounded-md text-[10px] font-semibold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/80 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition shadow-sm flex items-center gap-1"
+                    >
+                      <Receipt className="h-3 w-3" />
+                      Tax Planning
                     </Link>
                     <Link
                       href={`/dashboard/clients/${c.client_id}/net-worth`}

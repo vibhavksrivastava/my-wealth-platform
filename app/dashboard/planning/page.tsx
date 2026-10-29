@@ -27,7 +27,8 @@ import {
   ExternalLink,
   Home,
   User,
-  Landmark
+  Landmark,
+  Receipt
 } from "lucide-react";
 import {
   calculateRetirementMaturityValue,
@@ -1121,6 +1122,15 @@ function InvestmentPlanningContent() {
                           >
                             <TrendingUp className="h-3 w-3 text-sky-500" />
                           </Link>
+
+                          <Link
+                            href={`/dashboard/planning/tax?clientId=${c.clientId}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold transition"
+                            title="Capital Gains Optimization & Tax Planning"
+                          >
+                            <Receipt className="h-3 w-3 text-emerald-500" />
+                            <span>Tax</span>
+                          </Link>
                         </div>
                       </td>
                     </tr>
@@ -1213,6 +1223,15 @@ function InvestmentPlanningContent() {
                           >
                             <TrendingUp className="h-3 w-3 text-sky-500" />
                             <span>Portfolio</span>
+                          </Link>
+
+                          <Link
+                            href={`/dashboard/planning/tax?clientId=${h.primaryClientId}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold transition"
+                            title="Capital Gains Optimization & Tax Planning"
+                          >
+                            <Receipt className="h-3 w-3 text-emerald-500" />
+                            <span>Tax</span>
                           </Link>
                         </div>
                       </td>

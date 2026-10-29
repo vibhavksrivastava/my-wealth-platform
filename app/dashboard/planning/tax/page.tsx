@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Calculator,
   TrendingDown,
@@ -63,12 +64,15 @@ export default function TaxPlanningPage() {
 }
 
 function TaxPlanningContent() {
+  const searchParams = useSearchParams();
+  const queryClientId = searchParams?.get("clientId") || "";
+
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Client and fiscal year controls
-  const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [selectedClientId, setSelectedClientId] = useState<string>(queryClientId);
   const [fiscalYear, setFiscalYear] = useState<string>("2026-2027");
   const [activeTab, setActiveTab] = useState<"withdrawals" | "regime" | "schedule-cg" | "ai-advisory">("withdrawals");
   const [withdrawalFilter, setWithdrawalFilter] = useState<"ALL" | "LTCG" | "STCG" | "DEBT">("ALL");
@@ -138,8 +142,12 @@ function TaxPlanningContent() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const cid = queryClientId || undefined;
+    if (cid) {
+      setSelectedClientId(cid);
+    }
+    fetchData(cid, fiscalYear);
+  }, [queryClientId]);
 
   const handleClientChange = (newId: string) => {
     setSelectedClientId(newId);
@@ -245,6 +253,23 @@ function TaxPlanningContent() {
     setTimeout(() => setCopiedItemIndex(null), 2500);
   };
 
+  const isAdvisor = data?.isAdvisor !== false;
+  const client = data?.selectedClient;
+  const comp = regimeComparison || data?.regimeComparison;
+  const withdrawal = data?.withdrawalStrategy;
+  const scheduleCG = data?.scheduleCG;
+
+  const isNewOptimal = comp?.recommendedRegime === "NEW";
+
+  // Filtered withdrawal suggestions (must be before any early conditional returns to maintain hook order)
+  const filteredWithdrawals = useMemo(() => {
+    if (!withdrawal) return [];
+    if (withdrawalFilter === "LTCG") return withdrawal.equityLtcgFunds || [];
+    if (withdrawalFilter === "STCG") return withdrawal.equityStcgFunds || [];
+    if (withdrawalFilter === "DEBT") return withdrawal.debtFunds || [];
+    return withdrawal.allSuggestions || [];
+  }, [withdrawal, withdrawalFilter]);
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -269,23 +294,6 @@ function TaxPlanningContent() {
       </div>
     );
   }
-
-  const isAdvisor = data?.isAdvisor !== false;
-  const client = data?.selectedClient;
-  const comp = regimeComparison || data?.regimeComparison;
-  const withdrawal = data?.withdrawalStrategy;
-  const scheduleCG = data?.scheduleCG;
-
-  const isNewOptimal = comp?.recommendedRegime === "NEW";
-
-  // Filtered withdrawal suggestions
-  const filteredWithdrawals = useMemo(() => {
-    if (!withdrawal) return [];
-    if (withdrawalFilter === "LTCG") return withdrawal.equityLtcgFunds || [];
-    if (withdrawalFilter === "STCG") return withdrawal.equityStcgFunds || [];
-    if (withdrawalFilter === "DEBT") return withdrawal.debtFunds || [];
-    return withdrawal.allSuggestions || [];
-  }, [withdrawal, withdrawalFilter]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto py-4 px-2 sm:px-4">
