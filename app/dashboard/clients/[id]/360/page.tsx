@@ -37,6 +37,7 @@ import {
   ShieldCheck,
   Landmark,
   Receipt,
+  Coins,
 } from "lucide-react";
 import SuggestionsTab from "./SuggestionsTab";
 import {
@@ -44,6 +45,7 @@ import {
   projectRetirementProceedsForGoal,
   projectInvestmentCorpusForGoal,
   calculateRequiredMonthlySIP,
+  calculateRequiredLumpsum,
   getDefaultAssetCagr,
   calculateRetirementMaturityValue,
   isRetirementAsset,
@@ -1547,6 +1549,7 @@ export default function Client360Page({
                 const mappedRetirementAssets = (visibleRetirementAssets || []).filter((a: any) =>
                   a.linked_goal_id === g.goal_id || g.linked_asset_ids?.includes(a.asset_id)
                 );
+                const totalRetirementToday = mappedRetirementAssets.reduce((sum: number, a: any) => sum + Number(a.current_market_value || 0), 0);
                 const totalRetirementProceeds = mappedRetirementAssets.reduce((sum: number, a: any) => {
                   const proj = projectRetirementProceedsForGoal(a, targetYr);
                   return sum + proj.projectedProceeds;
@@ -1556,6 +1559,7 @@ export default function Client360Page({
                 const mappedAssets = (visibleAssets || []).filter((a: any) =>
                   a.linked_goal_id === g.goal_id || g.linked_asset_ids?.includes(a.asset_id)
                 );
+                const totalAssetToday = mappedAssets.reduce((sum: number, a: any) => sum + Number(a.current_market_value || 0), 0);
                 const totalAssetProceeds = mappedAssets.reduce((sum: number, a: any) => {
                   const proj = projectAssetProceedsForGoal(a, targetYr);
                   return sum + proj.projectedProceeds;
@@ -1565,13 +1569,27 @@ export default function Client360Page({
                 const mappedInvs = (visibleInvestments || []).filter((i: any) =>
                   i.linked_goal_id === g.goal_id || g.linked_investment_ids?.includes(i.investment_id)
                 );
+                const totalInvToday = mappedInvs.reduce((sum: number, i: any) => sum + Number(i.current_value || 0), 0);
                 const totalInvValue = mappedInvs.reduce((sum: number, i: any) => {
                   const proj = projectInvestmentCorpusForGoal(i, targetYr);
                   return sum + proj.totalProjectedCorpus;
                 }, 0);
 
-                const totalCovered = corpusAlloc + totalAssetProceeds + totalRetirementProceeds + totalInvValue;
+                // Dedicated corpus today and its future projected value at standard 10%
+                const corpusFutureVal = Math.round(corpusAlloc * Math.pow(1 + 0.10, yearsLeft));
+
+                // 1. Achieved Today (current value of earmarked assets + investments + dedicated corpus)
+                const achievedToday = corpusAlloc + totalRetirementToday + totalAssetToday + totalInvToday;
+                const achievedPct = targetAmt > 0 ? Math.round((achievedToday / targetAmt) * 100) : 0;
+
+                // 2. Total Projected Coverage (compounded future proceeds of all earmarked backing)
+                const totalCovered = corpusFutureVal + totalAssetProceeds + totalRetirementProceeds + totalInvValue;
                 const progressPct = futureVal > 0 ? Math.min(100, Math.round((totalCovered / futureVal) * 100)) : 0;
+
+                // 3. Shortfall and Action Requirements
+                const netShortfall = Math.max(0, futureVal - totalCovered);
+                const reqSip = netShortfall > 0 ? (Number(g.monthly_required_sip) || calculateRequiredMonthlySIP(netShortfall, 11, yearsLeft)) : 0;
+                const reqLumpsum = netShortfall > 0 ? calculateRequiredLumpsum(netShortfall, 11, yearsLeft) : 0;
 
                 return (
                   <div
@@ -1616,12 +1634,25 @@ export default function Client360Page({
                       </div>
                     </div>
 
-                    {/* Funding Progress Bar */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-[11px]">
-                        <span className="text-slate-400">Total Projected Coverage</span>
-                        <span className="font-bold text-white">{progressPct}%</span>
+                    {/* Progress Bar & Coverage Summary: Achieved Today along with Total Projected Coverage */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <div>
+                          <span className="text-[10px] text-slate-400 uppercase font-semibold block">Achieved Today</span>
+                          <div className="flex items-baseline gap-1 mt-0.5">
+                            <span className="font-bold text-emerald-400 text-sm">{formatINR(achievedToday)}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">({achievedPct}% of target today)</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-400 uppercase font-semibold block">Total Projected Coverage</span>
+                          <div className="flex items-baseline justify-end gap-1 mt-0.5">
+                            <span className="font-bold text-white text-sm">{progressPct}%</span>
+                            <span className="text-[10px] text-purple-300 font-medium">({formatINR(totalCovered)})</span>
+                          </div>
+                        </div>
                       </div>
+
                       <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                         <div
                           className="bg-gradient-to-r from-purple-500 via-sky-400 to-emerald-400 h-full rounded-full transition-all duration-500"
@@ -1631,9 +1662,9 @@ export default function Client360Page({
                     </div>
 
                     {/* Numbers Breakdown */}
-                    <div className="pt-2 border-t border-slate-800 grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                    <div className="pt-2 border-t border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                       <div>
-                        <span className="text-slate-500 text-[10px] uppercase">Today&apos;s Value</span>
+                        <span className="text-slate-500 text-[10px] uppercase">Today&apos;s Target</span>
                         <div className="font-semibold text-slate-200">{formatINR(targetAmt)}</div>
                       </div>
                       <div>
@@ -1641,7 +1672,15 @@ export default function Client360Page({
                         <div className="font-bold text-purple-400">{formatINR(futureVal)}</div>
                       </div>
                       <div>
-                        <span className="text-slate-500 text-[10px] uppercase">NPS &amp; Provident Funds</span>
+                        <span className="text-slate-500 text-[10px] uppercase">Achieved Today</span>
+                        <div className="font-bold text-emerald-400">{formatINR(achievedToday)}</div>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-[10px] uppercase">Total Projected</span>
+                        <div className="font-bold text-sky-400">{formatINR(totalCovered)}</div>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 text-[10px] uppercase">NPS &amp; Provident</span>
                         <div className="font-semibold text-purple-300">
                           {totalRetirementProceeds > 0 ? `${formatINR(totalRetirementProceeds)} (${mappedRetirementAssets.length})` : "—"}
                         </div>
@@ -1731,17 +1770,57 @@ export default function Client360Page({
                       </div>
                     )}
 
-                    {/* SIP Status Pill */}
-                    <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs">
-                      <span className="text-slate-400 text-[11px]">Net Required SIP:</span>
-                      {Number(g.monthly_required_sip) === 0 || totalCovered >= futureVal ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          ₹0/mo • Fully Covered
-                        </span>
-                      ) : (
-                        <span className="font-bold text-purple-400">
-                          {formatINR(Number(g.monthly_required_sip))}/mo
-                        </span>
+                    {/* Action Requirements: Net Required SIP & Required Lumpsum to Achieve */}
+                    <div className="pt-2.5 border-t border-slate-800/80 space-y-2 text-xs">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
+                          <div className="text-[10px] text-purple-400 font-semibold uppercase flex items-center gap-1">
+                            <Sparkles className="h-3 w-3 text-purple-400" />
+                            <span>Net Required SIP</span>
+                          </div>
+                          <div className="mt-1">
+                            {netShortfall === 0 || totalCovered >= futureVal ? (
+                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                ₹0/mo • Fully Covered
+                              </span>
+                            ) : (
+                              <div className="flex items-baseline gap-1">
+                                <span className="font-bold text-purple-300 text-sm">
+                                  {formatINR(reqSip)}
+                                </span>
+                                <span className="text-[10px] text-slate-400">/mo</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
+                          <div className="text-[10px] text-amber-400 font-semibold uppercase flex items-center gap-1">
+                            <Coins className="h-3 w-3 text-amber-400" />
+                            <span>Required Lumpsum to Achieve</span>
+                          </div>
+                          <div className="mt-1">
+                            {netShortfall === 0 || totalCovered >= futureVal ? (
+                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                ₹0 • Target Secured
+                              </span>
+                            ) : (
+                              <div className="flex items-baseline gap-1">
+                                <span className="font-bold text-amber-300 text-sm">
+                                  {formatINR(reqLumpsum)}
+                                </span>
+                                <span className="text-[10px] text-slate-400">lumpsum</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {netShortfall > 0 && (
+                        <div className="text-[10px] text-slate-400 flex items-center justify-between px-0.5">
+                          <span>Remaining Gap: <strong className="text-slate-200">{formatINR(netShortfall)}</strong></span>
+                          <span>Assumes 11% CAGR over {yearsLeft} yrs</span>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -2883,7 +2962,30 @@ function GoalModalForm({
   const totalPreFunded = existingCorpusFuture + totalAssetProceeds + totalRetirementProceeds + totalInvestmentProceeds;
   const netShortfall = Math.max(0, inflatedTarget - totalPreFunded);
   const requiredMonthlySip = netShortfall > 0 ? calculateRequiredMonthlySIP(netShortfall, 11, yearsLeft) : 0;
+  const requiredLumpsum = netShortfall > 0 ? calculateRequiredLumpsum(netShortfall, 11, yearsLeft) : 0;
   const coveragePct = inflatedTarget > 0 ? Math.min(100, Math.round((totalPreFunded / inflatedTarget) * 100)) : 0;
+
+  // Current market value achieved today from selected assets and dedicated corpus
+  const totalRetirementToday = useMemo(() => {
+    return (visibleRetirementAssets || [])
+      .filter((a) => selectedAssetIds.includes(a.asset_id))
+      .reduce((sum, a) => sum + Number(a.current_market_value || 0), 0);
+  }, [visibleRetirementAssets, selectedAssetIds]);
+
+  const totalAssetToday = useMemo(() => {
+    return (visibleAssets || [])
+      .filter((a) => selectedAssetIds.includes(a.asset_id))
+      .reduce((sum, a) => sum + Number(a.current_market_value || 0), 0);
+  }, [visibleAssets, selectedAssetIds]);
+
+  const totalInvestmentToday = useMemo(() => {
+    return (visibleInvestments || [])
+      .filter((i) => selectedInvestmentIds.includes(i.investment_id))
+      .reduce((sum, i) => sum + Number(i.current_value || 0), 0);
+  }, [visibleInvestments, selectedInvestmentIds]);
+
+  const achievedToday = (Number(currentCorpus) || 0) + totalRetirementToday + totalAssetToday + totalInvestmentToday;
+  const achievedPct = pv > 0 ? Math.round((achievedToday / pv) * 100) : 0;
 
   const selectedRetirementCount = selectedAssetIds.filter((id) =>
     (visibleRetirementAssets || []).some((a) => a.asset_id === id)
@@ -2953,37 +3055,46 @@ function GoalModalForm({
                 Live Feasibility Engine (Horizon: {validTargetYear} • {yearsLeft} yrs)
               </span>
             </div>
-            <span
-              className={`text-[11px] font-bold px-2 py-0.5 rounded ${
-                coveragePct >= 100
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                  : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-              }`}
-            >
-              {coveragePct}% Pre-funded
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-emerald-400">
+                Achieved: {formatINR(achievedToday)} ({achievedPct}%)
+              </span>
+              <span
+                className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+                  coveragePct >= 100
+                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                }`}
+              >
+                {coveragePct}% Pre-funded
+              </span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs">
             <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
               <div className="text-[10px] text-slate-400 uppercase font-semibold">Inflated Target</div>
               <div className="text-sm font-bold text-white mt-0.5">{formatINR(inflatedTarget)}</div>
               <div className="text-[10px] text-slate-500">at {inflationRate}% inflation</div>
             </div>
             <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
-              <div className="text-[10px] text-purple-400 uppercase font-semibold">NPS &amp; PF</div>
-              <div className="text-sm font-bold text-purple-300 mt-0.5">{formatINR(totalRetirementProceeds)}</div>
-              <div className="text-[10px] text-slate-500">{selectedRetirementCount} accounts mapped</div>
+              <div className="text-[10px] text-emerald-400 uppercase font-semibold">Achieved Today</div>
+              <div className="text-sm font-bold text-emerald-300 mt-0.5">{formatINR(achievedToday)}</div>
+              <div className="text-[10px] text-slate-500">{achievedPct}% of target today</div>
             </div>
             <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
-              <div className="text-[10px] text-sky-400 uppercase font-semibold">Physical Assets</div>
-              <div className="text-sm font-bold text-sky-300 mt-0.5">{formatINR(totalAssetProceeds)}</div>
-              <div className="text-[10px] text-slate-500">{selectedPhysicalCount} assets earmarked</div>
+              <div className="text-[10px] text-sky-400 uppercase font-semibold">Total Projected</div>
+              <div className="text-sm font-bold text-sky-300 mt-0.5">{formatINR(totalPreFunded)}</div>
+              <div className="text-[10px] text-slate-500">{coveragePct}% coverage</div>
             </div>
             <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
-              <div className="text-[10px] text-emerald-400 uppercase font-semibold">Market Portfolio</div>
-              <div className="text-sm font-bold text-emerald-300 mt-0.5">{formatINR(totalInvestmentProceeds)}</div>
-              <div className="text-[10px] text-slate-500">{selectedInvestmentIds.length} holdings mapped</div>
+              <div className="text-[10px] text-purple-400 uppercase font-semibold">Earmarked Backing</div>
+              <div className="text-sm font-bold text-purple-300 mt-0.5">
+                {formatINR(totalAssetProceeds + totalRetirementProceeds + totalInvestmentProceeds)}
+              </div>
+              <div className="text-[10px] text-slate-500">
+                {selectedAssetIds.length + selectedInvestmentIds.length} items linked
+              </div>
             </div>
             <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
               <div className="text-[10px] text-purple-400 uppercase font-semibold">Net Required SIP</div>
@@ -2991,7 +3102,16 @@ function GoalModalForm({
                 {requiredMonthlySip === 0 ? "₹0 / mo" : `${formatINR(requiredMonthlySip)} / mo`}
               </div>
               <div className="text-[10px] text-slate-500">
-                {requiredMonthlySip === 0 ? "Fully Pre-Funded!" : `Shortfall: ${formatINR(netShortfall)}`}
+                {requiredMonthlySip === 0 ? "Fully Covered!" : `Gap: ${formatINR(netShortfall)}`}
+              </div>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
+              <div className="text-[10px] text-amber-400 uppercase font-semibold">Req. Lumpsum to Achieve</div>
+              <div className="text-sm font-bold text-amber-300 mt-0.5">
+                {requiredLumpsum === 0 ? "₹0 Lumpsum" : formatINR(requiredLumpsum)}
+              </div>
+              <div className="text-[10px] text-slate-500">
+                {requiredLumpsum === 0 ? "Target Secured!" : "One-time at 11% CAGR"}
               </div>
             </div>
           </div>

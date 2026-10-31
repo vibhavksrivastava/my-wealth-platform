@@ -28,13 +28,16 @@ import {
   Home,
   User,
   Landmark,
-  Receipt
+  Receipt,
+  Coins,
 } from "lucide-react";
 import {
   calculateRetirementMaturityValue,
   projectRetirementProceedsForGoal,
   projectAssetProceedsForGoal,
   projectInvestmentCorpusForGoal,
+  calculateRequiredMonthlySIP,
+  calculateRequiredLumpsum,
   isRetirementAsset,
   isMarketAsset,
 } from "@/lib/goalAssetAlignment";
@@ -540,9 +543,25 @@ function InvestmentPlanningContent() {
                     return sum + proj.totalProjectedCorpus;
                   }, 0);
 
+                  const mappedRetToday = mappedRet.reduce((sum: number, a: any) => sum + Number(a.current_market_value || 0), 0);
+                  const mappedPhysToday = mappedPhys.reduce((sum: number, a: any) => sum + Number(a.current_market_value || 0), 0);
+                  const mappedInvToday = mappedInv.reduce((sum: number, i: any) => sum + Number(i.current_value || 0), 0);
                   const corpusAlloc = Number(g.current_corpus_allocated || 0);
-                  const totalFunded = corpusAlloc + retProceeds + physProceeds + invProceeds;
+                  const yearsLeft = Math.max(1, targetYr - new Date().getFullYear());
+                  const corpusFutureVal = Math.round(corpusAlloc * Math.pow(1 + 0.10, yearsLeft));
+
+                  // Achieved Today
+                  const achievedToday = corpusAlloc + mappedRetToday + mappedPhysToday + mappedInvToday;
+                  const achievedPct = targetAmt > 0 ? Math.round((achievedToday / targetAmt) * 100) : 0;
+
+                  // Total Projected Coverage
+                  const totalFunded = corpusFutureVal + retProceeds + physProceeds + invProceeds;
                   const progressPct = futureVal > 0 ? Math.min(100, Math.round((totalFunded / futureVal) * 100)) : 0;
+
+                  // Shortfall & Required Actions
+                  const netShortfall = Math.max(0, futureVal - totalFunded);
+                  const reqSip = netShortfall > 0 ? calculateRequiredMonthlySIP(netShortfall, 11, yearsLeft) : 0;
+                  const reqLumpsum = netShortfall > 0 ? calculateRequiredLumpsum(netShortfall, 11, yearsLeft) : 0;
 
                   return (
                     <div
@@ -558,7 +577,7 @@ function InvestmentPlanningContent() {
                             </span>
                           </div>
                           <div className="text-[11px] text-slate-500 mt-0.5">
-                            Target Year: {g.target_year} &bull; Inflated Target: <span className="font-semibold text-slate-700 dark:text-slate-300">{formatINR(futureVal)}</span>
+                            Target Year: {g.target_year} ({yearsLeft} yrs away) &bull; Inflated Target: <span className="font-semibold text-slate-700 dark:text-slate-300">{formatINR(futureVal)}</span>
                           </div>
                         </div>
                         <div className="text-right">
@@ -566,22 +585,52 @@ function InvestmentPlanningContent() {
                             {formatINR(targetAmt)}
                           </div>
                           <div className="text-[10px] text-slate-400">
-                            Today&apos;s Value
+                            Today&apos;s Target
                           </div>
                         </div>
                       </div>
 
-                      {/* Progress bar */}
+                      {/* Coverage & Achieved Today Header */}
                       <div className="space-y-1">
-                        <div className="flex justify-between text-[10px]">
-                          <span className="text-slate-500">Funded Coverage: <strong className="text-slate-800 dark:text-slate-200">{formatINR(totalFunded)}</strong></span>
-                          <span className="font-bold text-purple-600 dark:text-purple-400">{progressPct}%</span>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <div>
+                            <span className="text-slate-500">Achieved Today: </span>
+                            <strong className="text-emerald-600 dark:text-emerald-400">{formatINR(achievedToday)}</strong>
+                            <span className="text-slate-400"> ({achievedPct}%)</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Total Projected: </span>
+                            <strong className="text-purple-600 dark:text-purple-400">{progressPct}%</strong>
+                            <span className="text-slate-400"> ({formatINR(totalFunded)})</span>
+                          </div>
                         </div>
                         <div className="w-full bg-slate-200 dark:bg-slate-900 h-1.5 rounded-full overflow-hidden">
                           <div
                             className="bg-gradient-to-r from-purple-500 via-sky-400 to-emerald-400 h-full rounded-full transition-all duration-300"
                             style={{ width: `${progressPct}%` }}
                           />
+                        </div>
+                      </div>
+
+                      {/* Action Requirements: Net Required SIP & Required Lumpsum */}
+                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200 dark:border-slate-700/50 text-xs">
+                        <div className="p-1.5 rounded-lg bg-purple-500/5 dark:bg-purple-950/20 border border-purple-500/10 dark:border-purple-800/30">
+                          <div className="text-[9px] text-purple-700 dark:text-purple-400 font-bold uppercase flex items-center gap-1">
+                            <Sparkles className="h-2.5 w-2.5" />
+                            <span>Net Required SIP</span>
+                          </div>
+                          <div className="text-xs font-bold text-purple-600 dark:text-purple-300 mt-0.5">
+                            {reqSip === 0 ? "₹0/mo • Covered" : `${formatINR(reqSip)}/mo`}
+                          </div>
+                        </div>
+                        <div className="p-1.5 rounded-lg bg-amber-500/5 dark:bg-amber-950/20 border border-amber-500/10 dark:border-amber-800/30">
+                          <div className="text-[9px] text-amber-700 dark:text-amber-400 font-bold uppercase flex items-center gap-1">
+                            <Coins className="h-2.5 w-2.5" />
+                            <span>Required Lumpsum</span>
+                          </div>
+                          <div className="text-xs font-bold text-amber-600 dark:text-amber-300 mt-0.5">
+                            {reqLumpsum === 0 ? "₹0 Lumpsum" : formatINR(reqLumpsum)}
+                          </div>
                         </div>
                       </div>
 

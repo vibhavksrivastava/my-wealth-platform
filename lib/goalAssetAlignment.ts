@@ -459,6 +459,22 @@ export function calculateRequiredMonthlySIP(futureTarget: number, annualReturnRa
 }
 
 /**
+ * Calculate required one-time lumpsum investment today to meet future target shortfall
+ * Formula: PV = FV / (1 + r)^n
+ * @param targetFutureShortfall The remaining inflated corpus gap in future INR
+ * @param annualReturnRate Annual expected compounding return percentage (default 11%)
+ * @param years Horizon in years until the target date
+ */
+export function calculateRequiredLumpsum(targetFutureShortfall: number, annualReturnRate: number = 11, years: number): number {
+  if (targetFutureShortfall <= 0) return 0;
+  if (years <= 0) return Math.round(targetFutureShortfall);
+  const rate = annualReturnRate / 100;
+  if (rate <= 0) return Math.round(targetFutureShortfall);
+  const pv = targetFutureShortfall / Math.pow(1 + rate, years);
+  return Math.round(pv);
+}
+
+/**
  * Projects proceeds for an NPS or Provident Fund asset earmarked for a financial goal
  */
 export function projectRetirementProceedsForGoal(

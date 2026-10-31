@@ -46,6 +46,7 @@ import {
   unpackGoal,
   projectAssetProceedsForGoal,
   projectInvestmentCorpusForGoal,
+  calculateRequiredLumpsum,
 } from "./goalAssetAlignment";
 
 export interface GoalDiagnosticItem {
@@ -59,12 +60,15 @@ export interface GoalDiagnosticItem {
   expectedReturnRate: number;
   inflatedTargetAmount: number;
   currentAllocatedCorpus: number;
+  achievedToday?: number;
+  achievedPercentage?: number;
   projectedCorpus: number;
   shortfall: number;
   fundedPercentage: number;
   feasibilityStatus: "ON_TRACK" | "MODERATE_GAP" | "CRITICAL_GAP";
   currentMonthlySIP: number;
   additionalMonthlySipRequired: number;
+  requiredLumpsum?: number;
   recommendationSummary: string;
   // Enhanced Earmarked Asset & Investment Alignment Breakdown
   earmarkedAssetProceeds?: number;
@@ -495,6 +499,13 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
     totalProjectedCorpus += projectedCorpus;
     totalShortfall += shortfall;
 
+    const achievedToday =
+      pg.currentAllocatedCorpus +
+      pg.mappedAssets.reduce((sum, a) => sum + (a.currentValue || 0), 0) +
+      pg.mappedInvestments.reduce((sum, i) => sum + (i.currentValue || 0), 0);
+    const achievedPercentage = pg.targetAmount > 0 ? Math.round((achievedToday / pg.targetAmount) * 100) : 0;
+    const requiredLumpsum = shortfall > 0 ? calculateRequiredLumpsum(shortfall, pg.expectedReturnRate, pg.yearsRemaining) : 0;
+
     goalItems.push({
       goalId: pg.goalId,
       goalName: pg.goalName,
@@ -506,12 +517,15 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
       expectedReturnRate: pg.expectedReturnRate,
       inflatedTargetAmount: pg.inflatedTargetAmount,
       currentAllocatedCorpus: pg.currentAllocatedCorpus,
+      achievedToday,
+      achievedPercentage,
       projectedCorpus,
       shortfall,
       fundedPercentage: fundedPct,
       feasibilityStatus,
       currentMonthlySIP: allocatableSip,
       additionalMonthlySipRequired: unfundedMonthlySip,
+      requiredLumpsum,
       recommendationSummary: summary,
       earmarkedAssetProceeds: pg.totalAssetProceeds,
       earmarkedInvestmentProceeds: pg.totalInvestmentProceeds,

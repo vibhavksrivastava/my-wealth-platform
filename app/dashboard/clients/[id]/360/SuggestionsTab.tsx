@@ -489,12 +489,17 @@ export default function SuggestionsTab({
                         </span>
                       </div>
                       {g.shortfall > 0 ? (
-                        <div className="mt-1 text-[10px] text-rose-300">
-                          Gap: {formatINR(g.shortfall)} &bull; Req. SIP: +{formatINR(g.additionalMonthlySipRequired)}/mo
+                        <div className="mt-1 space-y-0.5 text-[10px]">
+                          <div className="text-slate-400">
+                            Achieved: <span className="text-emerald-400 font-semibold">{formatINR(g.achievedToday || 0)}</span> ({g.achievedPercentage || 0}%) &bull; Gap: <span className="text-rose-300 font-semibold">{formatINR(g.shortfall)}</span>
+                          </div>
+                          <div className="text-purple-300 font-medium">
+                            Req. SIP: +{formatINR(g.additionalMonthlySipRequired)}/mo &bull; Req. Lumpsum: <span className="text-amber-300 font-semibold">{formatINR(g.requiredLumpsum || 0)}</span>
+                          </div>
                         </div>
                       ) : (
                         <div className="mt-1 text-[10px] text-emerald-400">
-                          Fully funded to target year {g.targetYear}
+                          Achieved: {formatINR(g.achievedToday || 0)} ({g.achievedPercentage || 0}%) &bull; Fully funded to target year {g.targetYear}
                         </div>
                       )}
                     </div>
