@@ -7,7 +7,8 @@ This document serves as the official API reference manual for external applicati
 ## 1. Overview & Architecture
 
 The platform is built as a multi-tenant B2B wealth management system.
-- **Base URL**: `https://<your-domain>.com` (or `http://localhost:3000` in development)
+- **Production Base URL**: `https://my-wealth-platform.vercel.app`
+- **Development Base URL**: `http://localhost:3000`
 - **Protocol**: Standard HTTPS RESTful API
 - **Payload Format**: `application/json` (except file uploads which use `multipart/form-data`)
 - **Authentication**: JWT Bearer Tokens passed via the `Authorization` header
@@ -408,3 +409,4 @@ async function getClientData(clientId: string) {
 | `403` | `Forbidden` | Access denied due to tenant isolation or insufficient role permissions. |
 | `404` | `Not Found` | The requested client, portfolio, or SIP record does not exist. |
 | `500` | `Internal Error`| Unhandled server exception. |
+
