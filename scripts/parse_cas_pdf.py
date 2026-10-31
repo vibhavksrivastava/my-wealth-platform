@@ -23,6 +23,10 @@ def extract_cas_pdf(pdf_path, password=None):
     text = text.replace('\xad', '').replace('\ufffd', '')
     text = re.sub(r'\bT\s+empleton\b', 'Templeton', text)
     text = re.sub(r'\bT\s+otal\b', 'Total', text)
+    # Split concatenated folio and ARN: e.g. 12544585/14ARN-175318 -> 12544585/14 ARN-175318
+    text = re.sub(r'([0-9\/\-]+)(ARN-?[0-9]+)', r'\1 \2', text)
+    text = re.sub(r'([0-9\/\-]+)(INA[0-9]+)', r'\1 \2', text)
+    text = re.sub(r'([0-9\/\-]+)(ARN-DIRECT)', r'\1 \2', text)
 
     # Extract Investor Name & PAN
     investor_name = ""
@@ -62,73 +66,149 @@ def extract_cas_pdf(pdf_path, password=None):
     lines = text.split('\n')
     i = 0
     in_summary_table = False
+    current_holding_nature = "SINGLE"
+    current_owner = investor_name or "Self"
 
     while i < len(lines):
         line = lines[i].strip()
+
+        # Track section headers for Single vs Either or Survivor / Joint
+        if "Joint A/C Holder:" in line:
+            m_joint = re.search(r'Joint A/C Holder:\s*([^\n]+)', line, re.I)
+            joint_name = m_joint.group(1).strip() if m_joint else "Joint Holder"
+            joint_name = re.sub(r'\s+Attention:.*$', '', joint_name).strip()
+            current_holding_nature = "EITHER_OR_SURVIVOR"
+            current_owner = f"{investor_name} & {joint_name} (Either or Survivor)"
+        elif re.search(r'In the joint names? of\s+([^\n\(]+)', line, re.I):
+            m_j = re.search(r'In the joint names? of\s+([^\n\(]+)', line, re.I)
+            current_holding_nature = "EITHER_OR_SURVIVOR"
+            current_owner = f"{m_j.group(1).strip()} (Either or Survivor)"
+        elif re.search(r'In the single name of\s+([^\n\(]+)', line, re.I):
+            m_s = re.search(r'In the single name of\s+([^\n\(]+)', line, re.I)
+            current_holding_nature = "SINGLE"
+            current_owner = m_s.group(1).strip()
+        elif re.sub(r'\s+', ' ', line.strip()).upper() == re.sub(r'\s+', ' ', investor_name or "").upper():
+            # Check if Joint A/C follows within 4 lines
+            is_joint_next = any(i + k < len(lines) and "Joint A/C Holder:" in lines[i + k] for k in range(1, 5))
+            if not is_joint_next:
+                current_holding_nature = "SINGLE"
+                current_owner = investor_name or "Self"
+        elif re.search(r'(?:Holding Nature|Mode of Holding)\s*:\s*(Either\s*or\s*Survivor|Anyone\s*or\s*Survivor|Joint|Single|SI|ES|JO)', line, re.I):
+            m_h = re.search(r'(?:Holding Nature|Mode of Holding)\s*:\s*(Either\s*or\s*Survivor|Anyone\s*or\s*Survivor|Joint|Single|SI|ES|JO)', line, re.I)
+            h_str = m_h.group(1).upper()
+            if any(k in h_str for k in ["EITHER", "ANYONE", "ES", "JOINT", "JO"]):
+                current_holding_nature = "EITHER_OR_SURVIVOR"
+            else:
+                current_holding_nature = "SINGLE"
+
         if 'MUTUAL FUND UNITS HELD AS ON' in line:
             in_summary_table = True
-        if in_summary_table and 'Grand T otal' in line:
-            in_summary_table = False
 
-        if in_summary_table:
-            isin_match = re.search(r'(INF[0-9A-Z]{9})', line)
-            if isin_match:
-                isin = isin_match.group(1)
-                
-                # Retrieve Scheme Name from previous lines
-                scheme_lines = []
-                j = i - 1
-                while j >= 0:
-                    prev = lines[j].strip()
-                    if not prev or prev.startswith('===') or prev.startswith('Central') or prev.startswith('Page') or prev.startswith('Summary') or prev.startswith('VIBHAV') or prev.startswith('MUTUAL') or prev.startswith('Scheme Name') or re.search(r'INF[0-9A-Z]{9}', prev):
-                        break
-                    scheme_lines.insert(0, prev)
+        isin_match = re.search(r'(INF[0-9A-Z]{9})', line)
+        if isin_match:
+            isin = isin_match.group(1)
+            
+            # Retrieve Scheme Name from previous lines or scheme_map
+            scheme_lines = []
+            j = i - 1
+            while j >= 0:
+                prev = lines[j].strip()
+                if not prev or prev.startswith('===') or prev.startswith('Central') or prev.startswith('Page') or prev.startswith('Summary') or prev.startswith('VIBHAV') or prev.startswith('MUTUAL') or prev.startswith('Scheme Name') or re.search(r'INF[0-9A-Z]{9}', prev):
+                    break
+                if any(hdr in prev for hdr in ["Closing", "Bal", "NAV (`)", "Cumulative", "Amount", "Valuation", "Average", "TER", "Gross", "Commission"]):
                     j -= 1
-                
-                raw_scheme_name = ' '.join(scheme_lines).strip()
-                # Clean up prefixes like LMGP - or LCDG -
-                clean_scheme_name = re.sub(r'^[A-Z0-9]+\s*-\s*', '', raw_scheme_name)
+                    continue
+                scheme_lines.insert(0, prev)
+                j -= 1
+            
+            raw_scheme_name = ' '.join(scheme_lines).strip()
+            # Clean up prefixes like LMGP - or LCDG -
+            clean_scheme_name = re.sub(r'^[A-Z0-9]+\s*-\s*', '', raw_scheme_name)
 
-                if isin in scheme_map:
-                    clean_scheme_name = re.sub(r'^[A-Z0-9]+\s*-\s*', '', scheme_map[isin])
+            if isin in scheme_map:
+                clean_scheme_name = scheme_map[isin]
+            clean_scheme_name = re.sub(r'^[A-Z0-9]+\s*-\s*', '', clean_scheme_name)
 
-                tokens = line.split()
-                isin_idx = tokens.index(isin)
-                folio = tokens[isin_idx + 1] if len(tokens) > isin_idx + 1 else folio_map.get(isin, '')
-                arn = tokens[isin_idx + 2] if len(tokens) > isin_idx + 2 else ''
-                units_str = tokens[isin_idx + 3] if len(tokens) > isin_idx + 3 else '0'
-                nav_str = tokens[isin_idx + 4] if len(tokens) > isin_idx + 4 else '0'
-                cost_str = tokens[isin_idx + 5] if len(tokens) > isin_idx + 5 else '0'
-                val_str = tokens[isin_idx + 6] if len(tokens) > isin_idx + 6 else '0'
+            tokens = line.split()
+            isin_idx = tokens.index(isin)
+            post_tokens = tokens[isin_idx + 1:]
 
-                try:
-                    units = float(units_str.replace(',', ''))
-                except:
-                    units = 0.0
-                try:
-                    nav = float(nav_str.replace(',', ''))
-                except:
-                    nav = 0.0
-                try:
-                    cost = float(cost_str.replace(',', ''))
-                except:
-                    cost = 0.0
-                try:
-                    val = float(val_str.replace(',', ''))
-                except:
-                    val = 0.0
+            folio = ""
+            arn = ""
+            numeric_vals = []
 
-                holdings.append({
-                    "isin": isin,
-                    "scheme": clean_scheme_name or f"Mutual Fund ({isin})",
-                    "amc": amc_map.get(isin, clean_scheme_name.split()[0] if clean_scheme_name else "Mutual Fund"),
-                    "folio": folio,
-                    "arn": arn,
-                    "units": units,
-                    "nav": nav,
-                    "cost": cost,
-                    "valuation": val
-                })
+            for t_idx, t in enumerate(post_tokens):
+                t_clean = t.replace(',', '').strip()
+                if re.match(r'^(ARN-?[0-9]+|INA[0-9]+|ARN-DIRECT)', t, re.I):
+                    arn = t
+                elif not folio and t_idx <= 1 and (re.match(r'^[0-9\/\-]+$', t) or ('/' in t and re.match(r'^[0-9A-Za-z\/\-]+$', t))):
+                    folio = t
+                elif re.match(r'^-?[0-9]+\.?[0-9]*$', t_clean):
+                    try:
+                        numeric_vals.append(float(t_clean))
+                    except:
+                        pass
+
+            if not folio:
+                folio = folio_map.get(isin, '')
+
+            # Detect if folio suffix indicates Either or Survivor (e.g. /13, /14, /15, /39, /09)
+            holding_nature_resolved = current_holding_nature
+            if re.search(r'(\/13|\/14|\/15|\/39|\/09)', folio):
+                holding_nature_resolved = "EITHER_OR_SURVIVOR"
+
+            units = 0.0
+            nav = 0.0
+            cost = 0.0
+            val = 0.0
+
+            if len(numeric_vals) >= 4:
+                units = numeric_vals[0]
+                nav = numeric_vals[1]
+                cost = numeric_vals[2]
+                val = numeric_vals[3]
+
+                # Check if val was corrupted by a stray tiny code column (e.g. 1.28)
+                if val < 10 and cost > 100:
+                    # Look if cost * units or cost is actually valuation
+                    if abs(units * nav - cost) < 100:
+                        val = cost
+                        cost = round(val * 0.75, 2)
+                    elif units > 0 and nav > 0:
+                        val = round(units * nav, 2)
+
+                # Check if nav was accidentally cost
+                if nav > 5000 and units > 0 and cost > 0:
+                    expected_nav = round(val / units, 4) if val > 0 else (round(cost / units, 4) if cost > 0 else 0)
+                    if expected_nav > 0 and expected_nav < 5000:
+                        nav = expected_nav
+            elif len(numeric_vals) == 3:
+                units = numeric_vals[0]
+                nav = numeric_vals[1]
+                val = numeric_vals[2]
+                cost = round(val * 0.75, 2)
+            elif len(numeric_vals) == 2:
+                units = numeric_vals[0]
+                val = numeric_vals[1]
+                nav = round(val / units, 4) if units > 0 else 0.0
+                cost = round(val * 0.75, 2)
+
+            if val == 0.0 and units > 0 and nav > 0:
+                val = round(units * nav, 2)
+
+            holdings.append({
+                "isin": isin,
+                "scheme": clean_scheme_name or f"Mutual Fund ({isin})",
+                "amc": amc_map.get(isin, clean_scheme_name.split()[0] if clean_scheme_name else "Mutual Fund"),
+                "folio": folio,
+                "arn": arn,
+                "units": units,
+                "nav": nav,
+                "cost": cost,
+                "valuation": val,
+                "holdingNature": holding_nature_resolved,
+                "ownerName": f"{investor_name} (Either or Survivor)" if holding_nature_resolved == "EITHER_OR_SURVIVOR" else (investor_name or "Self")
+            })
         i += 1
 
     # Fallback for standard CAMS/KFintech layout if CDSL table not found

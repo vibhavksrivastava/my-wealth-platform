@@ -1,6 +1,7 @@
 import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
+import { isMarketAsset } from "@/lib/goalAssetAlignment";
 
 
 export async function GET(
@@ -25,6 +26,11 @@ export async function GET(
 
     if (clientErr || !client) {
       return NextResponse.json({ error: "Client record not found." }, { status: 404 });
+    }
+
+    // Tenant Isolation Check
+    if (session.role !== "SUPER_ADMIN" && client.tenant_id && client.tenant_id !== session.tenantId) {
+      return NextResponse.json({ error: "Access denied. Client belongs to another firm." }, { status: 403 });
     }
 
     // Fetch Household Details
@@ -61,7 +67,12 @@ export async function GET(
     const snapshots = snapshotRes.data || [];
 
     // Financial Totals Calculations
-    const physicalAssetsTotal = assets.reduce((sum, a) => sum + Number(a.current_market_value || 0), 0);
+    // Deduplicate: If investments exist in investment_portfolio, filter out market investments
+    // from the assets table to avoid double-counting mutual funds in both assets and investments
+    const hasInvestments = investments.length > 0;
+    const tangibleAssets = hasInvestments ? assets.filter((a) => !isMarketAsset(a)) : assets;
+
+    const physicalAssetsTotal = tangibleAssets.reduce((sum, a) => sum + Number(a.current_market_value || 0), 0);
     const investmentsTotal = investments.reduce((sum, i) => sum + Number(i.current_value || 0), 0);
     const totalInvestedCost = investments.reduce((sum, i) => sum + Number(i.invested_amount || 0), 0);
     const totalUnrealizedGain = investmentsTotal - totalInvestedCost;
@@ -71,9 +82,10 @@ export async function GET(
     const totalLiabilities = liabilities.reduce((sum, l) => sum + Number(l.outstanding_principal || 0), 0);
     const netWorth = totalAssets - totalLiabilities;
 
-    const liquidAssets = assets
+    const liquidTangible = tangibleAssets
       .filter((a) => a.is_liquid)
       .reduce((sum, a) => sum + Number(a.current_market_value || 0), 0);
+    const liquidAssets = liquidTangible + investmentsTotal;
 
     const totalMonthlyIncome = income.reduce((sum, inc) => sum + Number(inc.monthly_amount || 0), 0);
     const totalMonthlyLivingExpenses = expenses.reduce((sum, exp) => sum + Number(exp.monthly_amount || 0), 0);
@@ -109,7 +121,7 @@ export async function GET(
       data: {
         income,
         expenses,
-        assets,
+        assets: tangibleAssets,
         liabilities,
         investments,
         snapshots,

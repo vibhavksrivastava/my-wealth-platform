@@ -38,11 +38,18 @@ import {
   ChevronUp,
   SlidersHorizontal,
   Home,
-  UploadCloud
+  UploadCloud,
+  PauseCircle,
+  PlayCircle,
+  Edit2,
+  XCircle,
+  Plus
 } from "lucide-react";
 import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 import { useFeatureAccess } from "@/lib/useFeatureAccess";
 import CasUploadModal from "@/components/CasUploadModal";
+import SipManagerModal from "@/components/SipManagerModal";
+import BseSipSyncModal from "@/components/BseSipSyncModal";
 
 function formatINR(val: number) {
   if (val === undefined || val === null || isNaN(val)) return "₹0";
@@ -147,6 +154,7 @@ function MutualFundPortfolioContent() {
   // Filters for Holdings Tab
   const [holdingSearch, setHoldingSearch] = useState("");
   const [holdingClassFilter, setHoldingClassFilter] = useState("ALL");
+  const [holdingNatureFilter, setHoldingNatureFilter] = useState<"ALL" | "SINGLE" | "EOS">("ALL");
 
   // Gemini AI Rebalancing States
   const [geminiLoading, setGeminiLoading] = useState(false);
@@ -156,6 +164,57 @@ function MutualFundPortfolioContent() {
   const [geminiResult, setGeminiResult] = useState<any>(null);
   const [pushSuccessMsg, setPushSuccessMsg] = useState<string | null>(null);
   const [isPushingPlan, setIsPushingPlan] = useState(false);
+
+  // SIP Management Modal & Filter States
+  const [isSipModalOpen, setIsSipModalOpen] = useState(false);
+  const [editingSip, setEditingSip] = useState<any | null>(null);
+  const [isBseSyncModalOpen, setIsBseSyncModalOpen] = useState(false);
+  const [sipFilterStatus, setSipFilterStatus] = useState<string>("ALL");
+  const [sipFilterSource, setSipFilterSource] = useState<string>("ALL");
+  const [sipSearchQuery, setSipSearchQuery] = useState<string>("");
+  const [togglingSipId, setTogglingSipId] = useState<string | null>(null);
+
+  const handleToggleSipStatus = async (sip: any) => {
+    const newStatus = sip.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
+    setTogglingSipId(sip.id);
+    try {
+      const token = localStorage.getItem("auth_token");
+      await fetch(`/api/portfolio/sips/${sip.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      await fetchPortfolio();
+    } catch (err) {
+      console.error("Failed to toggle SIP status:", err);
+    } finally {
+      setTogglingSipId(null);
+    }
+  };
+
+  const handleCancelSip = async (sip: any) => {
+    if (!confirm(`Are you sure you want to cancel the SIP mandate for "${sip.schemeName}"?`)) return;
+    setTogglingSipId(sip.id);
+    try {
+      const token = localStorage.getItem("auth_token");
+      await fetch(`/api/portfolio/sips/${sip.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "CANCELLED" }),
+      });
+      await fetchPortfolio();
+    } catch (err) {
+      console.error("Failed to cancel SIP:", err);
+    } finally {
+      setTogglingSipId(null);
+    }
+  };
 
   // Update selectedClientId if URL query param changes
   useEffect(() => {
@@ -350,15 +409,22 @@ function MutualFundPortfolioContent() {
       const matchesSearch =
         h.schemeName.toLowerCase().includes(holdingSearch.toLowerCase()) ||
         h.folioNumber.toLowerCase().includes(holdingSearch.toLowerCase()) ||
-        h.clientName.toLowerCase().includes(holdingSearch.toLowerCase());
+        h.clientName.toLowerCase().includes(holdingSearch.toLowerCase()) ||
+        (h.ownerName && h.ownerName.toLowerCase().includes(holdingSearch.toLowerCase()));
 
       const matchesClass =
         holdingClassFilter === "ALL" ||
         h.assetClass.toLowerCase().includes(holdingClassFilter.toLowerCase());
 
-      return matchesSearch && matchesClass;
+      const isEos = h.isEitherOrSurvivor || h.holdingNature === "Either or Survivor";
+      const matchesNature =
+        holdingNatureFilter === "ALL" ||
+        (holdingNatureFilter === "SINGLE" && !isEos) ||
+        (holdingNatureFilter === "EOS" && isEos);
+
+      return matchesSearch && matchesClass && matchesNature;
     });
-  }, [portfolioData?.holdings, holdingSearch, holdingClassFilter]);
+  }, [portfolioData?.holdings, holdingSearch, holdingClassFilter, holdingNatureFilter]);
 
   // Filtered Transactions in Client Detail View
   const filteredTransactions = useMemo(() => {
@@ -1404,20 +1470,59 @@ function MutualFundPortfolioContent() {
                     />
                   </div>
 
-                  <div className="flex items-center gap-2 overflow-x-auto">
-                    {["ALL", "Large Cap", "Mid Cap", "Flexi Cap", "Debt", "Hybrid"].map((cat) => (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Holding Nature Filter */}
+                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
                       <button
-                        key={cat}
-                        onClick={() => setHoldingClassFilter(cat)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border ${
-                          holdingClassFilter === cat
-                            ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent font-bold"
-                            : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+                        onClick={() => setHoldingNatureFilter("ALL")}
+                        className={`px-2.5 py-1 rounded-lg font-semibold transition ${
+                          holdingNatureFilter === "ALL"
+                            ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold"
+                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                         }`}
                       >
-                        {cat}
+                        All
                       </button>
-                    ))}
+                      <button
+                        onClick={() => setHoldingNatureFilter("SINGLE")}
+                        className={`px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1 ${
+                          holdingNatureFilter === "SINGLE"
+                            ? "bg-sky-500 text-white shadow-xs font-bold"
+                            : "text-slate-500 hover:text-sky-600 dark:hover:text-sky-400"
+                        }`}
+                      >
+                        <User className="h-3 w-3" />
+                        <span>Single</span>
+                      </button>
+                      <button
+                        onClick={() => setHoldingNatureFilter("EOS")}
+                        className={`px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1 ${
+                          holdingNatureFilter === "EOS"
+                            ? "bg-purple-600 text-white shadow-xs font-bold"
+                            : "text-slate-500 hover:text-purple-600 dark:hover:text-purple-400"
+                        }`}
+                      >
+                        <Users className="h-3 w-3" />
+                        <span>Either or Survivor</span>
+                      </button>
+                    </div>
+
+                    {/* Asset Class Filter */}
+                    <div className="flex items-center gap-1 overflow-x-auto">
+                      {["ALL", "Large Cap", "Mid Cap", "Flexi Cap", "Debt", "Hybrid"].map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => setHoldingClassFilter(cat)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border ${
+                            holdingClassFilter === cat
+                              ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent font-bold"
+                              : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -1453,10 +1558,22 @@ function MutualFundPortfolioContent() {
                               <div className="text-[10px] text-slate-500 mt-0.5">{h.assetClass}</div>
                             </td>
                             <td className="py-3 px-3">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                                <User className="h-3 w-3" />
-                                {h.clientName}
-                              </span>
+                              <div className="flex flex-col gap-1 items-start">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                  <User className="h-3 w-3 shrink-0" />
+                                  <span className="truncate max-w-[150px] font-semibold">{h.ownerName || h.clientName}</span>
+                                </span>
+                                {h.isEitherOrSurvivor || h.holdingNature === "Either or Survivor" ? (
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 flex items-center gap-1">
+                                    <Users className="h-2.5 w-2.5" />
+                                    Either or Survivor
+                                  </span>
+                                ) : (
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+                                    Single
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="py-3 px-3 font-mono text-[11px] text-slate-600 dark:text-slate-400">
                               {h.folioNumber}
@@ -1625,72 +1742,345 @@ function MutualFundPortfolioContent() {
             {/* TAB 3: ALL MY SIPS TAB */}
             {activeTab === "sips" && (
               <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 flex items-center justify-between">
+                {/* 1. Header Toolbar with Total Book & Action Buttons */}
+                <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-sky-500/10 border border-indigo-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-xl bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-xl bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 flex items-center justify-center shrink-0">
                       <Repeat className="h-5 w-5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">Active SIP Mandates Overview</h4>
-                      <p className="text-[11px] text-slate-500">
-                        Monthly recurring investments automatically debited via NACH e-mandate.
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Multi-Tenant Systematic Investment Plan (SIP) Console</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                          {portfolioData?.sips?.length || 0} Mandates
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Manage NACH auto-debits, CAS imported commitments, manual registrations, and BSE StAR MF exchange syncs.
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-base font-black text-indigo-500">
-                      {formatINR(clientMetrics.totalSipBook)}/mo
+
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="text-lg font-black text-indigo-500">
+                        {formatINR(clientMetrics.totalSipBook)}/mo
+                      </div>
+                      <div className="text-[10px] text-slate-400">Active Monthly Book</div>
                     </div>
-                    <div className="text-[10px] text-slate-400">Total Commitment</div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingSip(null);
+                          setIsSipModalOpen(true);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>Register SIP</span>
+                      </button>
+
+                      <button
+                        onClick={() => setIsBseSyncModalOpen(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md shadow-sky-600/20 transition"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>BSE StAR Sync</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(portfolioData?.sips || []).map((sip: any) => (
-                    <div
-                      key={sip.id}
-                      className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 shadow-sm space-y-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-wider">
-                            {sip.status}
-                          </span>
-                          <h4 className="font-bold text-xs text-slate-900 dark:text-white mt-1.5 leading-snug">
-                            {sip.schemeName}
-                          </h4>
-                          <div className="text-[11px] text-slate-400 font-mono mt-0.5">Folio: {sip.folioNumber}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-base font-black text-slate-900 dark:text-white">
-                            {formatINR(sip.monthlyAmount)}
-                          </div>
-                          <div className="text-[10px] text-slate-400">{sip.frequency}</div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
-                        <div>
-                          <span className="text-slate-400">SIP Day:</span>
-                          <div className="font-semibold text-slate-700 dark:text-slate-300">
-                            {sip.sipDay}th of every month
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-slate-400">Next Execution:</span>
-                          <div className="font-semibold text-sky-500">{sip.nextDueDate}</div>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-slate-400">Mandate Bank:</span>
-                          <div className="font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-0.5">
-                            <Building className="h-3 w-3 text-slate-400" />
-                            <span>{sip.mandateBank}</span>
-                          </div>
-                        </div>
-                      </div>
+                {/* 2. Filters & Search Strip */}
+                <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/40 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="relative flex-1 max-w-sm">
+                      <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Search by scheme, folio, or mandate..."
+                        value={sipSearchQuery}
+                        onChange={(e) => setSipSearchQuery(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 text-xs"
+                      />
                     </div>
-                  ))}
+
+                    {/* Source Filter */}
+                    <select
+                      value={sipFilterSource}
+                      onChange={(e) => setSipFilterSource(e.target.value)}
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium text-xs"
+                    >
+                      <option value="ALL">All Sources</option>
+                      <option value="API_SYNC">⚡ BSE StAR Live API</option>
+                      <option value="CAS_IMPORT">📄 CAS Import</option>
+                      <option value="MANUAL">✍️ Manual Entry</option>
+                    </select>
+
+                    {/* Status Filter */}
+                    <select
+                      value={sipFilterStatus}
+                      onChange={(e) => setSipFilterStatus(e.target.value)}
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium text-xs"
+                    >
+                      <option value="ALL">All Statuses</option>
+                      <option value="ACTIVE">Active Mandates</option>
+                      <option value="PAUSED">Paused Mandates</option>
+                      <option value="CANCELLED">Cancelled</option>
+                      <option value="REGISTERED">Registered</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-slate-400 text-[11px]">
+                    <span className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" />
+                      <span>Active</span>
+                    </span>
+                    <span>&bull;</span>
+                    <span className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
+                      <span>Paused</span>
+                    </span>
+                    <span>&bull;</span>
+                    <span className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-purple-500 inline-block" />
+                      <span>CAS</span>
+                    </span>
+                    <span>&bull;</span>
+                    <span className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-sky-500 inline-block" />
+                      <span>BSE StAR</span>
+                    </span>
+                  </div>
                 </div>
+
+                {/* 3. SIP Mandate Cards Grid */}
+                {(() => {
+                  const allSips = portfolioData?.sips || [];
+                  const filteredSips = allSips.filter((s: any) => {
+                    if (sipFilterStatus !== "ALL" && s.status !== sipFilterStatus) return false;
+                    if (sipFilterSource !== "ALL") {
+                      const src = s.source || (s.id?.startsWith("cas-sip") ? "CAS_IMPORT" : "MANUAL");
+                      if (src !== sipFilterSource) return false;
+                    }
+                    if (sipSearchQuery.trim()) {
+                      const q = sipSearchQuery.toLowerCase();
+                      const matchScheme = (s.schemeName || "").toLowerCase().includes(q);
+                      const matchFolio = (s.folioNumber || s.sipRegistrationNo || "").toLowerCase().includes(q);
+                      const matchMandate = (s.mandateBank || "").toLowerCase().includes(q);
+                      if (!matchScheme && !matchFolio && !matchMandate) return false;
+                    }
+                    return true;
+                  });
+
+                  if (filteredSips.length === 0) {
+                    return (
+                      <div className="p-8 text-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/40 space-y-3">
+                        <Repeat className="h-8 w-8 text-slate-400 mx-auto" />
+                        <h4 className="font-bold text-slate-700 dark:text-slate-300 text-sm">
+                          No Systematic Investment Plans Found
+                        </h4>
+                        <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                          No SIP mandates match your active filter criteria. Register a new SIP or sync from BSE StAR.
+                        </p>
+                        <div className="flex items-center justify-center gap-2 pt-2">
+                          <button
+                            onClick={() => {
+                              setEditingSip(null);
+                              setIsSipModalOpen(true);
+                            }}
+                            className="px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white font-bold text-xs"
+                          >
+                            + Register SIP
+                          </button>
+                          <button
+                            onClick={() => setIsBseSyncModalOpen(true)}
+                            className="px-3.5 py-1.5 rounded-lg bg-sky-600 text-white font-bold text-xs"
+                          >
+                            Sync BSE StAR
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {filteredSips.map((sip: any) => {
+                        const sipSource = sip.source || (sip.id?.startsWith("cas-sip") ? "CAS_IMPORT" : "MANUAL");
+                        const isToggling = togglingSipId === sip.id;
+
+                        return (
+                          <div
+                            key={sip.id}
+                            className={`p-4 rounded-xl border transition shadow-sm space-y-3 ${
+                              sip.status === "ACTIVE"
+                                ? "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 hover:border-indigo-500/30"
+                                : sip.status === "PAUSED"
+                                ? "border-amber-500/30 bg-amber-500/5"
+                                : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 opacity-70"
+                            }`}
+                          >
+                            {/* Card Top: Badges & Amount */}
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {/* Status Badge */}
+                                  <span
+                                    className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                      sip.status === "ACTIVE"
+                                        ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                                        : sip.status === "PAUSED"
+                                        ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                                        : sip.status === "CANCELLED"
+                                        ? "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                                        : "bg-indigo-500/10 text-indigo-500 border border-indigo-500/20"
+                                    }`}
+                                  >
+                                    {sip.status}
+                                  </span>
+
+                                  {/* Data Source Badge */}
+                                  <span
+                                    className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                      sipSource === "API_SYNC"
+                                        ? "bg-sky-500/10 text-sky-500 border border-sky-500/20"
+                                        : sipSource === "CAS_IMPORT"
+                                        ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                                        : "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                                    }`}
+                                  >
+                                    {sipSource === "API_SYNC"
+                                      ? "⚡ BSE StAR"
+                                      : sipSource === "CAS_IMPORT"
+                                      ? "📄 CAS Import"
+                                      : "✍️ Manual"}
+                                  </span>
+                                </div>
+
+                                <h4 className="font-bold text-xs text-slate-900 dark:text-white leading-snug">
+                                  {sip.schemeName}
+                                </h4>
+                                <div className="text-[11px] text-slate-400 font-mono">
+                                  Folio: {sip.folioNumber || "N/A"}
+                                </div>
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                <div className="text-base font-black text-slate-900 dark:text-white font-mono">
+                                  {formatINR(sip.monthlyAmount)}
+                                </div>
+                                <div className="text-[10px] text-slate-400 uppercase font-semibold">
+                                  {sip.frequency || "Monthly"}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Details Grid */}
+                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
+                              <div>
+                                <span className="text-slate-400">SIP Execution Day:</span>
+                                <div className="font-semibold text-slate-700 dark:text-slate-300">
+                                  {sip.sipDay}th of month
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-slate-400">Next Due Date:</span>
+                                <div className="font-semibold text-sky-500">{sip.nextDueDate || "Scheduled"}</div>
+                              </div>
+                              <div>
+                                <span className="text-slate-400">Mandate Bank / ID:</span>
+                                <div className="font-medium text-slate-600 dark:text-slate-300 truncate" title={sip.mandateBank}>
+                                  {sip.mandateBank || "Registered Bank NACH"}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-slate-400">Installments Paid:</span>
+                                <div className="font-semibold text-slate-700 dark:text-slate-300">
+                                  {sip.totalInvested || 0} executed
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Card Footer: Interactive User Editability Actions */}
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                              <span className="text-[10px] text-slate-400 truncate">
+                                Owner: <strong className="text-slate-600 dark:text-slate-300">{sip.clientName || "Investor"}</strong>
+                              </span>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {/* Pause / Resume Button */}
+                                <button
+                                  type="button"
+                                  disabled={isToggling}
+                                  onClick={() => handleToggleSipStatus(sip)}
+                                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                                    sip.status === "ACTIVE"
+                                      ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/20"
+                                      : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20"
+                                  }`}
+                                  title={sip.status === "ACTIVE" ? "Pause this SIP mandate" : "Resume this SIP mandate"}
+                                >
+                                  {isToggling ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : sip.status === "ACTIVE" ? (
+                                    <>
+                                      <PauseCircle className="h-3 w-3" />
+                                      <span>Pause</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <PlayCircle className="h-3 w-3" />
+                                      <span>Resume</span>
+                                    </>
+                                  )}
+                                </button>
+
+                                {/* Edit Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingSip({
+                                      id: sip.id,
+                                      clientId: portfolioData?.clientId || "",
+                                      schemeName: sip.schemeName,
+                                      installmentAmount: sip.monthlyAmount,
+                                      frequency: sip.frequency || "MONTHLY",
+                                      installmentDay: sip.sipDay || 10,
+                                      mandateId: sip.mandateBank,
+                                      status: sip.status,
+                                      source: sipSource,
+                                      sipRegistrationNo: sip.folioNumber,
+                                    });
+                                    setIsSipModalOpen(true);
+                                  }}
+                                  className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition flex items-center gap-1"
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                  <span>Edit</span>
+                                </button>
+
+                                {/* Cancel Button (if active or paused) */}
+                                {sip.status !== "CANCELLED" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCancelSip(sip)}
+                                    className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition"
+                                    title="Cancel Mandate"
+                                  >
+                                    <XCircle className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -2179,7 +2569,20 @@ function MutualFundPortfolioContent() {
                     {selectedHolding.schemeName}
                   </h3>
                   <div className="text-xs text-slate-400 font-mono mt-0.5">
-                    Folio: {selectedHolding.folioNumber} &bull; Owner: {selectedHolding.clientName}
+                    Folio: {selectedHolding.folioNumber} &bull; Owner: {selectedHolding.ownerName || selectedHolding.clientName}
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    {selectedHolding.isEitherOrSurvivor || selectedHolding.holdingNature === "Either or Survivor" ? (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        Either or Survivor (Joint Portfolio)
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        Single Holding
+                      </span>
+                    )}
                   </div>
                 </div>
                 <button
@@ -2287,6 +2690,38 @@ function MutualFundPortfolioContent() {
         }
         currentClientId={portfolioData?.clientId}
         currentClientName={portfolioData?.clientName}
+      />
+
+      {/* SIP Management Modal (Add & Edit) */}
+      <SipManagerModal
+        isOpen={isSipModalOpen}
+        onClose={() => {
+          setIsSipModalOpen(false);
+          setEditingSip(null);
+        }}
+        onSuccess={fetchPortfolio}
+        clientId={portfolioData?.clientId || (selectedClientId.startsWith("hh:") ? "" : selectedClientId)}
+        clientName={portfolioData?.clientName || "Investor"}
+        clientCode={portfolioData?.clientCode}
+        editingSip={editingSip}
+        tenantsClients={
+          portfolioData?.clients?.map((c: any) => ({
+            client_id: c.clientId,
+            full_name: c.clientName,
+            uwp_client_code: c.clientCode,
+          })) || []
+        }
+        isAdvisor={isAdvisor}
+      />
+
+      {/* BSE StAR MF API Sync Modal */}
+      <BseSipSyncModal
+        isOpen={isBseSyncModalOpen}
+        onClose={() => setIsBseSyncModalOpen(false)}
+        onSuccess={fetchPortfolio}
+        clientId={portfolioData?.clientId || (selectedClientId.startsWith("hh:") ? "" : selectedClientId)}
+        clientName={portfolioData?.clientName || "Investor"}
+        clientUcc={portfolioData?.clientCode || "UWP-CLIENT-01"}
       />
     </div>
   );

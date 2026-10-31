@@ -239,14 +239,7 @@ export async function GET(req: Request) {
       .order("created_at", { ascending: false });
 
     if (activeTenantId && session.role !== "SUPER_ADMIN") {
-      const advisorName = [session.firstName, session.lastName].filter(Boolean).join(" ").trim();
-      if (advisorName) {
-        clientsQuery = clientsQuery.or(
-          `tenant_id.eq.${activeTenantId},advisor_name.ilike.%${advisorName}%,advisor_name.ilike.%${session.lastName || session.firstName}%`
-        );
-      } else {
-        clientsQuery = clientsQuery.eq("tenant_id", activeTenantId);
-      }
+      clientsQuery = clientsQuery.eq("tenant_id", activeTenantId);
     }
 
     const { data: clientsList } = await clientsQuery;

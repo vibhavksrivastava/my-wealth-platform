@@ -31,93 +31,101 @@ export async function GET(req: Request) {
     let clientList: any[] = [];
 
     if (!isAdvisor) {
-      // 1. CLIENT LOGIN: Directly locate logged-in client record
+      // 1. CLIENT LOGIN: Directly locate logged-in client record strictly within this tenant
       // Check by user_id
-      const { data: uClient } = await supabaseAdmin
+      let uClientQuery = supabaseAdmin
         .from("clients")
         .select("*")
-        .eq("user_id", session.sub)
-        .maybeSingle();
+        .eq("user_id", session.sub);
+      if (session.tenantId && session.role !== "SUPER_ADMIN") {
+        uClientQuery = uClientQuery.eq("tenant_id", session.tenantId);
+      }
+      const { data: uClient } = await uClientQuery.maybeSingle();
 
       if (uClient) {
         targetClient = uClient;
       } else {
         // Check by client_id
-        const { data: cById } = await supabaseAdmin
+        let cByIdQuery = supabaseAdmin
           .from("clients")
           .select("*")
-          .eq("client_id", session.sub)
-          .maybeSingle();
+          .eq("client_id", session.sub);
+        if (session.tenantId && session.role !== "SUPER_ADMIN") {
+          cByIdQuery = cByIdQuery.eq("tenant_id", session.tenantId);
+        }
+        const { data: cById } = await cByIdQuery.maybeSingle();
+
         if (cById) {
           targetClient = cById;
         } else if (session.firstName || session.lastName) {
-          // Check by name match
+          // Check by name match within tenant
           const fullName = [session.firstName, session.lastName].filter(Boolean).join(" ").trim();
           if (fullName) {
-            const { data: cByName } = await supabaseAdmin
+            let cByNameQuery = supabaseAdmin
               .from("clients")
               .select("*")
-              .ilike("full_name", `%${fullName}%`)
-              .maybeSingle();
+              .ilike("full_name", `%${fullName}%`);
+            if (session.tenantId && session.role !== "SUPER_ADMIN") {
+              cByNameQuery = cByNameQuery.eq("tenant_id", session.tenantId);
+            }
+            const { data: cByName } = await cByNameQuery.maybeSingle();
             if (cByName) targetClient = cByName;
           }
         }
       }
 
-      // Fallback: check profile household
+      // Fallback: check profile household within tenant
       if (!targetClient) {
-        const { data: profile } = await supabaseAdmin
+        let profileQuery = supabaseAdmin
           .from("client_profiles")
           .select("household_id")
-          .eq("user_id", session.sub)
-          .maybeSingle();
+          .eq("user_id", session.sub);
+        if (session.tenantId && session.role !== "SUPER_ADMIN") {
+          profileQuery = profileQuery.eq("tenant_id", session.tenantId);
+        }
+        const { data: profile } = await profileQuery.maybeSingle();
 
         if (profile?.household_id) {
-          const { data: hhClient } = await supabaseAdmin
+          let hhClientQuery = supabaseAdmin
             .from("clients")
             .select("*")
-            .eq("household_id", profile.household_id)
-            .limit(1)
-            .maybeSingle();
+            .eq("household_id", profile.household_id);
+          if (session.tenantId && session.role !== "SUPER_ADMIN") {
+            hhClientQuery = hhClientQuery.eq("tenant_id", session.tenantId);
+          }
+          const { data: hhClient } = await hhClientQuery.limit(1).maybeSingle();
           if (hhClient) targetClient = hhClient;
         }
       }
 
-      // Default fallback for client if not yet linked
-      if (!targetClient) {
+      // Default fallback for client if not yet linked (strictly within this tenant)
+      if (!targetClient && session.tenantId) {
         const { data: defaultClient } = await supabaseAdmin
           .from("clients")
           .select("*")
-          .ilike("full_name", "%vibhav%")
+          .eq("tenant_id", session.tenantId)
+          .limit(1)
           .maybeSingle();
         targetClient = defaultClient;
       }
     } else {
-      // 2. ADVISOR LOGIN: Allow selecting client from list
+      // 2. ADVISOR LOGIN: Allow selecting client strictly within this tenant
       let clientsQuery = supabaseAdmin
         .from("clients")
         .select("client_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id")
         .order("full_name", { ascending: true });
 
-      if (session.tenantId && session.role !== "SUPER_ADMIN" && session.tenantId !== "00000000-0000-0000-0000-000000000000") {
+      if (session.tenantId && session.role !== "SUPER_ADMIN") {
         clientsQuery = clientsQuery.eq("tenant_id", session.tenantId);
       }
 
-      let { data: clients, error: cErr } = await clientsQuery;
-      if (!clients || clients.length === 0) {
-        const { data: fallbackClients } = await supabaseAdmin
-          .from("clients")
-          .select("client_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id")
-          .order("full_name", { ascending: true });
-        clients = fallbackClients || [];
-      }
-
+      const { data: clients } = await clientsQuery;
       clientList = clients || [];
 
-      // Select target client: requested ID, or match Vibhav, or first in list
+      // Select target client: requested ID, or first in list
       if (requestedClientId && requestedClientId !== "ALL") {
         targetClient = clientList.find((c) => c.client_id === requestedClientId);
-        if (!targetClient) {
+        if (!targetClient && session.role === "SUPER_ADMIN") {
           const { data: directClient } = await supabaseAdmin
             .from("clients")
             .select("*")
@@ -128,10 +136,7 @@ export async function GET(req: Request) {
       }
 
       if (!targetClient) {
-        targetClient =
-          clientList.find((c) => c.full_name?.toLowerCase().includes("vibhav")) ||
-          clientList[0] ||
-          null;
+        targetClient = clientList[0] || null;
       }
     }
 

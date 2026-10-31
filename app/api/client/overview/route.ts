@@ -73,12 +73,13 @@ export async function GET(req: Request) {
       }
     }
 
-    // 3. Name match fallback across tenant
-    if (!cData && userFullName) {
+    // 3. Name match fallback strictly within tenant
+    if (!cData && userFullName && session.tenantId) {
       const { data: nameMatches } = await supabaseAdmin
         .from("clients")
         .select("*")
         .ilike("full_name", `%${userFullName}%`)
+        .eq("tenant_id", session.tenantId)
         .limit(1);
 
       if (nameMatches && nameMatches.length > 0) {
@@ -98,7 +99,7 @@ export async function GET(req: Request) {
       const { data: newClient } = await supabaseAdmin
         .from("clients")
         .insert({
-          tenant_id: session.tenantId || "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          tenant_id: session.tenantId || "00000000-0000-0000-0000-000000000000",
           user_id: session.sub,
           full_name: userFullName || session.email?.split("@")[0] || "Investor Client",
           uwp_client_code: `CL-${Math.floor(1000 + Math.random() * 9000)}`,

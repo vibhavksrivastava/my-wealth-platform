@@ -14,6 +14,8 @@ function parseCasData(input: any): Array<{
   nav?: number;
   valuation: number;
   cost?: number;
+  holdingNature?: string;
+  ownerName?: string;
 }> {
   if (Array.isArray(input)) {
     return input
@@ -47,14 +49,18 @@ function parseCasData(input: any): Array<{
           String(item.nav ?? item.current_nav ?? item.nav_value ?? item.price ?? 0).replace(/[₹,RsINR\s]/gi, "")
         );
 
+        const folioStr = String(item.folio || item.folio_number || item.folioNumber || item.folioNo || "").replace(/folio:?/i, "").trim();
+
         return {
           scheme: item.scheme || item.scheme_name || item.schemeName || item.fund_name || item.description || "Mutual Fund Scheme",
-          folio: String(item.folio || item.folio_number || item.folioNumber || item.folioNo || "").replace(/folio:?/i, "").trim(),
+          folio: folioStr,
           isin: item.isin || item.isin_number || item.isinCode || undefined,
           units: !isNaN(unitsVal) && unitsVal > 0 ? unitsVal : undefined,
           nav: !isNaN(navVal) && navVal > 0 ? navVal : undefined,
           valuation: !isNaN(val) ? val : 0,
           cost: !isNaN(costVal) && costVal > 0 ? costVal : undefined,
+          holdingNature: item.holdingNature || item.holding_nature || item.holdingMode || (folioStr && /(\/13|\/14|\/15|\/39|\/09)/.test(folioStr) ? "Either or Survivor" : undefined),
+          ownerName: item.ownerName || item.owner_name || undefined,
         };
       })
       .filter((h) => h.valuation > 0 || (h.units && h.units > 0));
@@ -245,15 +251,29 @@ export async function POST(
       .ilike("notes", "%Imported via CAMS/KFintech CAS%");
 
     // 1. Prepare and insert assets records
-    const recordsToInsert = parsedHoldings.map((h) => ({
-      client_id: clientId,
-      asset_category: "Mutual Funds",
-      description: h.scheme + (h.folio ? ` (Folio: ${h.folio})` : ""),
-      owner_name: client.full_name || "Self",
-      current_market_value: h.valuation,
-      is_liquid: true,
-      notes: (h.isin ? `ISIN: ${h.isin} | ` : "") + `Imported via CAMS/KFintech CAS. Units: ${h.units ?? "N/A"} | NAV: ${h.nav ? "₹" + h.nav : "N/A"} | Cost: ${h.cost ? "₹" + h.cost : "N/A"}`,
-    }));
+    const recordsToInsert = parsedHoldings.map((h) => {
+      const isEos = h.holdingNature === "EITHER_OR_SURVIVOR" || h.holdingNature === "Either or Survivor" || (h.folio && /(\/13|\/14|\/15|\/39|\/09)/.test(h.folio));
+      const natureLabel = isEos ? "Either or Survivor" : "Single";
+      const ownerLabel = h.ownerName || (isEos ? `${client.full_name} & Joint (Either or Survivor)` : client.full_name || "Self");
+
+      let realVal = h.valuation;
+      if ((realVal < 10 || isNaN(realVal)) && h.units && h.nav && h.units > 0 && h.nav > 0) {
+        realVal = Number((h.units * h.nav).toFixed(2));
+      }
+
+      return {
+        client_id: clientId,
+        asset_category: "Mutual Funds",
+        description: h.scheme + (h.folio ? ` (Folio: ${h.folio})` : ""),
+        owner_name: ownerLabel,
+        current_market_value: realVal,
+        is_liquid: true,
+        notes: (h.isin ? `ISIN: ${h.isin} | ` : "") +
+               (h.folio ? `Folio: ${h.folio} | ` : "") +
+               `Holding Nature: ${natureLabel} | ` +
+               `Imported via CAMS/KFintech CAS. Units: ${h.units ?? "N/A"} | NAV: ${h.nav ? "₹" + h.nav : "N/A"} | Cost: ${h.cost ? "₹" + h.cost : "N/A"}`,
+      };
+    });
 
     const { data: insertedAssets, error: insErr } = await supabaseAdmin
       .from("assets")
@@ -283,15 +303,28 @@ export async function POST(
         );
         const monthlySip = matchingSip ? Math.round(Number(matchingSip.amount || 0)) : 0;
 
+        const isEos = h.holdingNature === "EITHER_OR_SURVIVOR" || h.holdingNature === "Either or Survivor" || (h.folio && /(\/13|\/14|\/15|\/39|\/09)/.test(h.folio));
+        const natureLabel = isEos ? "Either or Survivor" : "Single";
+        const ownerLabel = h.ownerName || (isEos ? `${client.full_name} & Joint (Either or Survivor)` : client.full_name || "Self");
+
+        let realVal = h.valuation;
+        if ((realVal < 10 || isNaN(realVal)) && h.units && h.nav && h.units > 0 && h.nav > 0) {
+          realVal = Number((h.units * h.nav).toFixed(2));
+        }
+
         return {
           client_id: clientId,
           asset_class: "Equity Mutual Fund",
           scheme_instrument_name: h.scheme,
-          owner_name: client.full_name || "Self",
-          invested_amount: h.cost || Math.round(h.valuation * 0.75),
-          current_value: h.valuation,
+          owner_name: ownerLabel,
+          invested_amount: h.cost || Math.round(realVal * 0.75),
+          current_value: realVal,
           monthly_sip_amount: monthlySip,
-          notes: (h.isin ? `ISIN: ${h.isin} | ` : "") + (h.folio ? `Folio: ${h.folio} | ` : "") + `Imported via CAMS/KFintech CAS. Units: ${h.units ?? "N/A"} | NAV: ${h.nav ? "₹" + h.nav : "N/A"}`,
+          notes: (h.isin ? `ISIN: ${h.isin} | ` : "") +
+                 (h.folio ? `Folio: ${h.folio} | ` : "") +
+                 `Holding Nature: ${natureLabel} | ` +
+                 `Imported via CAMS/KFintech CAS. Units: ${h.units ?? "N/A"} | NAV: ${h.nav ? "₹" + h.nav : "N/A"}` +
+                 (h.cost ? ` | Cost: ₹${h.cost}` : ""),
           updated_at: new Date().toISOString(),
         };
       });
@@ -324,6 +357,72 @@ export async function POST(
       console.warn("mfd_folios upsert warning:", folioErr);
     }
 
+    // 3a. Ingest inferred active SIP records into public.sips (source = 'CAS_IMPORT')
+    try {
+      const activeSipHoldings = parsedHoldings.filter((h) => {
+        const matchingSip = parsedTransactions.find(
+          (t: any) =>
+            (t.type === "SIP" || t.transaction_type === "SIP") &&
+            !t.description?.toLowerCase().includes("consolidated") &&
+            ((t.isin && h.isin && t.isin === h.isin) ||
+              (t.folioNumber && h.folio && t.folioNumber === h.folio) ||
+              (t.schemeName && h.scheme && (
+                t.schemeName.toLowerCase() === h.scheme.toLowerCase() ||
+                t.schemeName.toLowerCase().includes(h.scheme.toLowerCase().slice(0, 20)) ||
+                h.scheme.toLowerCase().includes(t.schemeName.toLowerCase().slice(0, 20))
+              )))
+        );
+        return Boolean(matchingSip && Number(matchingSip.amount || 0) > 0);
+      });
+
+      if (activeSipHoldings.length > 0) {
+        const { data: existingSips } = await supabaseAdmin
+          .from("sips")
+          .select("id, sip_registration_no, source")
+          .eq("client_id", clientId);
+
+        const existingMap = new Map((existingSips || []).map((s: any) => [s.sip_registration_no, s]));
+
+        for (let idx = 0; idx < activeSipHoldings.length; idx++) {
+          const h = activeSipHoldings[idx];
+          const matchingSip = parsedTransactions.find(
+            (t: any) =>
+              (t.type === "SIP" || t.transaction_type === "SIP") &&
+              ((t.isin && h.isin && t.isin === h.isin) ||
+                (t.folioNumber && h.folio && t.folioNumber === h.folio) ||
+                (t.schemeName && h.scheme && t.schemeName.toLowerCase() === h.scheme.toLowerCase()))
+          );
+
+          const sipAmt = Math.round(Number(matchingSip?.amount || 0));
+          const sipDay = matchingSip?.date ? parseInt(matchingSip.date.split("-")[2], 10) || 10 : 10;
+          const regNo = `CAS-SIP-${clientId.slice(0, 8)}-${h.folio || h.isin || idx + 1}`;
+
+          const existing = existingMap.get(regNo);
+          if (!existing) {
+            await supabaseAdmin.from("sips").insert({
+              tenant_id: client.tenant_id || session.tenantId || "00000000-0000-0000-0000-000000000000",
+              client_id: clientId,
+              arn_id: "ARN-175318",
+              ucc: client.uwp_client_code || "UCC-CAS",
+              sip_registration_no: regNo,
+              mandate_id: `MANDATE-CAS-${h.folio || idx + 1}`,
+              scheme_code: h.isin || null,
+              scheme_name: h.scheme,
+              installment_amount: sipAmt,
+              frequency: "MONTHLY",
+              installment_day: sipDay,
+              start_date: matchingSip?.date || "2026-09-01",
+              status: "ACTIVE",
+              source: "CAS_IMPORT",
+              installments_paid: Math.max(1, Math.round((h.cost || 50000) / (sipAmt || 1))),
+            });
+          }
+        }
+      }
+    } catch (sipErr) {
+      console.warn("sips table CAS ingestion warning:", sipErr);
+    }
+
     // 3b. Ingest Transactions if provided
     if (parsedTransactions.length > 0) {
       try {
@@ -351,10 +450,17 @@ export async function POST(
         }
 
         if (portfolioId) {
-          await supabaseAdmin
+          // Fetch existing transactions for this client to append new ones without deleting historical months or creating duplicates
+          const { data: existingTxs } = await supabaseAdmin
             .from("transactions")
-            .delete()
+            .select("instrument_id, transaction_date, transaction_type, units, total_amount, external_order_id")
             .eq("client_id", userId);
+
+          const existingSet = new Set(
+            (existingTxs || []).map((t) =>
+              `${t.instrument_id}_${t.transaction_date}_${t.transaction_type}_${Number(t.units).toFixed(3)}_${Number(t.total_amount).toFixed(2)}`
+            )
+          );
 
           for (const tx of parsedTransactions) {
             let instrumentId = null;
@@ -385,18 +491,22 @@ export async function POST(
             }
 
             if (instrumentId) {
-              await supabaseAdmin.from("transactions").insert({
-                tenant_id: client.tenant_id || session.tenantId || "00000000-0000-0000-0000-000000000000",
-                portfolio_id: portfolioId,
-                client_id: userId,
-                instrument_id: instrumentId,
-                transaction_type: tx.type || "BUY",
-                transaction_date: tx.date || new Date().toISOString().split("T")[0],
-                units: tx.units || 1,
-                nav: tx.nav || 10,
-                total_amount: tx.amount || 1000,
-                external_order_id: tx.folioNumber || null,
-              });
+              const txKey = `${instrumentId}_${tx.date || new Date().toISOString().split("T")[0]}_${tx.type || "BUY"}_${Number(tx.units || 1).toFixed(3)}_${Number(tx.amount || 1000).toFixed(2)}`;
+              if (!existingSet.has(txKey)) {
+                await supabaseAdmin.from("transactions").insert({
+                  tenant_id: client.tenant_id || session.tenantId || "00000000-0000-0000-0000-000000000000",
+                  portfolio_id: portfolioId,
+                  client_id: userId,
+                  instrument_id: instrumentId,
+                  transaction_type: tx.type || "BUY",
+                  transaction_date: tx.date || new Date().toISOString().split("T")[0],
+                  units: tx.units || 1,
+                  nav: tx.nav || 10,
+                  total_amount: tx.amount || 1000,
+                  external_order_id: tx.folioNumber || null,
+                });
+                existingSet.add(txKey);
+              }
             }
           }
         }

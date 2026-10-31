@@ -329,14 +329,7 @@ export async function GET(req: Request) {
         .order("full_name", { ascending: true });
 
       if (session.role !== "SUPER_ADMIN" && session.tenantId) {
-        const advisorName = [session.firstName, session.lastName].filter(Boolean).join(" ").trim();
-        if (advisorName) {
-          clientsQuery = clientsQuery.or(
-            `tenant_id.eq.${session.tenantId},advisor_name.ilike.%${advisorName}%,advisor_name.ilike.%${session.lastName || session.firstName}%`
-          );
-        } else {
-          clientsQuery = clientsQuery.eq("tenant_id", session.tenantId);
-        }
+        clientsQuery = clientsQuery.eq("tenant_id", session.tenantId);
       }
       const { data: clientsData, error: cErr } = await clientsQuery;
       if (cErr) {
@@ -344,10 +337,15 @@ export async function GET(req: Request) {
       }
       allTenantClients = clientsData || [];
 
-      // Fetch households
-      const { data: householdsData } = await supabaseAdmin
+      // Fetch households strictly for this tenant
+      let householdsQuery = supabaseAdmin
         .from("households")
         .select("household_id, household_name");
+
+      if (session.role !== "SUPER_ADMIN" && session.tenantId) {
+        householdsQuery = householdsQuery.eq("tenant_id", session.tenantId);
+      }
+      const { data: householdsData } = await householdsQuery;
 
       (householdsData || []).forEach((h) => {
         householdMap.set(h.household_id, h.household_name);
@@ -390,7 +388,14 @@ export async function GET(req: Request) {
       // Calculate summary metrics for each client
       clientSummaries = allTenantClients.map((client) => {
         const clientInvs = allInvestments.filter((i) => i.client_id === client.client_id);
-        const clientAssets = allMfAssets.filter((a) => a.client_id === client.client_id);
+        const clientAssets = allMfAssets.filter((a) => {
+          if (a.client_id !== client.client_id) return false;
+          const cleanDesc = (a.description || "").split("(Folio:")[0].trim().toLowerCase();
+          return !clientInvs.some((i) => {
+            const sName = (i.scheme_instrument_name || "").toLowerCase();
+            return sName === cleanDesc || (cleanDesc.length > 5 && (sName.includes(cleanDesc) || cleanDesc.includes(sName)));
+          });
+        });
         const hhName = client.household_id ? householdMap.get(client.household_id) || "Family Household" : "Individual Household";
 
         let cost = 0;
@@ -872,10 +877,21 @@ export async function GET(req: Request) {
         }
 
         const cMember = householdMembers.find((m) => m.client_id === inv.client_id) || allTenantClients.find((c) => c.client_id === inv.client_id);
+        const isEos =
+          (inv.notes && (/holding\s*nature:\s*(either|es|joint)/i.test(inv.notes) || /either\s*or\s*survivor/i.test(inv.notes))) ||
+          (inv.owner_name && /survivor|joint/i.test(inv.owner_name)) ||
+          (/(\/13|\/14|\/15|\/39|\/09)/.test(folio));
+
+        const holdingNature = isEos ? "Either or Survivor" : "Single";
+        const ownerName = inv.owner_name || (isEos ? `${cMember?.full_name || "Client"} & Joint (Either or Survivor)` : cMember?.full_name || "Self");
+
         holdingsList.push({
           id: inv.investment_id,
           clientId: inv.client_id,
           clientName: cMember?.full_name || inv.owner_name || primaryClient?.full_name || "Self",
+          ownerName,
+          holdingNature,
+          isEitherOrSurvivor: isEos,
           schemeName: inv.scheme_instrument_name,
           assetClass: inv.asset_class || "Equity Mutual Fund",
           folioNumber: folio,
@@ -929,10 +945,21 @@ export async function GET(req: Request) {
         const { navData, cashFlows } = getHoldingEnrichment(ast, sName);
         const metrics = calculateHoldingMetrics(ast, navData, cashFlows);
         const cAstMember = householdMembers.find((m) => m.client_id === ast.client_id) || allTenantClients.find((c) => c.client_id === ast.client_id);
+        const isEos =
+          (ast.notes && (/holding\s*nature:\s*(either|es|joint)/i.test(ast.notes) || /either\s*or\s*survivor/i.test(ast.notes))) ||
+          (ast.owner_name && /survivor|joint/i.test(ast.owner_name)) ||
+          (/(\/13|\/14|\/15|\/39|\/09)/.test(folio));
+
+        const holdingNature = isEos ? "Either or Survivor" : "Single";
+        const ownerName = ast.owner_name || (isEos ? `${cAstMember?.full_name || "Client"} & Joint (Either or Survivor)` : cAstMember?.full_name || "Self");
+
         holdingsList.push({
           id: ast.asset_id,
           clientId: ast.client_id,
           clientName: cAstMember?.full_name || ast.owner_name || primaryClient?.full_name || "Self",
+          ownerName,
+          holdingNature,
+          isEitherOrSurvivor: isEos,
           schemeName: sName,
           assetClass: "Equity Mutual Fund",
           folioNumber: folio,
@@ -1186,24 +1213,28 @@ export async function GET(req: Request) {
     // 10. SIP Mandates Data
     let sips: any[] = [];
     try {
-      const { data: dbSips } = await supabaseAdmin
-        .from("mf_sips")
-        .select("*")
+      const { data: dedicatedSips } = await supabaseAdmin
+        .from("sips")
+        .select("*, clients(full_name)")
         .in("client_id", clientIds);
 
-      if (dbSips && dbSips.length > 0) {
-        sips = dbSips.map((s) => ({
-          id: s.sip_id,
+      if (dedicatedSips && dedicatedSips.length > 0) {
+        sips = dedicatedSips.map((s) => ({
+          id: s.id,
           schemeName: s.scheme_name,
-          folioNumber: s.folio_number,
-          monthlyAmount: Number(s.monthly_amount),
-          sipDay: s.sip_day_of_month,
-          frequency: s.frequency,
-          status: s.status,
-          nextDueDate: s.next_execution_date,
-          mandateBank: s.mandate_bank_name,
-          totalInvested: Number(s.total_invested_installments || 0),
-          clientName: primaryClient?.full_name || "Self",
+          folioNumber: s.sip_registration_no || s.scheme_code || "Folio N/A",
+          monthlyAmount: Number(s.installment_amount),
+          sipDay: s.installment_day || 10,
+          frequency: s.frequency || "Monthly",
+          status: s.status || "ACTIVE",
+          nextDueDate: s.start_date || "2026-11-10",
+          mandateBank: s.mandate_id || "Registered Bank Mandate (NACH)",
+          totalInvested: Number(s.installments_paid || 1),
+          clientName: s.clients?.full_name || primaryClient?.full_name || "Self",
+          source: s.source || "MANUAL",
+          sipRegistrationNo: s.sip_registration_no,
+          ucc: s.ucc,
+          arnId: s.arn_id,
         }));
       }
     } catch {}

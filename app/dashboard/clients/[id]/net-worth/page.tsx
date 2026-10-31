@@ -154,7 +154,7 @@ export default function ClientNetWorthPage({
         {/* Net Worth */}
         <div className="p-5 rounded-2xl border border-sky-500/30 bg-gradient-to-b from-sky-950/40 to-slate-900/60 shadow-xl">
           <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400">Consolidated Net Worth</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400">Total Net Worth</span>
             <Wallet className="h-4 w-4 text-sky-400" />
           </div>
           <div className="text-2xl font-bold text-white mt-1">
