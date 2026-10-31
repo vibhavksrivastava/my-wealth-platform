@@ -88,7 +88,7 @@ export async function GET(req: Request) {
     }
 
     // 2. Data Fallback: If sips table has 0 rows or is not yet initialized in schema cache,
-    // infer active SIPs directly from investment_portfolio with source = 'CAS_IMPORT'
+    // infer active and paused SIPs directly from investment_portfolio with source = 'CAS_IMPORT'
     if (sipsList.length === 0 && targetClientId) {
       const { data: clientData } = await supabaseAdmin
         .from("clients")
@@ -96,38 +96,51 @@ export async function GET(req: Request) {
         .eq("client_id", targetClientId)
         .maybeSingle();
 
-      const { data: invSips } = await supabaseAdmin
+      const { data: allInvs } = await supabaseAdmin
         .from("investment_portfolio")
         .select("*")
-        .eq("client_id", targetClientId)
-        .gt("monthly_sip_amount", 0);
+        .eq("client_id", targetClientId);
+
+      const invSips = (allInvs || []).filter(
+        (inv) =>
+          Number(inv.monthly_sip_amount || 0) > 0 ||
+          (inv.notes && inv.notes.includes("__SIP_META__"))
+      );
 
       if (invSips && invSips.length > 0) {
         sipsList = invSips.map((inv, idx) => {
+          let sipMeta: any = {};
+          if (inv.notes && inv.notes.includes("__SIP_META__:")) {
+            try {
+              sipMeta = JSON.parse(inv.notes.split("__SIP_META__:")[1].trim());
+            } catch {}
+          }
+
           const folioMatch = inv.notes?.match(/Folio:\s*([^\s|,]+)/i);
           const isinMatch = inv.notes?.match(/ISIN:\s*([A-Z0-9]+)/i);
           const folio = folioMatch ? folioMatch[1] : `FOL-${inv.investment_id.slice(0, 6)}`;
-          const amount = Number(inv.monthly_sip_amount || 0);
+          const amount = sipMeta.monthlyAmount || Number(inv.monthly_sip_amount || 0);
+          const effectiveStatus = sipMeta.status || (Number(inv.monthly_sip_amount) > 0 ? "ACTIVE" : "PAUSED");
 
           return {
-            id: `cas-sip-${inv.investment_id}`,
+            id: `sip-${inv.investment_id}`,
             tenantId: clientData?.tenant_id || session.tenantId || "00000000-0000-0000-0000-000000000000",
             clientId: targetClientId,
             clientName: clientData?.full_name || inv.owner_name || "Investor",
             ucc: clientData?.uwp_client_code || "UCC-CAS-001",
             arnId: "ARN-175318",
-            sipRegistrationNo: `CAS-REG-${folio}`,
-            mandateId: `MANDATE-NACH-${folio}`,
+            sipRegistrationNo: sipMeta.sipRegistrationNo || `CAS-REG-${folio}`,
+            mandateId: sipMeta.mandateId || `MANDATE-NACH-${folio}`,
             schemeCode: isinMatch ? isinMatch[1] : `SCH-${idx + 101}`,
             schemeName: inv.scheme_instrument_name,
             installmentAmount: amount,
-            frequency: "MONTHLY",
-            installmentDay: 10,
+            frequency: sipMeta.frequency || "MONTHLY",
+            installmentDay: sipMeta.installmentDay || 10,
             startDate: "2026-09-01",
             endDate: null,
             installmentsPaid: Math.max(1, Math.round(Number(inv.invested_amount || 0) / (amount || 1))),
-            status: "ACTIVE",
-            source: "CAS_IMPORT",
+            status: effectiveStatus,
+            source: sipMeta.source || (inv.notes?.includes("BSE") ? "API_SYNC" : "CAS_IMPORT"),
             rawApiResponse: null,
             createdAt: inv.updated_at || new Date().toISOString(),
             updatedAt: inv.updated_at || new Date().toISOString(),
@@ -265,11 +278,11 @@ export async function POST(req: Request) {
       console.warn("Direct sips insert warning:", e);
     }
 
-    // Keep investment_portfolio.monthly_sip_amount synchronized if matching holding exists
+    // Keep investment_portfolio.monthly_sip_amount and __SIP_META__ synchronized
     try {
       const { data: existingHoldings } = await supabaseAdmin
         .from("investment_portfolio")
-        .select("investment_id, scheme_instrument_name, monthly_sip_amount")
+        .select("investment_id, scheme_instrument_name, monthly_sip_amount, notes")
         .eq("client_id", clientId);
 
       const matchingHolding = (existingHoldings || []).find(
@@ -278,11 +291,29 @@ export async function POST(req: Request) {
           schemeName.toLowerCase().includes(h.scheme_instrument_name.toLowerCase().slice(0, 15))
       );
 
+      const baseNotes = (matchingHolding?.notes || "").split("__SIP_META__:")[0].trim();
+      const sipMeta = {
+        status: record.status || "ACTIVE",
+        monthlyAmount: Number(installmentAmount),
+        installmentDay: record.installment_day,
+        frequency: record.frequency,
+        mandateId: record.mandate_id,
+        sipRegistrationNo: record.sip_registration_no,
+        source: record.source,
+        updatedAt: new Date().toISOString(),
+      };
+      const packedNotes = baseNotes
+        ? `${baseNotes}\n__SIP_META__:${JSON.stringify(sipMeta)}`
+        : `__SIP_META__:${JSON.stringify(sipMeta)}`;
+
+      const newMonthlyAmount = record.status === "ACTIVE" ? Number(installmentAmount) : 0;
+
       if (matchingHolding) {
         await supabaseAdmin
           .from("investment_portfolio")
           .update({
-            monthly_sip_amount: Number(installmentAmount),
+            monthly_sip_amount: newMonthlyAmount,
+            notes: packedNotes,
             updated_at: new Date().toISOString(),
           })
           .eq("investment_id", matchingHolding.investment_id);
@@ -296,8 +327,8 @@ export async function POST(req: Request) {
             owner_name: client.full_name,
             invested_amount: Number(installmentAmount),
             current_value: Number(installmentAmount),
-            monthly_sip_amount: Number(installmentAmount),
-            notes: `Mandate: ${record.mandate_id} | Day: ${record.installment_day}th | Reg: ${record.sip_registration_no} | Source: MANUAL`,
+            monthly_sip_amount: newMonthlyAmount,
+            notes: packedNotes,
             updated_at: new Date().toISOString(),
           });
       }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Repeat,
   Plus,
@@ -21,7 +21,9 @@ import {
   User,
   ShieldCheck,
   CreditCard,
-  Hash
+  Hash,
+  Trash2,
+  Check
 } from "lucide-react";
 
 export interface SipRecord {
@@ -48,6 +50,19 @@ export interface SipRecord {
   updatedAt?: string;
 }
 
+export interface ExistingHoldingOption {
+  id: string;
+  clientId?: string;
+  clientName?: string;
+  schemeName: string;
+  folioNumber?: string;
+  monthlySip?: number;
+  assetClass?: string;
+  currentValue?: number;
+  investedCost?: number;
+  isin?: string;
+}
+
 interface SipManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -56,6 +71,7 @@ interface SipManagerModalProps {
   clientName: string;
   clientCode?: string;
   editingSip?: SipRecord | null;
+  existingHoldings?: ExistingHoldingOption[];
   tenantsClients?: { client_id: string; full_name: string; uwp_client_code?: string }[];
   isAdvisor?: boolean;
 }
@@ -73,6 +89,7 @@ export default function SipManagerModal({
   clientName,
   clientCode = "",
   editingSip = null,
+  existingHoldings = [],
   tenantsClients = [],
   isAdvisor = true,
 }: SipManagerModalProps) {
@@ -90,8 +107,23 @@ export default function SipManagerModal({
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState<"ACTIVE" | "PAUSED" | "CANCELLED" | "COMPLETED" | "REGISTERED">("ACTIVE");
 
+  // Selection from existing portfolio holdings
+  const [entryMode, setEntryMode] = useState<"EXISTING" | "NEW">("EXISTING");
+  const [selectedHoldingId, setSelectedHoldingId] = useState<string>("");
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Filter available existing holdings by target client if multi-client view
+  const availableHoldings = useMemo(() => {
+    if (!existingHoldings || existingHoldings.length === 0) return [];
+    if (!selectedClientId || selectedClientId === "ALL") return existingHoldings;
+    const filtered = existingHoldings.filter(
+      (h) => !h.clientId || h.clientId === selectedClientId
+    );
+    return filtered.length > 0 ? filtered : existingHoldings;
+  }, [existingHoldings, selectedClientId]);
 
   useEffect(() => {
     if (editingSip) {
@@ -108,6 +140,7 @@ export default function SipManagerModal({
       setStartDate(editingSip.startDate || new Date().toISOString().split("T")[0]);
       setEndDate(editingSip.endDate || "");
       setStatus(editingSip.status || "ACTIVE");
+      setEntryMode("NEW");
     } else {
       setSelectedClientId(clientId || "");
       setSchemeName("");
@@ -122,16 +155,60 @@ export default function SipManagerModal({
       setStartDate(new Date().toISOString().split("T")[0]);
       setEndDate("");
       setStatus("ACTIVE");
+      setSelectedHoldingId("");
+      setEntryMode(availableHoldings.length > 0 ? "EXISTING" : "NEW");
     }
     setErrorMessage(null);
-  }, [editingSip, clientId, clientCode, isOpen]);
+  }, [editingSip, clientId, clientCode, isOpen, availableHoldings.length]);
 
   if (!isOpen) return null;
+
+  const handleSelectExistingFund = (holdingId: string) => {
+    setSelectedHoldingId(holdingId);
+    const fund = availableHoldings.find((h) => h.id === holdingId);
+    if (fund) {
+      setSchemeName(fund.schemeName);
+      setSchemeCode(fund.isin || "");
+      if (fund.folioNumber && fund.folioNumber !== "Folio N/A") {
+        setSipRegistrationNo(`SIP-${fund.folioNumber}`);
+      }
+      if (fund.monthlySip && fund.monthlySip > 0) {
+        setInstallmentAmount(fund.monthlySip);
+      }
+    }
+  };
+
+  const handleDeleteCurrentSip = async () => {
+    if (!editingSip?.id) return;
+    if (!confirm(`Are you sure you want to permanently delete the SIP mandate for "${editingSip.schemeName}"?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setErrorMessage(null);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch(`/api/portfolio/sips/${editingSip.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete SIP.");
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to delete SIP.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!schemeName.trim()) {
-      setErrorMessage("Please enter a valid Scheme Name.");
+      setErrorMessage("Please enter or select a valid Mutual Fund Scheme Name.");
       return;
     }
     if (!installmentAmount || installmentAmount <= 0) {
@@ -167,7 +244,7 @@ export default function SipManagerModal({
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to update SIP.");
       } else {
-        // Create new manual SIP
+        // Create new manual SIP or SIP mapped to existing fund
         const res = await fetch("/api/portfolio/sips", {
           method: "POST",
           headers,
@@ -202,6 +279,8 @@ export default function SipManagerModal({
     }
   };
 
+  const activeHoldingMatch = availableHoldings.find((h) => h.id === selectedHoldingId || h.schemeName === schemeName);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
@@ -235,7 +314,7 @@ export default function SipManagerModal({
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {editingSip
                   ? "Update recurring commitment parameters, execution schedule, or operational status."
-                  : "Register a recurring mutual fund debit mandate for this investor."}
+                  : "Start a recurring SIP on any existing mutual fund or register a new mandate."}
               </p>
             </div>
           </div>
@@ -256,7 +335,7 @@ export default function SipManagerModal({
             </div>
           )}
 
-          {/* Client Target (if editing or multiple clients available) */}
+          {/* Client Target (if creating and multiple clients available) */}
           {isAdvisor && tenantsClients.length > 0 && !editingSip && (
             <div>
               <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
@@ -280,21 +359,105 @@ export default function SipManagerModal({
             </div>
           )}
 
-          {/* Scheme Name */}
-          <div>
-            <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-              Mutual Fund Scheme Name *
-            </label>
-            <input
-              type="text"
-              required
-              disabled={Boolean(editingSip && editingSip.source === "API_SYNC")}
-              value={schemeName}
-              onChange={(e) => setSchemeName(e.target.value)}
-              placeholder="e.g. Parag Parikh Flexi Cap Fund - Direct Plan Growth"
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 font-medium"
-            />
-          </div>
+          {/* Scheme Selection Mode: Existing Fund vs New Fund */}
+          {!editingSip && availableHoldings.length > 0 && (
+            <div className="space-y-2">
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold">
+                Select Fund Source
+              </label>
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setEntryMode("EXISTING")}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                    entryMode === "EXISTING"
+                      ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <Building className="h-3.5 w-3.5" />
+                  <span>Existing Fund ({availableHoldings.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEntryMode("NEW");
+                    setSelectedHoldingId("");
+                  }}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                    entryMode === "NEW"
+                      ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Enter Other Scheme</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Scheme Selector: Existing Fund Dropdown */}
+          {!editingSip && entryMode === "EXISTING" && availableHoldings.length > 0 ? (
+            <div className="space-y-2">
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold">
+                Choose Existing Mutual Fund from Portfolio *
+              </label>
+              <select
+                value={selectedHoldingId}
+                onChange={(e) => handleSelectExistingFund(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium text-xs focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">-- Choose one of {availableHoldings.length} portfolio funds --</option>
+                {availableHoldings.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.schemeName} {h.folioNumber && h.folioNumber !== "Folio N/A" ? `• Folio: ${h.folioNumber}` : ""}{" "}
+                    {h.currentValue ? `• Value: ${formatINR(h.currentValue)}` : ""}{" "}
+                    {h.monthlySip && h.monthlySip > 0 ? `• SIP: ${formatINR(h.monthlySip)}/mo` : ""}
+                  </option>
+                ))}
+              </select>
+
+              {activeHoldingMatch && (
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                    <div>
+                      <div className="font-bold text-slate-900 dark:text-white">{activeHoldingMatch.schemeName}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Folio: {activeHoldingMatch.folioNumber || "N/A"} &bull; {activeHoldingMatch.assetClass || "Mutual Fund"}
+                      </div>
+                    </div>
+                  </div>
+                  {activeHoldingMatch.monthlySip && activeHoldingMatch.monthlySip > 0 ? (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-500">
+                      Existing SIP: {formatINR(activeHoldingMatch.monthlySip)}/mo
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold text-slate-500">
+                      No Active SIP
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Scheme Name: Manual Input */
+            <div>
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                Mutual Fund Scheme Name *
+              </label>
+              <input
+                type="text"
+                required
+                disabled={Boolean(editingSip && editingSip.source === "API_SYNC")}
+                value={schemeName}
+                onChange={(e) => setSchemeName(e.target.value)}
+                placeholder="e.g. Parag Parikh Flexi Cap Fund - Direct Plan Growth"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 font-medium"
+              />
+            </div>
+          )}
 
           {/* Installment Amount & Quick Chips */}
           <div>
@@ -308,25 +471,25 @@ export default function SipManagerModal({
             </div>
             <input
               type="number"
-              min="100"
-              step="100"
+              min={500}
+              step={500}
               required
-              value={installmentAmount}
+              value={installmentAmount || ""}
               onChange={(e) => setInstallmentAmount(Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono font-bold text-sm"
+              placeholder="10000"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono text-sm font-semibold"
             />
             {/* Quick Chips */}
             <div className="flex items-center gap-1.5 mt-2">
-              <span className="text-[10px] text-slate-400">Quick set:</span>
               {[2500, 5000, 10000, 15000, 25000, 50000].map((amt) => (
                 <button
-                  type="button"
                   key={amt}
+                  type="button"
                   onClick={() => setInstallmentAmount(amt)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border transition ${
+                  className={`px-2 py-0.5 rounded text-[10px] font-semibold border transition ${
                     installmentAmount === amt
-                      ? "bg-indigo-500 text-white border-indigo-500"
-                      : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400"
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200"
                   }`}
                 >
                   ₹{amt >= 1000 ? `${amt / 1000}k` : amt}
@@ -335,104 +498,96 @@ export default function SipManagerModal({
             </div>
           </div>
 
-          {/* Frequency & Installment Day */}
+          {/* Frequency & Execution Day */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                Debit Frequency
+                SIP Frequency
               </label>
               <select
                 value={frequency}
-                onChange={(e: any) => setFrequency(e.target.value)}
+                onChange={(e) => setFrequency(e.target.value as any)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium"
               >
-                <option value="MONTHLY">Monthly</option>
+                <option value="MONTHLY">Monthly (Standard)</option>
                 <option value="WEEKLY">Weekly</option>
-                <option value="DAILY">Daily</option>
                 <option value="QUARTERLY">Quarterly</option>
+                <option value="DAILY">Daily</option>
               </select>
             </div>
 
             <div>
               <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                SIP Execution Day
+                Debit / Execution Day of Month
               </label>
               <select
                 value={installmentDay}
                 onChange={(e) => setInstallmentDay(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium font-mono"
               >
-                {[1, 2, 5, 7, 10, 12, 15, 18, 20, 21, 25, 28].map((d) => (
-                  <option key={d} value={d}>
-                    {d}th of the month
+                {[1, 5, 7, 10, 15, 20, 25, 28].map((day) => (
+                  <option key={day} value={day}>
+                    {day}th of month {day === 10 ? "(Most popular)" : ""}
                   </option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* Operational Status & Mandate ID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                Mandate Operational Status
-              </label>
-              <select
-                value={status}
-                onChange={(e: any) => setStatus(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg border font-bold ${
-                  status === "ACTIVE"
-                    ? "border-emerald-500/40 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
-                    : status === "PAUSED"
-                    ? "border-amber-500/40 bg-amber-500/5 text-amber-600 dark:text-amber-400"
-                    : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                }`}
-              >
-                <option value="ACTIVE">ACTIVE (Auto-Debit On)</option>
-                <option value="PAUSED">PAUSED (Temporarily Suspended)</option>
-                <option value="CANCELLED">CANCELLED (Terminated)</option>
-                <option value="REGISTERED">REGISTERED (Pending Mandate Auth)</option>
-                <option value="COMPLETED">COMPLETED (Tenure Finished)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                Bank Mandate ID / URN
-              </label>
-              <input
-                type="text"
-                value={mandateId}
-                onChange={(e) => setMandateId(e.target.value)}
-                placeholder="e.g. HDFC-NACH-984210"
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono placeholder-slate-400"
-              />
+          {/* Operational Status Selector */}
+          <div>
+            <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+              Mandate Status
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { val: "ACTIVE", label: "Active", desc: "Debits scheduled regularly" },
+                { val: "PAUSED", label: "Paused", desc: "Temporarily held by investor" },
+                { val: "CANCELLED", label: "Cancelled", desc: "Mandate terminated" },
+              ].map((s) => (
+                <button
+                  key={s.val}
+                  type="button"
+                  onClick={() => setStatus(s.val as any)}
+                  className={`p-2 rounded-xl text-left border transition ${
+                    status === s.val
+                      ? s.val === "ACTIVE"
+                        ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-bold"
+                        : s.val === "PAUSED"
+                        ? "bg-amber-500/10 border-amber-500/40 text-amber-600 dark:text-amber-400 font-bold"
+                        : "bg-rose-500/10 border-rose-500/40 text-rose-600 dark:text-rose-400 font-bold"
+                      : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  <div className="text-xs">{s.label}</div>
+                  <div className="text-[10px] opacity-75">{s.desc}</div>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Regulatory ARN & UCC & Registration Number */}
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-3">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-300">
-              <ShieldCheck className="h-3.5 w-3.5 text-indigo-500" />
-              <span>BSE StAR MF / Exchange Regulatory Identifiers</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Mandate & Platform Routing Identifiers */}
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-2.5">
+            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">
+              Banking &amp; Exchange Mandate Routing (Optional)
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <div>
                 <label className="block text-slate-500 text-[10px] uppercase font-semibold mb-1">
-                  ARN Code
+                  Bank Mandate ID / UMRN
                 </label>
                 <input
                   type="text"
-                  value={arnId}
-                  onChange={(e) => setArnId(e.target.value)}
-                  placeholder="ARN-111111"
+                  value={mandateId}
+                  onChange={(e) => setMandateId(e.target.value)}
+                  placeholder="MANDATE-NACH-01"
                   className="w-full px-2.5 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs"
                 />
               </div>
 
               <div>
                 <label className="block text-slate-500 text-[10px] uppercase font-semibold mb-1">
-                  Client UCC
+                  Investor UCC (BSE Code)
                 </label>
                 <input
                   type="text"
@@ -486,27 +641,43 @@ export default function SipManagerModal({
             </div>
           </div>
 
-          {/* Footer Actions */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition flex items-center gap-2 shadow-md shadow-indigo-600/20 disabled:opacity-50"
-            >
-              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              <span>{editingSip ? "Save Changes" : "Create SIP Mandate"}</span>
-            </button>
+          {/* Footer Actions: Delete Button (when editing) + Cancel & Save */}
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2.5">
+            <div>
+              {editingSip && (
+                <button
+                  type="button"
+                  disabled={isDeleting || isSubmitting}
+                  onClick={handleDeleteCurrentSip}
+                  className="px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 font-bold transition flex items-center gap-1.5"
+                  title="Permanently remove this SIP mandate"
+                >
+                  {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  <span>Delete SIP</span>
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || isDeleting}
+                className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition flex items-center gap-2 shadow-md shadow-indigo-600/20 disabled:opacity-50"
+              >
+                {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                <span>{editingSip ? "Save Changes" : "Create SIP Mandate"}</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>
     </div>
   );
 }
-

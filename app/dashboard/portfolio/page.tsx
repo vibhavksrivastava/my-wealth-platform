@@ -43,6 +43,7 @@ import {
   PlayCircle,
   Edit2,
   XCircle,
+  Trash2,
   Plus
 } from "lucide-react";
 import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
@@ -179,17 +180,27 @@ function MutualFundPortfolioContent() {
     setTogglingSipId(sip.id);
     try {
       const token = localStorage.getItem("auth_token");
-      await fetch(`/api/portfolio/sips/${sip.id}`, {
+      const res = await fetch(`/api/portfolio/sips/${sip.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({
+          status: newStatus,
+          installmentAmount: sip.monthlyAmount,
+          installmentDay: sip.sipDay,
+          frequency: sip.frequency,
+        }),
       });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update SIP status.");
+      }
       await fetchPortfolio();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to toggle SIP status:", err);
+      alert(err.message || "Failed to toggle SIP status.");
     } finally {
       setTogglingSipId(null);
     }
@@ -200,7 +211,7 @@ function MutualFundPortfolioContent() {
     setTogglingSipId(sip.id);
     try {
       const token = localStorage.getItem("auth_token");
-      await fetch(`/api/portfolio/sips/${sip.id}`, {
+      const res = await fetch(`/api/portfolio/sips/${sip.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -208,9 +219,38 @@ function MutualFundPortfolioContent() {
         },
         body: JSON.stringify({ status: "CANCELLED" }),
       });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to cancel SIP mandate.");
+      }
       await fetchPortfolio();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to cancel SIP:", err);
+      alert(err.message || "Failed to cancel SIP.");
+    } finally {
+      setTogglingSipId(null);
+    }
+  };
+
+  const handleDeleteSip = async (sip: any) => {
+    if (!confirm(`Are you sure you want to permanently delete the SIP mandate for "${sip.schemeName}"?`)) return;
+    setTogglingSipId(sip.id);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch(`/api/portfolio/sips/${sip.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete SIP mandate.");
+      }
+      await fetchPortfolio();
+    } catch (err: any) {
+      console.error("Failed to delete SIP:", err);
+      alert(err.message || "Failed to delete SIP mandate.");
     } finally {
       setTogglingSipId(null);
     }
@@ -1540,7 +1580,7 @@ function MutualFundPortfolioContent() {
                         <th className="py-3 px-3 text-right">Current Value</th>
                         <th className="py-3 px-3 text-right">1-Day Change</th>
                         <th className="py-3 px-3 text-right">CAGR &bull; XIRR</th>
-                        <th className="py-3 px-3 text-center">Detail</th>
+                        <th className="py-3 px-3 text-center">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -1605,13 +1645,41 @@ function MutualFundPortfolioContent() {
                               <div className="text-[10px] text-sky-500 font-bold">XIRR: {h.xirr}%</div>
                             </td>
                             <td className="py-3 px-3 text-center">
-                              <button
-                                onClick={() => setSelectedHolding(h)}
-                                className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900 transition flex items-center gap-1 mx-auto shadow-sm"
-                              >
-                                <span>Txns</span>
-                                <ChevronRight className="h-3 w-3" />
-                              </button>
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  onClick={() => setSelectedHolding(h)}
+                                  className="px-2 py-1 rounded-md text-[11px] font-bold bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900 transition flex items-center gap-1 shadow-xs"
+                                  title="View Transactions"
+                                >
+                                  <span>Txns</span>
+                                  <ChevronRight className="h-3 w-3" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setEditingSip({
+                                      id: h.monthlySip > 0 ? `sip-${h.id}` : "",
+                                      clientId: h.clientId || portfolioData?.clientId || "",
+                                      schemeName: h.schemeName,
+                                      installmentAmount: h.monthlySip > 0 ? h.monthlySip : 5000,
+                                      frequency: "MONTHLY",
+                                      installmentDay: 10,
+                                      sipRegistrationNo: h.folioNumber && h.folioNumber !== "Folio N/A" ? `SIP-${h.folioNumber}` : "",
+                                      status: "ACTIVE",
+                                      source: "MANUAL",
+                                    });
+                                    setIsSipModalOpen(true);
+                                  }}
+                                  className={`px-2 py-1 rounded-md text-[11px] font-bold border transition flex items-center gap-1 shadow-xs ${
+                                    h.monthlySip > 0
+                                      ? "bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 border-purple-200 dark:border-purple-800 hover:bg-purple-100"
+                                      : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:text-indigo-600"
+                                  }`}
+                                  title={h.monthlySip > 0 ? "Manage Active SIP" : "Start New SIP for this fund"}
+                                >
+                                  <Repeat className="h-3 w-3" />
+                                  <span>{h.monthlySip > 0 ? `${formatINR(h.monthlySip)}/mo` : "+ SIP"}</span>
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -2067,12 +2135,23 @@ function MutualFundPortfolioContent() {
                                   <button
                                     type="button"
                                     onClick={() => handleCancelSip(sip)}
-                                    className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition"
+                                    className="p-1 rounded-md text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 transition"
                                     title="Cancel Mandate"
                                   >
                                     <XCircle className="h-3.5 w-3.5" />
                                   </button>
                                 )}
+
+                                {/* Delete Button */}
+                                <button
+                                  type="button"
+                                  disabled={isToggling}
+                                  onClick={() => handleDeleteSip(sip)}
+                                  className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition"
+                                  title="Permanently Delete Mandate"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -2704,6 +2783,7 @@ function MutualFundPortfolioContent() {
         clientName={portfolioData?.clientName || "Investor"}
         clientCode={portfolioData?.clientCode}
         editingSip={editingSip}
+        existingHoldings={portfolioData?.holdings || []}
         tenantsClients={
           portfolioData?.clients?.map((c: any) => ({
             client_id: c.clientId,

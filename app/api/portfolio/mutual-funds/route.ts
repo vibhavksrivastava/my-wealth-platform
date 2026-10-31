@@ -885,6 +885,13 @@ export async function GET(req: Request) {
         const holdingNature = isEos ? "Either or Survivor" : "Single";
         const ownerName = inv.owner_name || (isEos ? `${cMember?.full_name || "Client"} & Joint (Either or Survivor)` : cMember?.full_name || "Self");
 
+        let sipMeta: any = null;
+        if (inv.notes && inv.notes.includes("__SIP_META__:")) {
+          try {
+            sipMeta = JSON.parse(inv.notes.split("__SIP_META__:")[1].trim());
+          } catch {}
+        }
+
         holdingsList.push({
           id: inv.investment_id,
           clientId: inv.client_id,
@@ -907,6 +914,12 @@ export async function GET(req: Request) {
           cagr: metrics.cagr,
           xirr: metrics.xirr,
           monthlySip: Number(inv.monthly_sip_amount || 0),
+          sipStatus: sipMeta?.status || (Number(inv.monthly_sip_amount || 0) > 0 ? "ACTIVE" : null),
+          sipMetaAmount: sipMeta?.monthlyAmount || Number(inv.monthly_sip_amount || 0),
+          sipMetaDay: sipMeta?.installmentDay,
+          sipMetaFrequency: sipMeta?.frequency,
+          sipMetaMandate: sipMeta?.mandateId,
+          notes: inv.notes,
           linkedGoalId: inv.linked_goal_id || null,
         });
 
@@ -1239,9 +1252,11 @@ export async function GET(req: Request) {
       }
     } catch {}
 
-    // Derive active SIP mandates dynamically from holdings or recent SIP transactions
+    // Derive active and paused SIP mandates dynamically from holdings or recent SIP transactions
     if (sips.length === 0) {
-      const sipHoldings = activeHoldings.filter((h) => (h.monthlySip || 0) > 0);
+      const sipHoldings = activeHoldings.filter(
+        (h) => (h.monthlySip || 0) > 0 || (h.sipStatus && h.sipStatus !== "CANCELLED") || (h.sipMetaAmount && h.sipMetaAmount > 0 && h.sipStatus)
+      );
       if (sipHoldings.length > 0) {
         sips = sipHoldings.map((h, idx) => {
           const matchTx = (transactions || []).find(
@@ -1254,23 +1269,33 @@ export async function GET(req: Request) {
                   h.schemeName.toLowerCase().includes(t.schemeName.toLowerCase().slice(0, 15))
                 )))
           );
-          const sipDay = matchTx?.date ? parseInt(matchTx.date.split("-")[2], 10) || 10 : 10;
+          const sipDay = h.sipMetaDay || (matchTx?.date ? parseInt(matchTx.date.split("-")[2], 10) || 10 : 10);
           const dayStr = String(sipDay).padStart(2, "0");
           const nextDueDate = `2026-11-${dayStr}`;
-          const installments = Math.max(1, Math.round(h.investedCost / h.monthlySip));
+          const effectiveStatus = h.sipStatus || (h.monthlySip > 0 ? "ACTIVE" : "PAUSED");
+          const effectiveAmount =
+            effectiveStatus === "PAUSED"
+              ? (h.sipMetaAmount || h.monthlySip || 5000)
+              : (h.monthlySip || h.sipMetaAmount || 5000);
+          const installments = Math.max(1, Math.round((h.investedCost || 10000) / (effectiveAmount || 5000)));
+          const frequency = h.sipMetaFrequency || "Monthly";
+          const mandateBank = h.sipMetaMandate || "Registered Bank Mandate (NACH)";
+          const isApiSync = (h.notes && (h.notes.includes("API_SYNC") || h.notes.includes("BSE"))) || false;
 
           return {
             id: `sip-${h.id || idx + 1}`,
             schemeName: h.schemeName,
             folioNumber: h.folioNumber || "Folio N/A",
-            monthlyAmount: h.monthlySip,
+            monthlyAmount: effectiveAmount,
             sipDay,
-            frequency: "Monthly",
-            status: "ACTIVE",
+            frequency,
+            status: effectiveStatus,
             nextDueDate,
-            mandateBank: "Registered Bank Mandate (NACH)",
+            mandateBank,
             totalInvested: installments,
             clientName: h.clientName || primaryClient?.full_name || "Self",
+            source: isApiSync ? "API_SYNC" : "CAS_IMPORT",
+            investmentId: h.id,
           };
         });
       } else {
@@ -1303,9 +1328,11 @@ export async function GET(req: Request) {
       }
     }
 
-    // Keep totalSipBook synced with resolved SIPs
-    if (totalSipBook === 0 && sips.length > 0) {
-      totalSipBook = sips.reduce((sum, s) => sum + (Number(s.monthlyAmount) || 0), 0);
+    // Keep totalSipBook synced with resolved ACTIVE SIPs only
+    if (sips.length > 0) {
+      totalSipBook = sips
+        .filter((s) => s.status === "ACTIVE")
+        .reduce((sum, s) => sum + (Number(s.monthlyAmount) || 0), 0);
     }
 
     // Only inject fallback demo mock SIPs if there are ZERO database holdings/assets (pure demo environment)
