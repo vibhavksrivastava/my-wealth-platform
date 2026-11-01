@@ -36,11 +36,14 @@ export async function POST(req: Request) {
 
     if (lookupEmail === "superadmin") lookupEmail = "superadmin@unifiedwealth.com";
     if (lookupEmail === "admin") {
-      if (sub === "zenith9186") lookupEmail = "admin@zenith9186.com";
+      if (sub === "zenith9186") lookupEmail = "aroy@zenith9186.com";
       else if (sub === "aasinvestment") lookupEmail = "abachhan@aasinvestment.com";
-      else if (sub === "apex") lookupEmail = "admin@example.com";
+      else if (sub === "apex") lookupEmail = "rkapoor@apex.com";
       else lookupEmail = "superadmin@unifiedwealth.com"; // Default for root platform / localhost:3000
     }
+    if (lookupEmail === "admin@zenith9186.com") lookupEmail = "aroy@zenith9186.com";
+    if (lookupEmail === "admin@apex.com" || lookupEmail === "admin@example.com") lookupEmail = "rkapoor@apex.com";
+    if (lookupEmail === "admin@aasinvestment.com") lookupEmail = "abachhan@aasinvestment.com";
     if (lookupEmail === "advisor") {
       if (sub === "zenith9186") lookupEmail = "ssharma@zenith9186.com";
       else if (sub === "aasinvestment") lookupEmail = "mpandey@aasinvestment.com";

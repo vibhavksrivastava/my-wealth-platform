@@ -38,3 +38,4 @@ SET branding = jsonb_set(
   ))
 )
 WHERE branding IS NOT NULL AND NOT (branding ? 'login_portal_style');
+
