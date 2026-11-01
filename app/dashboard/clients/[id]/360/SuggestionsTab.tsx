@@ -474,36 +474,60 @@ export default function SuggestionsTab({
 
                 {/* Mini Goal Feasibility List */}
                 <div className="space-y-2">
-                  {findings.goals.goals.map((g: any) => (
-                    <div key={g.goalId} className="p-2 rounded bg-slate-950/40 border border-slate-800/40 text-[11px]">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-white truncate max-w-[140px]">{g.goalName}</span>
-                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
-                          g.feasibilityStatus === "ON_TRACK"
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : g.feasibilityStatus === "MODERATE_GAP"
-                            ? "bg-amber-500/10 text-amber-400"
-                            : "bg-rose-500/10 text-rose-400"
-                        }`}>
-                          {g.fundedPercentage}% Funded
-                        </span>
+                  {findings.goals.goals.map((g: any) => {
+                    const reqSip = g.requiredMonthlySip ?? g.additionalMonthlySipRequired ?? 0;
+                    const reqLumpsum = g.requiredLumpsum ?? 0;
+                    const isFullyCovered = g.fundedPercentage >= 100 || g.shortfall <= 0;
+
+                    return (
+                      <div key={g.goalId} className="p-2.5 rounded-lg bg-slate-950/40 border border-slate-800/40 text-[11px]">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-white truncate max-w-[140px]">{g.goalName}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                            isFullyCovered
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              : g.feasibilityStatus === "ON_TRACK"
+                              ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                              : g.feasibilityStatus === "MODERATE_GAP"
+                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                              : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                          }`}>
+                            {g.fundedPercentage}% Funded
+                          </span>
+                        </div>
+                        {!isFullyCovered ? (
+                          <div className="mt-1.5 space-y-1 text-[10px]">
+                            <div className="text-slate-400 flex items-center justify-between">
+                              <span>
+                                Achieved: <span className="text-emerald-400 font-semibold">{formatINR(g.achievedToday || 0)}</span> ({g.achievedPercentage || 0}%)
+                              </span>
+                              <span>
+                                Projected: <span className="text-sky-300 font-semibold">{formatINR(g.projectedCorpus || 0)}</span>
+                              </span>
+                            </div>
+                            <div className="text-slate-400 flex items-center justify-between">
+                              <span>
+                                Gap: <span className="text-rose-300 font-semibold">{formatINR(g.shortfall)}</span>
+                              </span>
+                              {g.feasibilityStatus === "ON_TRACK" && (
+                                <span className="text-emerald-400 font-medium text-[9px]">
+                                  Surplus Covers Req. SIP
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-purple-300 font-medium flex items-center justify-between pt-1 border-t border-slate-800/60">
+                              <span>Req. SIP: <strong className="text-purple-200">+{formatINR(reqSip)}/mo</strong></span>
+                              <span>Req. Lumpsum: <strong className="text-amber-300 font-semibold">{formatINR(reqLumpsum)}</strong></span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-1 text-[10px] text-emerald-400">
+                            Achieved: {formatINR(g.achievedToday || 0)} ({g.achievedPercentage || 0}%) &bull; Fully funded to target year {g.targetYear}
+                          </div>
+                        )}
                       </div>
-                      {g.shortfall > 0 ? (
-                        <div className="mt-1 space-y-0.5 text-[10px]">
-                          <div className="text-slate-400">
-                            Achieved: <span className="text-emerald-400 font-semibold">{formatINR(g.achievedToday || 0)}</span> ({g.achievedPercentage || 0}%) &bull; Gap: <span className="text-rose-300 font-semibold">{formatINR(g.shortfall)}</span>
-                          </div>
-                          <div className="text-purple-300 font-medium">
-                            Req. SIP: +{formatINR(g.additionalMonthlySipRequired)}/mo &bull; Req. Lumpsum: <span className="text-amber-300 font-semibold">{formatINR(g.requiredLumpsum || 0)}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mt-1 text-[10px] text-emerald-400">
-                          Achieved: {formatINR(g.achievedToday || 0)} ({g.achievedPercentage || 0}%) &bull; Fully funded to target year {g.targetYear}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

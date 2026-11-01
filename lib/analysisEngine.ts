@@ -68,6 +68,7 @@ export interface GoalDiagnosticItem {
   feasibilityStatus: "ON_TRACK" | "MODERATE_GAP" | "CRITICAL_GAP";
   currentMonthlySIP: number;
   additionalMonthlySipRequired: number;
+  requiredMonthlySip?: number;
   requiredLumpsum?: number;
   recommendationSummary: string;
   // Enhanced Earmarked Asset & Investment Alignment Breakdown
@@ -359,8 +360,10 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
 
     const expReturn = g.expected_return_rate !== undefined && g.expected_return_rate !== null ? Number(g.expected_return_rate) : 11.0;
 
-    // Compounded future value of target
-    const inflatedTarget = Math.round(targetAmt * Math.pow(1 + infRate / 100, yearsRem));
+    // Compounded future value of target (aligned with required_future_value column if defined)
+    const inflatedTarget = Number(g.required_future_value) > 0
+      ? Number(g.required_future_value)
+      : Math.round(targetAmt * Math.pow(1 + infRate / 100, yearsRem));
 
     // Compounded growth of existing dedicated cash corpus
     const allocatedCorpus = Number(g.current_corpus_allocated || 0);
@@ -398,7 +401,7 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
 
     // 5. True Monthly SIP required to bridge only the remaining gap
     const requiredSip = grossShortfall > 0
-      ? calculateRequiredMonthlySIP(grossShortfall, expReturn, yearsRem)
+      ? (Number(g.monthly_required_sip) || calculateRequiredMonthlySIP(grossShortfall, expReturn, yearsRem))
       : 0;
 
     return {
@@ -436,29 +439,35 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
   let remainingSurplus = totalMonthlySurplus;
 
   for (const pg of preparedGoals) {
+    // Current projected corpus is the total pre-funded proceeds of all earmarked investments, assets & dedicated corpus
+    const projectedCorpus = pg.totalPreFundedCorpus;
+
+    // Actual realistic shortfall to bridge
+    const shortfall = pg.grossShortfall;
+
+    // True funded percentage based on earmarked assets & investments (aligned with Life Financial Goals & Projections)
+    const fundedPct = pg.inflatedTargetAmount > 0
+      ? Math.min(100, Math.round((pg.totalPreFundedCorpus / pg.inflatedTargetAmount) * 100))
+      : 100;
+
     // How much monthly SIP can be allocated to this goal given remaining surplus?
     const allocatableSip = Math.min(pg.requiredSip, Math.max(0, remainingSurplus));
     remainingSurplus = Math.max(0, remainingSurplus - allocatableSip);
 
-    // Unfunded monthly SIP for this goal
+    // Unfunded monthly SIP for this goal (if surplus doesn't cover required SIP)
     const unfundedMonthlySip = Math.max(0, pg.requiredSip - allocatableSip);
 
-    // Projected future value of the allocatable SIP
-    const achievableFutureValSip = calculateSipFutureValue(allocatableSip, pg.expectedReturnRate, pg.yearsRemaining);
-
-    // Realistic total projected corpus given available cash flows and pre-funded asset liquidations
-    const projectedCorpus = Math.round(pg.totalPreFundedCorpus + achievableFutureValSip);
-
-    // Actual realistic shortfall
-    const shortfall = Math.max(0, pg.inflatedTargetAmount - projectedCorpus);
-
-    // Funded percentage
-    const fundedPct = pg.inflatedTargetAmount > 0
-      ? Math.min(100, Math.round((projectedCorpus / pg.inflatedTargetAmount) * 100))
-      : 100;
+    // Required lumpsum if one-time investment is made today
+    const requiredLumpsum = shortfall > 0
+      ? calculateRequiredLumpsum(shortfall, pg.expectedReturnRate, pg.yearsRemaining)
+      : 0;
 
     let feasibilityStatus: "ON_TRACK" | "MODERATE_GAP" | "CRITICAL_GAP" = "ON_TRACK";
-    if (fundedPct >= 95 || unfundedMonthlySip === 0) {
+    if (shortfall === 0 || fundedPct >= 100) {
+      feasibilityStatus = "ON_TRACK";
+      onTrackCount++;
+    } else if (unfundedMonthlySip === 0) {
+      // Goal has a gap, but the household's monthly surplus easily covers the required SIP
       feasibilityStatus = "ON_TRACK";
       onTrackCount++;
     } else if (fundedPct >= 65) {
@@ -483,20 +492,18 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
 
     const backingText = backingDetails.length > 0 ? ` (backed by ${backingDetails.join(" + ")})` : "";
 
-    if (feasibilityStatus === "ON_TRACK") {
-      if (pg.requiredSip === 0) {
-        summary = `Goal is fully funded & on-track for ${pg.targetYear}${backingText}. Zero additional monthly SIP needed.`;
-      } else {
-        summary = `Goal is on-track for ${pg.targetYear}${backingText}. Current cash flow surplus easily funds the required ₹${Math.round(allocatableSip).toLocaleString("en-IN")}/mo SIP.`;
-      }
+    if (shortfall === 0 || fundedPct >= 100) {
+      summary = `Goal is 100% pre-funded and secured to target year ${pg.targetYear}${backingText}. Zero additional monthly SIP needed.`;
+    } else if (unfundedMonthlySip === 0) {
+      summary = `Goal has a projected gap of ₹${Math.round(shortfall).toLocaleString("en-IN")} (${fundedPct}% covered by earmarked backing). Current cash flow surplus easily funds the required ₹${Math.round(pg.requiredSip).toLocaleString("en-IN")}/mo SIP (or ₹${Math.round(requiredLumpsum).toLocaleString("en-IN")} lumpsum).`;
     } else if (feasibilityStatus === "MODERATE_GAP") {
-      summary = `Moderate shortfall of ₹${Math.round(shortfall).toLocaleString("en-IN")}${backingText}. Current surplus funds ₹${Math.round(allocatableSip).toLocaleString("en-IN")}/mo; requires an additional ₹${Math.round(unfundedMonthlySip).toLocaleString("en-IN")}/mo.`;
+      summary = `Moderate shortfall of ₹${Math.round(shortfall).toLocaleString("en-IN")} (${fundedPct}% covered)${backingText}. Surplus funds ₹${Math.round(allocatableSip).toLocaleString("en-IN")}/mo; leaves an unfunded deficit of ₹${Math.round(unfundedMonthlySip).toLocaleString("en-IN")}/mo.`;
     } else {
-      summary = `Funding gap of ₹${Math.round(shortfall).toLocaleString("en-IN")} (${fundedPct}% funded)${backingText}. Requires an additional ₹${Math.round(unfundedMonthlySip).toLocaleString("en-IN")}/mo or extending target horizon.`;
+      summary = `Funding gap of ₹${Math.round(shortfall).toLocaleString("en-IN")} (${fundedPct}% covered)${backingText}. Requires an additional ₹${Math.round(unfundedMonthlySip).toLocaleString("en-IN")}/mo or extending target horizon.`;
     }
 
     totalInflatedTarget += pg.inflatedTargetAmount;
-    totalProjectedCorpus += projectedCorpus;
+    totalProjectedCorpus += pg.totalPreFundedCorpus;
     totalShortfall += shortfall;
 
     const achievedToday =
@@ -504,7 +511,6 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
       pg.mappedAssets.reduce((sum, a) => sum + (a.currentValue || 0), 0) +
       pg.mappedInvestments.reduce((sum, i) => sum + (i.currentValue || 0), 0);
     const achievedPercentage = pg.targetAmount > 0 ? Math.round((achievedToday / pg.targetAmount) * 100) : 0;
-    const requiredLumpsum = shortfall > 0 ? calculateRequiredLumpsum(shortfall, pg.expectedReturnRate, pg.yearsRemaining) : 0;
 
     goalItems.push({
       goalId: pg.goalId,
@@ -519,12 +525,13 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
       currentAllocatedCorpus: pg.currentAllocatedCorpus,
       achievedToday,
       achievedPercentage,
-      projectedCorpus,
+      projectedCorpus: pg.totalPreFundedCorpus,
       shortfall,
       fundedPercentage: fundedPct,
       feasibilityStatus,
       currentMonthlySIP: allocatableSip,
       additionalMonthlySipRequired: unfundedMonthlySip,
+      requiredMonthlySip: pg.requiredSip,
       requiredLumpsum,
       recommendationSummary: summary,
       earmarkedAssetProceeds: pg.totalAssetProceeds,
@@ -681,7 +688,7 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
 
   // Rec 3B: Goal-Oriented SIP Step-ups
   const goalsWithGaps = goalItems
-    .filter((g) => g.feasibilityStatus !== "ON_TRACK" && g.additionalMonthlySipRequired > 0)
+    .filter((g) => g.shortfall > 0 && ((g.requiredMonthlySip || 0) > 0 || g.additionalMonthlySipRequired > 0))
     .sort((a, b) => {
       // Prioritize High priority goals or goals with largest shortfall
       if (a.priority === "HIGH" && b.priority !== "HIGH") return -1;
@@ -690,6 +697,7 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
     });
 
   for (const goal of goalsWithGaps.slice(0, 2)) {
+    const recommendedSip = goal.requiredMonthlySip || goal.additionalMonthlySipRequired;
     // Determine suggested asset class based on risk profile and years remaining
     let targetClass = "Flexi-Cap / Large & Mid Cap Mutual Funds";
     let expectedCagr = "12–14% CAGR";
@@ -705,13 +713,13 @@ export function generateClientDiagnostic(profile: ClientProfileInput): {
       id: `rec-goal-sip-${goal.goalId}`,
       category: "SIP_STEP_UP",
       priority: goal.priority === "HIGH" ? "HIGH" : "MEDIUM",
-      title: `Step-Up Monthly SIP for "${goal.goalName}" by ₹${goal.additionalMonthlySipRequired.toLocaleString("en-IN")}/mo`,
-      rationale: `Goal target of ₹${goal.inflatedTargetAmount.toLocaleString("en-IN")} by ${goal.targetYear} faces a projected shortfall of ₹${goal.shortfall.toLocaleString("en-IN")} (${goal.fundedPercentage}% funded).`,
-      suggestedAction: `Initiate or increase monthly systematic investment by ₹${goal.additionalMonthlySipRequired.toLocaleString("en-IN")} aligned to ${riskProfile} risk profile.`,
+      title: `Step-Up Monthly SIP for "${goal.goalName}" by ₹${recommendedSip.toLocaleString("en-IN")}/mo`,
+      rationale: `Goal target of ₹${goal.inflatedTargetAmount.toLocaleString("en-IN")} by ${goal.targetYear} faces a projected shortfall of ₹${goal.shortfall.toLocaleString("en-IN")} (${goal.fundedPercentage}% covered by existing backing).`,
+      suggestedAction: `Initiate or increase monthly systematic investment by ₹${recommendedSip.toLocaleString("en-IN")} aligned to ${riskProfile} risk profile.`,
       actionDetails: {
         instrumentType: targetClass,
         currentAmount: goal.currentMonthlySIP,
-        recommendedAmount: goal.currentMonthlySIP + goal.additionalMonthlySipRequired,
+        recommendedAmount: recommendedSip,
         targetInstrument: targetClass,
         potentialBenefit: `Projected to bridge the ₹${goal.shortfall.toLocaleString("en-IN")} deficit at expected ${expectedCagr}.`,
         tenureYears: goal.yearsRemaining,
