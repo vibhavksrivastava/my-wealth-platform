@@ -509,12 +509,12 @@ function MutualFundPortfolioContent() {
   // Feature Guard Check
   if (!featureAccess.isLoading && !featureAccess.allowed) {
     return (
-      <div className="p-12 text-center max-w-xl mx-auto space-y-4 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-2xl mt-12">
-        <div className="h-14 w-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+      <div className="p-12 text-center max-w-xl mx-auto space-y-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-xl mt-12">
+        <div className="h-14 w-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 dark:text-rose-400 flex items-center justify-center mx-auto">
           <Lock className="h-7 w-7" />
         </div>
-        <h2 className="text-xl font-bold text-white tracking-tight">Mutual Fund Portfolio Restricted</h2>
-        <p className="text-xs text-slate-400 leading-relaxed">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Mutual Fund Portfolio Restricted</h2>
+        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
           {featureAccess.reason ||
             (featureAccess.blockedBySuperAdmin
               ? "This module is not included in your firm's current platform subscription plan. Please contact your Super Administrator to upgrade your capabilities."

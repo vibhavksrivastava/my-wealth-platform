@@ -429,36 +429,36 @@ export default function NewClientFactFindPage() {
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
-            <Link href="/dashboard/advisor" className="hover:text-white transition">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
+            <Link href="/dashboard/advisor" className="hover:text-slate-900 dark:hover:text-white transition">
               {terms.advisorLabel} Console
             </Link>
             <span>/</span>
-            <span className="text-sky-400 font-medium">New Client Fact-Find</span>
+            <span className="text-sky-600 dark:text-sky-400 font-medium">New Client Fact-Find</span>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <Sparkles className="h-6 w-6 text-sky-400" />
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+            <Sparkles className="h-6 w-6 text-sky-500 dark:text-sky-400" />
             Client Fact-Find & Portfolio Intake
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Record comprehensive household demographics, income streams, living expenses, balance sheet assets, and portfolios.
           </p>
         </div>
 
         {/* Live Net Worth Badge */}
-        <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-4">
+        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-4 shadow-sm dark:shadow-none">
           <div>
-            <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Computed Net Worth</div>
-            <div className={`text-base font-bold ${grandNetWorth >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+            <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Computed Net Worth</div>
+            <div className={`text-base font-bold ${grandNetWorth >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
               {formatINR(grandNetWorth)}
             </div>
           </div>
-          <div className="h-8 w-px bg-slate-800" />
+          <div className="h-8 w-px bg-slate-200 dark:bg-slate-800" />
           <div>
-            <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Net Monthly Cash Flow</div>
-            <div className={`text-base font-bold ${netMonthlyCashSurplus >= 0 ? "text-sky-400" : "text-amber-400"}`}>
+            <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Net Monthly Cash Flow</div>
+            <div className={`text-base font-bold ${netMonthlyCashSurplus >= 0 ? "text-sky-600 dark:text-sky-400" : "text-amber-600 dark:text-amber-400"}`}>
               {formatINR(netMonthlyCashSurplus)}/mo
             </div>
           </div>
@@ -466,7 +466,7 @@ export default function NewClientFactFindPage() {
       </div>
 
       {/* Stepper Header Navigation */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-900/60 p-1.5 rounded-2xl border border-slate-800">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-100 dark:bg-slate-900/60 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
         {stepLabels.map((s) => {
           const StepIcon = s.icon;
           const isActive = currentStep === s.num;
@@ -485,8 +485,8 @@ export default function NewClientFactFindPage() {
                 isActive
                   ? "bg-sky-500 text-white shadow-md shadow-sky-500/20"
                   : isCompleted
-                  ? "bg-slate-800/80 text-emerald-400 hover:bg-slate-800"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-slate-200/60 dark:bg-slate-800/80 text-emerald-600 dark:text-emerald-400 hover:bg-slate-200 dark:hover:bg-slate-800"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
               }`}
             >
               <div
@@ -494,8 +494,8 @@ export default function NewClientFactFindPage() {
                   isActive
                     ? "bg-white text-sky-600"
                     : isCompleted
-                    ? "bg-emerald-500/20 text-emerald-400"
-                    : "bg-slate-800 text-slate-400"
+                    ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                    : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                 }`}
               >
                 {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5" /> : s.num}
@@ -508,7 +508,7 @@ export default function NewClientFactFindPage() {
 
       {/* Error Alert */}
       {errorMessage && (
-        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-xs text-red-400">
+        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-xs text-red-600 dark:text-red-400">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>{errorMessage}</span>
         </div>
@@ -516,33 +516,33 @@ export default function NewClientFactFindPage() {
 
       {/* STEP 1: Personal & Demographic Info */}
       {currentStep === 1 && (
-        <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-6">
-          <div className="border-b border-slate-800/80 pb-4">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <User className="h-5 w-5 text-sky-400" />
+        <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 shadow-sm dark:shadow-none space-y-6">
+          <div className="border-b border-slate-100 dark:border-slate-800/80 pb-4">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <User className="h-5 w-5 text-sky-500 dark:text-sky-400" />
               Client Profile &amp; Household Assignment
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Enter primary investor information and select or create the family household.
             </p>
           </div>
 
           {/* Client User Account Integration & Linkage */}
-          <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-sky-400" />
-                <span className="text-xs font-bold text-white uppercase tracking-wider">
+                <ShieldCheck className="h-4 w-4 text-sky-500 dark:text-sky-400" />
+                <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                   Client User Account &amp; Portal Access
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">
                 Link to login credentials or create a new user account
               </span>
             </div>
 
             {/* Mode Radios */}
-            <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-300">
+            <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-700 dark:text-slate-300">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
@@ -583,16 +583,16 @@ export default function NewClientFactFindPage() {
             {/* Existing User Selector */}
             {userAccountMode === "existing_user" && (
               <div className="space-y-1">
-                <label className="block text-[11px] font-semibold text-slate-400">
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                   Select Registered Client User in Firm (Created by Firm Admin)
                 </label>
                 {unlinkedUsers.length === 0 ? (
-                  <div className="p-2.5 rounded-lg bg-slate-900 border border-dashed border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+                  <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
                     <span>No unlinked client users registered in this practice yet.</span>
                     <button
                       type="button"
                       onClick={() => setUserAccountMode("new_user")}
-                      className="text-sky-400 font-bold hover:underline"
+                      className="text-sky-600 dark:text-sky-400 font-bold hover:underline"
                     >
                       + Create User Now
                     </button>
@@ -614,7 +614,7 @@ export default function NewClientFactFindPage() {
                         }));
                       }
                     }}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white"
                   >
                     <option value="">-- Choose registered client user --</option>
                     {unlinkedUsers.map((u) => (
@@ -629,52 +629,52 @@ export default function NewClientFactFindPage() {
 
             {/* Create New User Inline Form */}
             {userAccountMode === "new_user" && (
-              <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-700/80 space-y-3">
+              <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
                   <div>
-                    <label className="block text-[10px] text-slate-400 font-semibold mb-1">Email Address *</label>
+                    <label className="block text-[10px] text-slate-600 dark:text-slate-400 font-semibold mb-1">Email Address *</label>
                     <input
                       type="email"
                       placeholder="client@gmail.com"
                       value={newUserForm.email}
                       onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-400 font-semibold mb-1">First Name</label>
+                    <label className="block text-[10px] text-slate-600 dark:text-slate-400 font-semibold mb-1">First Name</label>
                     <input
                       type="text"
                       placeholder="e.g. Rahul"
                       value={newUserForm.firstName}
                       onChange={(e) => setNewUserForm({ ...newUserForm, firstName: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-400 font-semibold mb-1">Last Name</label>
+                    <label className="block text-[10px] text-slate-600 dark:text-slate-400 font-semibold mb-1">Last Name</label>
                     <input
                       type="text"
                       placeholder="e.g. Sharma"
                       value={newUserForm.lastName}
                       onChange={(e) => setNewUserForm({ ...newUserForm, lastName: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-slate-400 font-semibold mb-1">Password</label>
+                    <label className="block text-[10px] text-slate-600 dark:text-slate-400 font-semibold mb-1">Password</label>
                     <input
                       type="text"
                       placeholder="Default: auto-generated"
                       value={newUserForm.password}
                       onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-[11px]"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-[11px]"
                     />
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     Creates an active &ldquo;CLIENT&rdquo; account under this firm.
                   </span>
                   <button
@@ -689,7 +689,7 @@ export default function NewClientFactFindPage() {
                 </div>
 
                 {createdUserSuccess && (
-                  <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 flex items-center gap-1.5">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                     <CheckCircle2 className="h-4 w-4" />
                     <span>{createdUserSuccess}</span>
                   </div>
@@ -700,7 +700,7 @@ export default function NewClientFactFindPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 Full Legal Name *
               </label>
               <input
@@ -709,12 +709,12 @@ export default function NewClientFactFindPage() {
                 placeholder="e.g. Rahul Sharma"
                 value={personal.full_name}
                 onChange={(e) => setPersonal({ ...personal, full_name: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 Date of Birth *
               </label>
               <input
@@ -722,12 +722,12 @@ export default function NewClientFactFindPage() {
                 required
                 value={personal.date_of_birth}
                 onChange={(e) => setPersonal({ ...personal, date_of_birth: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 PAN Number
               </label>
               <input
@@ -736,18 +736,18 @@ export default function NewClientFactFindPage() {
                 maxLength={10}
                 value={personal.pan_number}
                 onChange={(e) => setPersonal({ ...personal, pan_number: e.target.value.toUpperCase() })}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white font-mono uppercase focus:outline-none focus:border-sky-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white font-mono uppercase focus:outline-none focus:border-sky-500 transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 Marital Status
               </label>
               <select
                 value={personal.marital_status}
                 onChange={(e) => setPersonal({ ...personal, marital_status: e.target.value as any })}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
               >
                 <option value="Single">Single</option>
                 <option value="Married">Married</option>
@@ -757,7 +757,7 @@ export default function NewClientFactFindPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 Occupation
               </label>
               <input
@@ -765,12 +765,12 @@ export default function NewClientFactFindPage() {
                 placeholder="e.g. Senior Software Architect"
                 value={personal.occupation}
                 onChange={(e) => setPersonal({ ...personal, occupation: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 Employer / Business Name
               </label>
               <input
@@ -778,12 +778,12 @@ export default function NewClientFactFindPage() {
                 placeholder="e.g. Microsoft India"
                 value={personal.employer_business_name}
                 onChange={(e) => setPersonal({ ...personal, employer_business_name: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 Gross Annual Income (₹)
               </label>
               <input
@@ -791,18 +791,18 @@ export default function NewClientFactFindPage() {
                 placeholder="e.g. 3500000"
                 value={personal.annual_gross_income || ""}
                 onChange={(e) => setPersonal({ ...personal, annual_gross_income: Number(e.target.value) })}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 Tax Regime
               </label>
               <select
                 value={personal.tax_regime}
                 onChange={(e) => setPersonal({ ...personal, tax_regime: e.target.value as any })}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
               >
                 <option value="New">New Tax Regime</option>
                 <option value="Old">Old Tax Regime</option>
@@ -810,13 +810,13 @@ export default function NewClientFactFindPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 Assessed Risk Profile
               </label>
               <select
                 value={personal.risk_profile}
                 onChange={(e) => setPersonal({ ...personal, risk_profile: e.target.value as any })}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
               >
                 <option value="Conservative">Conservative</option>
                 <option value="Moderate">Moderate</option>
@@ -825,37 +825,37 @@ export default function NewClientFactFindPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 Planning Horizon (Years)
               </label>
               <input
                 type="number"
                 value={personal.planning_horizon_years}
                 onChange={(e) => setPersonal({ ...personal, planning_horizon_years: Number(e.target.value) })}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 Number of Dependents
               </label>
               <input
                 type="number"
                 value={personal.dependents_count}
                 onChange={(e) => setPersonal({ ...personal, dependents_count: Number(e.target.value) })}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 Review Frequency
               </label>
               <select
                 value={personal.review_frequency}
                 onChange={(e) => setPersonal({ ...personal, review_frequency: e.target.value as any })}
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
               >
                 <option value="Quarterly">Quarterly</option>
                 <option value="Semi-Annual">Semi-Annual</option>
@@ -866,28 +866,28 @@ export default function NewClientFactFindPage() {
 
           {/* Spouse Details (if Married) */}
           {personal.marital_status === "Married" && (
-            <div className="pt-4 border-t border-slate-800/80">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80">
+              <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-3">
                 Spouse Details (Optional)
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Spouse Full Name</label>
+                  <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">Spouse Full Name</label>
                   <input
                     type="text"
                     placeholder="e.g. Priya Sharma"
                     value={personal.spouse_name}
                     onChange={(e) => setPersonal({ ...personal, spouse_name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Spouse Date of Birth</label>
+                  <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">Spouse Date of Birth</label>
                   <input
                     type="date"
                     value={personal.spouse_dob}
                     onChange={(e) => setPersonal({ ...personal, spouse_dob: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
                   />
                 </div>
               </div>
@@ -895,12 +895,12 @@ export default function NewClientFactFindPage() {
           )}
 
           {/* Household Assignment */}
-          <div className="pt-4 border-t border-slate-800/80">
-            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80">
+            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-3">
               Household Group Assignment
             </h3>
             <div className="flex gap-4 mb-3">
-              <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
                 <input
                   type="radio"
                   name="household_mode"
@@ -910,7 +910,7 @@ export default function NewClientFactFindPage() {
                 />
                 Assign to Existing Household
               </label>
-              <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
                 <input
                   type="radio"
                   name="household_mode"
@@ -927,7 +927,7 @@ export default function NewClientFactFindPage() {
                 <select
                   value={personal.household_id}
                   onChange={(e) => setPersonal({ ...personal, household_id: e.target.value })}
-                  className="w-full max-w-md px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                  className="w-full max-w-md px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
                 >
                   {households.map((h) => (
                     <option key={h.household_id} value={h.household_id}>
@@ -943,7 +943,7 @@ export default function NewClientFactFindPage() {
                   placeholder="e.g. Sharma Family Household"
                   value={personal.new_household_name}
                   onChange={(e) => setPersonal({ ...personal, new_household_name: e.target.value })}
-                  className="w-full max-w-md px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-sky-500"
+                  className="w-full max-w-md px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
                 />
               </div>
             )}
@@ -956,19 +956,19 @@ export default function NewClientFactFindPage() {
         <div className="space-y-6">
           {/* Real-Time Net Cash Flow KPI Strip */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/50">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Monthly Inflows</span>
-              <div className="text-xl font-bold text-emerald-400 mt-1">{formatINR(totalMonthlyIncome)}/mo</div>
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm dark:shadow-none">
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Total Monthly Inflows</span>
+              <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{formatINR(totalMonthlyIncome)}/mo</div>
               <span className="text-[11px] text-slate-500">Annual: {formatINR(totalMonthlyIncome * 12)}/yr</span>
             </div>
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/50">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Monthly Living Expenses</span>
-              <div className="text-xl font-bold text-rose-400 mt-1">{formatINR(totalMonthlyLivingExpenses)}/mo</div>
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm dark:shadow-none">
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Total Monthly Living Expenses</span>
+              <div className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-1">{formatINR(totalMonthlyLivingExpenses)}/mo</div>
               <span className="text-[11px] text-slate-500">Excludes debt loan EMIs</span>
             </div>
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/50">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Net Monthly Surplus</span>
-              <div className={`text-xl font-bold mt-1 ${netMonthlyCashSurplus >= 0 ? "text-sky-400" : "text-amber-400"}`}>
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm dark:shadow-none">
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Net Monthly Surplus</span>
+              <div className={`text-xl font-bold mt-1 ${netMonthlyCashSurplus >= 0 ? "text-sky-600 dark:text-sky-400" : "text-amber-600 dark:text-amber-400"}`}>
                 {formatINR(netMonthlyCashSurplus)}/mo
               </div>
               <span className="text-[11px] text-slate-500">
@@ -978,19 +978,19 @@ export default function NewClientFactFindPage() {
           </div>
 
           {/* Income Sources Table */}
-          <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-4">
+          <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 shadow-sm dark:shadow-none space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <Wallet className="h-4 w-4 text-emerald-400" />
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
                   Monthly Income Sources
                 </h2>
-                <p className="text-xs text-slate-400">Regular recurring household inflows.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Regular recurring household inflows.</p>
               </div>
               <button
                 type="button"
                 onClick={addIncomeRow}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-semibold border border-emerald-500/20 transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 text-xs font-semibold border border-emerald-500/20 transition"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Income Stream
               </button>
@@ -998,13 +998,13 @@ export default function NewClientFactFindPage() {
 
             <div className="space-y-3">
               {incomeList.map((inc, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                   <div className="md:col-span-4">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Source Category</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Source Category</label>
                     <select
                       value={inc.category}
                       onChange={(e) => updateIncomeRow(index, "category", e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     >
                       {INCOME_CATEGORIES.map((c) => (
                         <option key={c} value={c}>{c}</option>
@@ -1012,23 +1012,23 @@ export default function NewClientFactFindPage() {
                     </select>
                   </div>
                   <div className="md:col-span-4">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Monthly Amount (₹)</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Monthly Amount (₹)</label>
                     <input
                       type="number"
                       placeholder="e.g. 150000"
                       value={inc.monthly_amount || ""}
                       onChange={(e) => updateIncomeRow(index, "monthly_amount", Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="md:col-span-3">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Notes / Frequency</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Notes / Frequency</label>
                     <input
                       type="text"
                       placeholder="e.g. In-hand post TDS"
                       value={inc.notes || ""}
                       onChange={(e) => updateIncomeRow(index, "notes", e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="md:col-span-1 flex justify-end">
@@ -1036,7 +1036,7 @@ export default function NewClientFactFindPage() {
                       type="button"
                       disabled={incomeList.length === 1}
                       onClick={() => removeIncomeRow(index)}
-                      className="p-2 text-slate-500 hover:text-red-400 disabled:opacity-30 transition"
+                      className="p-2 text-slate-400 hover:text-red-500 disabled:opacity-30 transition"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -1047,19 +1047,19 @@ export default function NewClientFactFindPage() {
           </div>
 
           {/* Living Expenses Table */}
-          <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-4">
+          <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 shadow-sm dark:shadow-none space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <PieChart className="h-4 w-4 text-rose-400" />
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <PieChart className="h-4 w-4 text-rose-500 dark:text-rose-400" />
                   Monthly Living Expenses
                 </h2>
-                <p className="text-xs text-slate-400">Essential vs discretionary household operating expenses.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Essential vs discretionary household operating expenses.</p>
               </div>
               <button
                 type="button"
                 onClick={addExpenseRow}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-xs font-semibold border border-rose-500/20 transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 text-xs font-semibold border border-rose-500/20 transition"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Expense Category
               </button>
@@ -1067,13 +1067,13 @@ export default function NewClientFactFindPage() {
 
             <div className="space-y-3">
               {expenseList.map((exp, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                   <div className="md:col-span-4">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Expense Category</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Expense Category</label>
                     <select
                       value={exp.category}
                       onChange={(e) => updateExpenseRow(index, "category", e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     >
                       {EXPENSE_CATEGORIES.map((c) => (
                         <option key={c} value={c}>{c}</option>
@@ -1081,18 +1081,18 @@ export default function NewClientFactFindPage() {
                     </select>
                   </div>
                   <div className="md:col-span-3">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Monthly Amount (₹)</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Monthly Amount (₹)</label>
                     <input
                       type="number"
                       placeholder="e.g. 25000"
                       value={exp.monthly_amount || ""}
                       onChange={(e) => updateExpenseRow(index, "monthly_amount", Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Type</label>
-                    <label className="flex items-center gap-2 text-xs text-slate-300 mt-1 cursor-pointer">
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Type</label>
+                    <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 mt-1 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={exp.is_essential}
@@ -1103,13 +1103,13 @@ export default function NewClientFactFindPage() {
                     </label>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Notes</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Notes</label>
                     <input
                       type="text"
                       placeholder="Optional notes"
                       value={exp.notes || ""}
                       onChange={(e) => updateExpenseRow(index, "notes", e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="md:col-span-1 flex justify-end">
@@ -1117,7 +1117,7 @@ export default function NewClientFactFindPage() {
                       type="button"
                       disabled={expenseList.length === 1}
                       onClick={() => removeExpenseRow(index)}
-                      className="p-2 text-slate-500 hover:text-red-400 disabled:opacity-30 transition"
+                      className="p-2 text-slate-400 hover:text-red-500 disabled:opacity-30 transition"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -1134,19 +1134,19 @@ export default function NewClientFactFindPage() {
         <div className="space-y-6">
           {/* Balance Sheet KPI */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/50">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Physical & Bank Assets</span>
-              <div className="text-xl font-bold text-emerald-400 mt-1">{formatINR(totalPhysicalAssets)}</div>
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm dark:shadow-none">
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Physical & Bank Assets</span>
+              <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{formatINR(totalPhysicalAssets)}</div>
               <span className="text-[11px] text-slate-500">Real estate, FDs, gold, cash</span>
             </div>
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/50">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Outstanding Debt</span>
-              <div className="text-xl font-bold text-rose-400 mt-1">{formatINR(totalLiabilities)}</div>
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm dark:shadow-none">
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Total Outstanding Debt</span>
+              <div className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-1">{formatINR(totalLiabilities)}</div>
               <span className="text-[11px] text-slate-500">Monthly EMI drag: {formatINR(totalMonthlyEMIs)}/mo</span>
             </div>
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/50">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Balance Sheet Equity</span>
-              <div className="text-xl font-bold text-sky-400 mt-1">
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm dark:shadow-none">
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Balance Sheet Equity</span>
+              <div className="text-xl font-bold text-sky-600 dark:text-sky-400 mt-1">
                 {formatINR(totalPhysicalAssets - totalLiabilities)}
               </div>
               <span className="text-[11px] text-slate-500">Excludes market investment portfolio</span>
@@ -1154,19 +1154,19 @@ export default function NewClientFactFindPage() {
           </div>
 
           {/* Physical & Fixed Assets */}
-          <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-4">
+          <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 shadow-sm dark:shadow-none space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-emerald-400" />
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
                   Assets (Physical, Real Estate, FDs)
                 </h2>
-                <p className="text-xs text-slate-400">Record tangible and fixed property assets.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Record tangible and fixed property assets.</p>
               </div>
               <button
                 type="button"
                 onClick={addAssetRow}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-semibold border border-emerald-500/20 transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 text-xs font-semibold border border-emerald-500/20 transition"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Asset Item
               </button>
@@ -1174,13 +1174,13 @@ export default function NewClientFactFindPage() {
 
             <div className="space-y-3">
               {assetList.map((asset, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                   <div className="md:col-span-3">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Asset Category</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Asset Category</label>
                     <select
                       value={asset.asset_category}
                       onChange={(e) => updateAssetRow(index, "asset_category", e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     >
                       {ASSET_CATEGORIES.map((c) => (
                         <option key={c} value={c}>{c}</option>
@@ -1188,28 +1188,28 @@ export default function NewClientFactFindPage() {
                     </select>
                   </div>
                   <div className="md:col-span-3">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Description / Location</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Description / Location</label>
                     <input
                       type="text"
                       placeholder="e.g. 3BHK Flat, Thane West"
                       value={asset.description}
                       onChange={(e) => updateAssetRow(index, "description", e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="md:col-span-3">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Current Valuation (₹)</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Current Valuation (₹)</label>
                     <input
                       type="number"
                       placeholder="e.g. 12500000"
                       value={asset.current_market_value || ""}
                       onChange={(e) => updateAssetRow(index, "current_market_value", Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Liquidity</label>
-                    <label className="flex items-center gap-2 text-xs text-slate-300 mt-1 cursor-pointer">
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Liquidity</label>
+                    <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 mt-1 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={asset.is_liquid}
@@ -1224,7 +1224,7 @@ export default function NewClientFactFindPage() {
                       type="button"
                       disabled={assetList.length === 1}
                       onClick={() => removeAssetRow(index)}
-                      className="p-2 text-slate-500 hover:text-red-400 disabled:opacity-30 transition"
+                      className="p-2 text-slate-400 hover:text-red-500 disabled:opacity-30 transition"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -1235,19 +1235,19 @@ export default function NewClientFactFindPage() {
           </div>
 
           {/* Liabilities & Loans Table */}
-          <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-4">
+          <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 shadow-sm dark:shadow-none space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-rose-400" />
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-rose-500 dark:text-rose-400" />
                   Liabilities & Loans
                 </h2>
-                <p className="text-xs text-slate-400">Track outstanding loan balances, interest rates, and EMIs.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Track outstanding loan balances, interest rates, and EMIs.</p>
               </div>
               <button
                 type="button"
                 onClick={addLiabilityRow}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-xs font-semibold border border-rose-500/20 transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 text-xs font-semibold border border-rose-500/20 transition"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Loan / Liability
               </button>
@@ -1255,13 +1255,13 @@ export default function NewClientFactFindPage() {
 
             <div className="space-y-3">
               {liabilityList.map((lia, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                   <div className="md:col-span-3">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Liability Type</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Liability Type</label>
                     <select
                       value={lia.liability_type}
                       onChange={(e) => updateLiabilityRow(index, "liability_type", e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     >
                       {LIABILITY_CATEGORIES.map((c) => (
                         <option key={c} value={c}>{c}</option>
@@ -1269,37 +1269,37 @@ export default function NewClientFactFindPage() {
                     </select>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Lender Name</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Lender Name</label>
                     <input
                       type="text"
                       placeholder="e.g. HDFC Bank"
                       value={lia.lender_name || ""}
                       onChange={(e) => updateLiabilityRow(index, "lender_name", e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Principal Due (₹)</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Principal Due (₹)</label>
                     <input
                       type="number"
                       placeholder="e.g. 5000000"
                       value={lia.outstanding_principal || ""}
                       onChange={(e) => updateLiabilityRow(index, "outstanding_principal", Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Monthly EMI (₹)</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Monthly EMI (₹)</label>
                     <input
                       type="number"
                       placeholder="e.g. 45000"
                       value={lia.monthly_emi || ""}
                       onChange={(e) => updateLiabilityRow(index, "monthly_emi", Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Rate % / Tenure</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Rate % / Tenure</label>
                     <div className="flex gap-1.5">
                       <input
                         type="number"
@@ -1307,14 +1307,14 @@ export default function NewClientFactFindPage() {
                         placeholder="Rate %"
                         value={lia.annual_interest_rate || ""}
                         onChange={(e) => updateLiabilityRow(index, "annual_interest_rate", Number(e.target.value))}
-                        className="w-1/2 px-2 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                        className="w-1/2 px-2 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                       />
                       <input
                         type="number"
                         placeholder="Months"
                         value={lia.tenure_remaining_months || ""}
                         onChange={(e) => updateLiabilityRow(index, "tenure_remaining_months", Number(e.target.value))}
-                        className="w-1/2 px-2 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                        className="w-1/2 px-2 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                       />
                     </div>
                   </div>
@@ -1323,7 +1323,7 @@ export default function NewClientFactFindPage() {
                       type="button"
                       disabled={liabilityList.length === 1}
                       onClick={() => removeLiabilityRow(index)}
-                      className="p-2 text-slate-500 hover:text-red-400 disabled:opacity-30 transition"
+                      className="p-2 text-slate-400 hover:text-red-500 disabled:opacity-30 transition"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -1340,19 +1340,19 @@ export default function NewClientFactFindPage() {
         <div className="space-y-6">
           {/* Portfolio KPI Strip */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/50">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Current Market Value</span>
-              <div className="text-xl font-bold text-emerald-400 mt-1">{formatINR(totalInvestments)}</div>
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm dark:shadow-none">
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Current Market Value</span>
+              <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{formatINR(totalInvestments)}</div>
               <span className="text-[11px] text-slate-500">Active portfolio valuation</span>
             </div>
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/50">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Invested Cost</span>
-              <div className="text-xl font-bold text-slate-200 mt-1">{formatINR(totalInvestedPrincipal)}</div>
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm dark:shadow-none">
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Total Invested Cost</span>
+              <div className="text-xl font-bold text-slate-800 dark:text-slate-200 mt-1">{formatINR(totalInvestedPrincipal)}</div>
               <span className="text-[11px] text-slate-500">Principal capital outlay</span>
             </div>
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/50">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Unrealized Gain / Loss</span>
-              <div className={`text-xl font-bold mt-1 ${totalInvestments >= totalInvestedPrincipal ? "text-emerald-400" : "text-rose-400"}`}>
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm dark:shadow-none">
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Unrealized Gain / Loss</span>
+              <div className={`text-xl font-bold mt-1 ${totalInvestments >= totalInvestedPrincipal ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                 {formatINR(totalInvestments - totalInvestedPrincipal)}
               </div>
               <span className="text-[11px] text-slate-500">
@@ -1361,27 +1361,27 @@ export default function NewClientFactFindPage() {
                   : 0}% Absolute Return
               </span>
             </div>
-            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/50">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Monthly SIP Book</span>
-              <div className="text-xl font-bold text-purple-400 mt-1">{formatINR(totalSIPVolume)}/mo</div>
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm dark:shadow-none">
+              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Monthly SIP Book</span>
+              <div className="text-xl font-bold text-purple-600 dark:text-purple-400 mt-1">{formatINR(totalSIPVolume)}/mo</div>
               <span className="text-[11px] text-slate-500">Automated systematic flow</span>
             </div>
           </div>
 
           {/* Investment Holdings Table */}
-          <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-4">
+          <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 shadow-sm dark:shadow-none space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-purple-400" />
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-purple-500 dark:text-purple-400" />
                   Mutual Fund & Equity Portfolios
                 </h2>
-                <p className="text-xs text-slate-400">Track mutual fund schemes, direct stocks, CAGR targets, and SIPs.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Track mutual fund schemes, direct stocks, CAGR targets, and SIPs.</p>
               </div>
               <button
                 type="button"
                 onClick={addInvestmentRow}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 text-xs font-semibold border border-purple-500/20 transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 text-xs font-semibold border border-purple-500/20 transition"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Holding
               </button>
@@ -1389,13 +1389,13 @@ export default function NewClientFactFindPage() {
 
             <div className="space-y-3">
               {investmentList.map((inv, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                   <div className="md:col-span-3">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Asset Class</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Asset Class</label>
                     <select
                       value={inv.asset_class}
                       onChange={(e) => updateInvestmentRow(index, "asset_class", e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     >
                       {ASSET_CLASSES.map((c) => (
                         <option key={c} value={c}>{c}</option>
@@ -1403,44 +1403,44 @@ export default function NewClientFactFindPage() {
                     </select>
                   </div>
                   <div className="md:col-span-3">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Scheme / Instrument Name</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Scheme / Instrument Name</label>
                     <input
                       type="text"
                       placeholder="e.g. Parag Parikh Flexi Cap Fund"
                       value={inv.scheme_instrument_name}
                       onChange={(e) => updateInvestmentRow(index, "scheme_instrument_name", e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Current Value (₹)</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Current Value (₹)</label>
                     <input
                       type="number"
                       placeholder="Current Value"
                       value={inv.current_value || ""}
                       onChange={(e) => updateInvestmentRow(index, "current_value", Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Monthly SIP (₹)</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">Monthly SIP (₹)</label>
                     <input
                       type="number"
                       placeholder="SIP Amount"
                       value={inv.monthly_sip_amount || ""}
                       onChange={(e) => updateInvestmentRow(index, "monthly_sip_amount", Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="md:col-span-1">
-                    <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">CAGR %</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-1">CAGR %</label>
                     <input
                       type="number"
                       step="0.5"
                       placeholder="12%"
                       value={inv.expected_return_cagr || ""}
                       onChange={(e) => updateInvestmentRow(index, "expected_return_cagr", Number(e.target.value))}
-                      className="w-full px-2 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                      className="w-full px-2 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                   <div className="md:col-span-1 flex justify-end">
@@ -1448,7 +1448,7 @@ export default function NewClientFactFindPage() {
                       type="button"
                       disabled={investmentList.length === 1}
                       onClick={() => removeInvestmentRow(index)}
-                      className="p-2 text-slate-500 hover:text-red-400 disabled:opacity-30 transition"
+                      className="p-2 text-slate-400 hover:text-red-500 disabled:opacity-30 transition"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -1462,60 +1462,60 @@ export default function NewClientFactFindPage() {
 
       {/* STEP 5: Comprehensive Review & Submission */}
       {currentStep === 5 && (
-        <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-6">
-          <div className="border-b border-slate-800/80 pb-4">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+        <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 shadow-sm dark:shadow-none space-y-6">
+          <div className="border-b border-slate-100 dark:border-slate-800/80 pb-4">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
               Fact-Find Summary & Confirmation
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Review all financial figures before generating the final net-worth dashboard.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
-              <div className="text-[10px] font-bold text-sky-400 uppercase tracking-wider">Client Identity</div>
-              <div className="text-sm font-bold text-white">{personal.full_name}</div>
-              <div className="text-xs text-slate-400">DOB: {personal.date_of_birth} &bull; PAN: {personal.pan_number || "N/A"}</div>
-              <div className="text-xs text-slate-400">Risk Profile: <span className="text-emerald-400 font-semibold">{personal.risk_profile}</span></div>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wider">Client Identity</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white">{personal.full_name}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">DOB: {personal.date_of_birth} &bull; PAN: {personal.pan_number || "N/A"}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Risk Profile: <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{personal.risk_profile}</span></div>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
-              <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Cash Flow Summary</div>
-              <div className="flex justify-between text-xs py-1 border-b border-slate-800">
-                <span className="text-slate-400">Total Monthly Inflows:</span>
-                <span className="text-white font-semibold">{formatINR(totalMonthlyIncome)}</span>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Cash Flow Summary</div>
+              <div className="flex justify-between text-xs py-1 border-b border-slate-200 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">Total Monthly Inflows:</span>
+                <span className="text-slate-900 dark:text-white font-semibold">{formatINR(totalMonthlyIncome)}</span>
               </div>
-              <div className="flex justify-between text-xs py-1 border-b border-slate-800">
-                <span className="text-slate-400">Total Monthly Outflows:</span>
-                <span className="text-rose-400 font-semibold">{formatINR(totalMonthlyOutflow)}</span>
+              <div className="flex justify-between text-xs py-1 border-b border-slate-200 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">Total Monthly Outflows:</span>
+                <span className="text-rose-600 dark:text-rose-400 font-semibold">{formatINR(totalMonthlyOutflow)}</span>
               </div>
               <div className="flex justify-between text-xs py-1">
-                <span className="text-slate-400">Net Monthly Savings:</span>
-                <span className="text-emerald-400 font-bold">{formatINR(netMonthlyCashSurplus)}</span>
+                <span className="text-slate-500 dark:text-slate-400">Net Monthly Savings:</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{formatINR(netMonthlyCashSurplus)}</span>
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
-              <div className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Computed Net Worth</div>
-              <div className="flex justify-between text-xs py-1 border-b border-slate-800">
-                <span className="text-slate-400">Gross Assets (Physical + Portfolio):</span>
-                <span className="text-white font-semibold">{formatINR(grandTotalAssets)}</span>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Computed Net Worth</div>
+              <div className="flex justify-between text-xs py-1 border-b border-slate-200 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">Gross Assets (Physical + Portfolio):</span>
+                <span className="text-slate-900 dark:text-white font-semibold">{formatINR(grandTotalAssets)}</span>
               </div>
-              <div className="flex justify-between text-xs py-1 border-b border-slate-800">
-                <span className="text-slate-400">Total Outstanding Liabilities:</span>
-                <span className="text-rose-400 font-semibold">{formatINR(totalLiabilities)}</span>
+              <div className="flex justify-between text-xs py-1 border-b border-slate-200 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">Total Outstanding Liabilities:</span>
+                <span className="text-rose-600 dark:text-rose-400 font-semibold">{formatINR(totalLiabilities)}</span>
               </div>
               <div className="flex justify-between text-xs py-1">
-                <span className="text-slate-400">Consolidated Family Net Worth:</span>
-                <span className="text-sky-400 font-bold text-sm">{formatINR(grandNetWorth)}</span>
+                <span className="text-slate-500 dark:text-slate-400">Consolidated Family Net Worth:</span>
+                <span className="text-sky-600 dark:text-sky-400 font-bold text-sm">{formatINR(grandNetWorth)}</span>
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
               Planning Disclosures &amp; {terms.advisorLabel} Notes
             </label>
             <textarea
@@ -1523,20 +1523,20 @@ export default function NewClientFactFindPage() {
               placeholder="e.g. Fact-find conducted in-person. Client prioritizes emergency liquidity buffer and child's Ivy League education target in 2029."
               value={personal.planning_disclosures_notes}
               onChange={(e) => setPersonal({ ...personal, planning_disclosures_notes: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-sky-500"
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
             />
           </div>
         </div>
       )}
 
       {/* Stepper Footer Controls */}
-      <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+      <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
         <div>
           {currentStep > 1 && (
             <button
               type="button"
               onClick={handlePrev}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs text-slate-300 font-semibold transition"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 font-semibold transition shadow-xs"
             >
               <ArrowLeft className="h-4 w-4" /> Previous Step
             </button>

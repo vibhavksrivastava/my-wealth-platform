@@ -328,44 +328,44 @@ export default function Client360Page({
         <div
           className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl border shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-in fade-in slide-in-from-bottom-2 ${
             notification.type === "success"
-              ? "bg-slate-900 border-emerald-500/40 text-emerald-400"
-              : "bg-slate-900 border-rose-500/40 text-rose-400"
+              ? "bg-white dark:bg-slate-900 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+              : "bg-white dark:bg-slate-900 border-rose-500/40 text-rose-600 dark:text-rose-400"
           }`}
         >
           {notification.type === "success" ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
           ) : (
-            <AlertCircle className="h-4 w-4 text-rose-400 flex-shrink-0" />
+            <AlertCircle className="h-4 w-4 text-rose-500 flex-shrink-0" />
           )}
           <span>{notification.message}</span>
         </div>
       )}
 
       {/* Top Breadcrumb & Metadata Navigation */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-900 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-900 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-2">
             <Link
               href={currentUserRole === "CLIENT" ? "/dashboard/client" : "/dashboard/advisor"}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition font-medium"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition font-medium shadow-xs"
             >
-              <ArrowLeft className="h-3.5 w-3.5 text-emerald-400" />
+              <ArrowLeft className="h-3.5 w-3.5 text-emerald-500" />
               <span>{currentUserRole === "CLIENT" ? "Back to Client Dashboard" : `Back to ${terms.advisorLabel} Dashboard`}</span>
             </Link>
             <span>&bull;</span>
-            <span className="font-mono text-slate-300">{client.uwp_client_code || "UWP-CLIENT"}</span>
+            <span className="font-mono text-slate-600 dark:text-slate-300">{client.uwp_client_code || "UWP-CLIENT"}</span>
             <span>&bull;</span>
-            <span className="text-emerald-400 font-semibold uppercase text-[10px] tracking-wider">
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold uppercase text-[10px] tracking-wider">
               {client.risk_profile || "Moderate"} Risk
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-white tracking-tight">{client.full_name}</h1>
-            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{client.full_name}</h1>
+            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
               Client 360 &deg;
             </span>
             {household && (
-              <span className="px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20 flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 flex items-center gap-1">
                 <Home className="h-3 w-3" />
                 {household.household_name} ({householdMembers.length} {householdMembers.length === 1 ? "Member" : "Members"})
               </span>
@@ -378,38 +378,38 @@ export default function Client360Page({
           {/* Link to Mutual Fund Portfolio */}
           <Link
             href={`/dashboard/portfolio?clientId=${clientId}`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-xs font-bold text-sky-400 hover:text-sky-300 transition shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-xs font-bold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 transition shadow-xs"
           >
-            <TrendingUp className="h-3.5 w-3.5 text-sky-400" />
+            <TrendingUp className="h-3.5 w-3.5 text-sky-500" />
             <span>MF Portfolio</span>
           </Link>
 
           {/* Link to Tax Planning Sheet */}
           <Link
             href={`/dashboard/planning/tax?clientId=${clientId}`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition shadow-xs"
           >
-            <Receipt className="h-3.5 w-3.5 text-emerald-400" />
+            <Receipt className="h-3.5 w-3.5 text-emerald-500" />
             <span>Tax Planning</span>
           </Link>
 
           {/* Link to Net Worth Sheet */}
           <Link
             href={`/dashboard/clients/${clientId}/net-worth`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition shadow-xs"
           >
-            <Wallet className="h-3.5 w-3.5 text-emerald-400" />
+            <Wallet className="h-3.5 w-3.5 text-emerald-500" />
             <span>Net Worth Sheet</span>
           </Link>
 
           {/* Household vs Individual Toggle */}
-          <div className="flex items-center bg-slate-900 border border-slate-800 p-0.5 rounded-lg text-xs">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-0.5 rounded-lg text-xs">
             <button
               onClick={() => setViewScope("HOUSEHOLD")}
               className={`px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 transition ${
                 viewScope === "HOUSEHOLD"
                   ? "bg-purple-600 text-white shadow-sm"
-                  : "text-slate-400 hover:text-slate-200"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
               }`}
               title="View consolidated family net worth & assets"
             >
@@ -421,7 +421,7 @@ export default function Client360Page({
               className={`px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 transition ${
                 viewScope === "INDIVIDUAL"
                   ? "bg-sky-600 text-white shadow-sm"
-                  : "text-slate-400 hover:text-slate-200"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
               }`}
               title="View only this client's individual holdings"
             >
@@ -433,7 +433,7 @@ export default function Client360Page({
           <button
             onClick={fetch360Data}
             disabled={isLoading}
-            className="p-2 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition"
+            className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition shadow-xs"
             title="Refresh 360 Data"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
@@ -444,72 +444,72 @@ export default function Client360Page({
       {/* 4 Core Financial KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Consolidated Net Worth */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-950 border border-slate-800 shadow-xl">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
+        <div className="p-5 rounded-2xl bg-white dark:bg-gradient-to-br dark:from-slate-900/90 dark:to-slate-950 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-xl">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">
               {viewScope === "HOUSEHOLD" ? "Household Net Worth" : "Individual Net Worth"}
             </span>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <TrendingUp className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white tracking-tight">{formatINR(m.netWorth)}</div>
-          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-800/80 pt-2">
-            <span>Assets: <strong className="text-slate-200">{formatINR(m.totalAssets)}</strong></span>
-            <span>Debts: <strong className="text-rose-400">{formatINR(m.totalLiabilities)}</strong></span>
+          <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{formatINR(m.netWorth)}</div>
+          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800/80 pt-2">
+            <span>Assets: <strong className="text-slate-800 dark:text-slate-200">{formatINR(m.totalAssets)}</strong></span>
+            <span>Debts: <strong className="text-rose-600 dark:text-rose-400">{formatINR(m.totalLiabilities)}</strong></span>
           </div>
         </div>
 
         {/* Total Assets Breakdown */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-950 border border-slate-800 shadow-xl">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
+        <div className="p-5 rounded-2xl bg-white dark:bg-gradient-to-br dark:from-slate-900/90 dark:to-slate-950 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-xl">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">Total Assets</span>
-            <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
+            <div className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
               <Wallet className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white tracking-tight">{formatINR(m.totalAssets)}</div>
-          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-800/80 pt-2">
-            <span className="text-emerald-400">Liquid: {formatINR(m.liquidAssets)}</span>
-            <span className="text-slate-400">Fixed: {formatINR(m.illiquidAssets)}</span>
+          <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{formatINR(m.totalAssets)}</div>
+          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800/80 pt-2">
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">Liquid: {formatINR(m.liquidAssets)}</span>
+            <span className="text-slate-500 dark:text-slate-400">Fixed: {formatINR(m.illiquidAssets)}</span>
           </div>
         </div>
 
         {/* Total Liabilities & Debt Ratio */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-950 border border-slate-800 shadow-xl">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
+        <div className="p-5 rounded-2xl bg-white dark:bg-gradient-to-br dark:from-slate-900/90 dark:to-slate-950 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-xl">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">Total Liabilities</span>
-            <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
+            <div className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
               <CreditCard className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-rose-400 tracking-tight">{formatINR(m.totalLiabilities)}</div>
-          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-800/80 pt-2">
-            <span>Monthly EMIs: <strong className="text-slate-200">{formatINR(m.totalMonthlyEMIs)}</strong></span>
-            <span className="text-amber-400 font-medium">D/A: {m.debtToAssetRatio.toFixed(1)}%</span>
+          <div className="text-2xl font-black text-rose-600 dark:text-rose-400 tracking-tight">{formatINR(m.totalLiabilities)}</div>
+          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800/80 pt-2">
+            <span>Monthly EMIs: <strong className="text-slate-800 dark:text-slate-200">{formatINR(m.totalMonthlyEMIs)}</strong></span>
+            <span className="text-amber-700 dark:text-amber-400 font-medium">D/A: {m.debtToAssetRatio.toFixed(1)}%</span>
           </div>
         </div>
 
         {/* Monthly Net Cash Flow Surplus */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-950 border border-slate-800 shadow-xl">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
+        <div className="p-5 rounded-2xl bg-white dark:bg-gradient-to-br dark:from-slate-900/90 dark:to-slate-950 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-xl">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">Monthly Surplus</span>
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
               <PiggyBank className="h-4 w-4" />
             </div>
           </div>
-          <div className={`text-2xl font-black tracking-tight ${m.monthlySurplus >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+          <div className={`text-2xl font-black tracking-tight ${m.monthlySurplus >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
             {formatINR(m.monthlySurplus)}/mo
           </div>
-          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-800/80 pt-2">
+          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800/80 pt-2">
             <span>Inflows: {formatINR(m.totalMonthlyIncome)}</span>
-            <span className="text-purple-300 font-semibold">Savings: {m.savingsRate.toFixed(0)}%</span>
+            <span className="text-purple-700 dark:text-purple-300 font-semibold">Savings: {m.savingsRate.toFixed(0)}%</span>
           </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="border-b border-slate-800 flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div className="border-b border-slate-200 dark:border-slate-800 flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {[
           { key: "overview", label: "Household & Overview", icon: Home, count: householdMembers.length },
           { key: "cashflow", label: "Income & Cash Flow", icon: DollarSign, count: visibleIncomes.length + visibleExpenses.length },
@@ -526,14 +526,14 @@ export default function Client360Page({
               onClick={() => setActiveTab(tab.key as any)}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b-2 text-xs font-semibold transition whitespace-nowrap flex-shrink-0 ${
                 isActive
-                  ? "border-sky-500 text-sky-400 bg-sky-500/5"
-                  : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                  ? "border-sky-500 text-sky-600 dark:text-sky-400 bg-sky-500/5"
+                  : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
               }`}
             >
               <Icon className="h-4 w-4" />
               <span>{tab.label}</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                isActive ? "bg-sky-500/20 text-sky-300" : "bg-slate-800 text-slate-400"
+                isActive ? "bg-sky-500/20 text-sky-700 dark:text-sky-300" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
               }`}>
                 {tab.count}
               </span>
@@ -548,22 +548,22 @@ export default function Client360Page({
       {activeTab === "overview" && (
         <div className="space-y-6">
           {/* Household Grouping Summary Banner */}
-          <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900/60 to-slate-950 border border-purple-900/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-50 via-white to-slate-50 dark:from-purple-950/40 dark:via-slate-900/60 dark:to-slate-950 border border-purple-200 dark:border-purple-900/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Home className="h-5 w-5 text-purple-400" />
-                <h2 className="text-lg font-bold text-white tracking-tight">
+                <Home className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                   {household?.household_name || `${client.full_name} Household`}
                 </h2>
                 <button
                   onClick={() => setModalType("RENAME_HOUSEHOLD")}
-                  className="p-1 rounded text-slate-400 hover:text-white"
+                  className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white"
                   title="Rename Household"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Consolidated family net worth across all bundled member profiles.
               </p>
             </div>
@@ -578,7 +578,7 @@ export default function Client360Page({
               </button>
               <button
                 onClick={() => setModalType("EDIT_PROFILE")}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-semibold transition"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold transition shadow-xs"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 <span>Edit Client KYC Details</span>
@@ -588,8 +588,8 @@ export default function Client360Page({
 
           {/* Household Family Members Cards */}
           <div>
-            <h3 className="text-sm font-bold text-white tracking-tight mb-3 flex items-center gap-2">
-              <Users className="h-4 w-4 text-purple-400" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight mb-3 flex items-center gap-2">
+              <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               Household Family Members ({householdMembers.length})
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -599,48 +599,48 @@ export default function Client360Page({
                 return (
                   <div
                     key={member.client_id}
-                    className={`p-5 rounded-xl border transition ${
+                    className={`p-5 rounded-xl border transition shadow-sm ${
                       isPrimary
-                        ? "bg-slate-900/80 border-sky-500/40 shadow-lg shadow-sky-500/5"
-                        : "bg-slate-900/40 border-slate-800 hover:border-slate-700"
+                        ? "bg-white dark:bg-slate-900/80 border-sky-400 dark:border-sky-500/40 ring-1 ring-sky-400/20 shadow-sky-500/5"
+                        : "bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                     }`}
                   >
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-white text-sm">{member.full_name}</span>
+                          <span className="font-bold text-slate-900 dark:text-white text-sm">{member.full_name}</span>
                           {isPrimary && (
-                            <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20">
                               Primary
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                           {member.occupation || "Family Member"} &bull; DOB: {member.date_of_birth}
                         </div>
                       </div>
                       {!isPrimary && (
                         <Link
                           href={`/dashboard/clients/${member.client_id}/360`}
-                          className="text-[11px] text-sky-400 hover:text-sky-300 font-semibold"
+                          className="text-[11px] text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 font-semibold"
                         >
                           Switch 360 &rarr;
                         </Link>
                       )}
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-slate-800 space-y-1.5 text-xs">
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Net Worth Contribution:</span>
-                        <span className="font-bold text-emerald-400">{formatINR(memMetrics.netWorth)}</span>
+                        <span className="text-slate-500 dark:text-slate-400">Net Worth Contribution:</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatINR(memMetrics.netWorth)}</span>
                       </div>
                       <div className="flex justify-between text-[11px]">
-                        <span className="text-slate-500">Gross Income:</span>
-                        <span className="text-slate-300">{formatINR(Number(member.annual_gross_income || 0))}/yr</span>
+                        <span className="text-slate-400 dark:text-slate-500">Gross Income:</span>
+                        <span className="text-slate-700 dark:text-slate-300">{formatINR(Number(member.annual_gross_income || 0))}/yr</span>
                       </div>
                       <div className="flex justify-between text-[11px]">
-                        <span className="text-slate-500">Risk Profile:</span>
-                        <span className="text-slate-300">{member.risk_profile || "Moderate"}</span>
+                        <span className="text-slate-400 dark:text-slate-500">Risk Profile:</span>
+                        <span className="text-slate-700 dark:text-slate-300">{member.risk_profile || "Moderate"}</span>
                       </div>
                     </div>
                   </div>
@@ -650,15 +650,15 @@ export default function Client360Page({
           </div>
 
           {/* Primary Client Demographic Details Card */}
-          <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                <Info className="h-4 w-4 text-sky-400" />
+          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                <Info className="h-4 w-4 text-sky-500" />
                 Primary Client Demographic &amp; Planning Profile
               </h3>
               <button
                 onClick={() => setModalType("EDIT_PROFILE")}
-                className="text-xs text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1"
+                className="text-xs text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 font-medium flex items-center gap-1"
               >
                 <Pencil className="h-3 w-3" />
                 <span>Edit Profile</span>
@@ -668,54 +668,54 @@ export default function Client360Page({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
               <div>
                 <span className="text-slate-500">Date of Birth</span>
-                <p className="font-semibold text-white mt-0.5">{client.date_of_birth || "N/A"}</p>
+                <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{client.date_of_birth || "N/A"}</p>
               </div>
               <div>
                 <span className="text-slate-500">Marital Status</span>
-                <p className="font-semibold text-white mt-0.5">{client.marital_status || "Married"}</p>
+                <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{client.marital_status || "Married"}</p>
               </div>
               <div>
                 <span className="text-slate-500">Dependents Count</span>
-                <p className="font-semibold text-white mt-0.5">{client.dependents_count || 0}</p>
+                <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{client.dependents_count || 0}</p>
               </div>
               <div>
                 <span className="text-slate-500">Tax Regime</span>
-                <p className="font-semibold text-white mt-0.5">{client.tax_regime || "New Regime"}</p>
+                <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{client.tax_regime || "New Regime"}</p>
               </div>
               <div>
                 <span className="text-slate-500">Occupation</span>
-                <p className="font-semibold text-white mt-0.5">{client.occupation || "Private Sector Employee"}</p>
+                <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{client.occupation || "Private Sector Employee"}</p>
               </div>
               <div>
                 <span className="text-slate-500">Employer / Business</span>
-                <p className="font-semibold text-white mt-0.5">{client.employer_business_name || "N/A"}</p>
+                <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{client.employer_business_name || "N/A"}</p>
               </div>
               <div>
                 <span className="text-slate-500">Planning Horizon</span>
-                <p className="font-semibold text-white mt-0.5">{client.planning_horizon_years || 6.0} Years</p>
+                <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{client.planning_horizon_years || 6.0} Years</p>
               </div>
               <div>
                 <span className="text-slate-500">Review Frequency</span>
-                <p className="font-semibold text-white mt-0.5">{client.review_frequency || "Annual"}</p>
+                <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{client.review_frequency || "Annual"}</p>
               </div>
               {client.spouse_name && (
                 <div>
                   <span className="text-slate-500">Spouse Name</span>
-                  <p className="font-semibold text-white mt-0.5">{client.spouse_name}</p>
+                  <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{client.spouse_name}</p>
                 </div>
               )}
               {client.advisor_name && (
                 <div>
                   <span className="text-slate-500">{terms.assignedAdvisorLabel}</span>
-                  <p className="font-semibold text-white mt-0.5">{client.advisor_name}</p>
+                  <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{client.advisor_name}</p>
                 </div>
               )}
             </div>
 
             {client.planning_disclosures_notes && (
-              <div className="pt-3 border-t border-slate-800 text-xs">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
                 <span className="text-slate-500 block mb-1">Planning Disclosures &amp; Notes:</span>
-                <p className="text-slate-300 bg-slate-950 p-3 rounded-lg border border-slate-800/80">
+                <p className="text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800/80">
                   {client.planning_disclosures_notes}
                 </p>
               </div>
@@ -730,26 +730,26 @@ export default function Client360Page({
       {activeTab === "cashflow" && (
         <div className="space-y-6">
           {/* Cash Flow Health Widget */}
-          <div className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 shadow-sm">
             <div className="flex items-center gap-6">
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400">Total Monthly Inflow</span>
-                <div className="text-xl font-bold text-emerald-400">{formatINR(m.totalMonthlyIncome)}</div>
+                <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Total Monthly Inflow</span>
+                <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatINR(m.totalMonthlyIncome)}</div>
               </div>
-              <div className="text-slate-600 font-bold text-xl">-</div>
+              <div className="text-slate-300 dark:text-slate-600 font-bold text-xl">-</div>
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400">Living Outflow</span>
-                <div className="text-xl font-bold text-rose-400">{formatINR(m.totalMonthlyExpenses)}</div>
+                <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Living Outflow</span>
+                <div className="text-xl font-bold text-rose-600 dark:text-rose-400">{formatINR(m.totalMonthlyExpenses)}</div>
               </div>
-              <div className="text-slate-600 font-bold text-xl">-</div>
+              <div className="text-slate-300 dark:text-slate-600 font-bold text-xl">-</div>
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400">Debt EMIs</span>
-                <div className="text-xl font-bold text-amber-400">{formatINR(m.totalMonthlyEMIs)}</div>
+                <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Debt EMIs</span>
+                <div className="text-xl font-bold text-amber-600 dark:text-amber-400">{formatINR(m.totalMonthlyEMIs)}</div>
               </div>
-              <div className="text-slate-600 font-bold text-xl">=</div>
+              <div className="text-slate-300 dark:text-slate-600 font-bold text-xl">=</div>
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400">Monthly Net Surplus</span>
-                <div className={`text-xl font-black ${m.monthlySurplus >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Monthly Net Surplus</span>
+                <div className={`text-xl font-black ${m.monthlySurplus >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                   {formatINR(m.monthlySurplus)}
                 </div>
               </div>
@@ -776,18 +776,18 @@ export default function Client360Page({
           {/* 2-Column Tables: Income Sources vs Expense Items */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Incomes Table */}
-            <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-emerald-400" />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                     Income Streams ({visibleIncomes.length})
                   </h3>
-                  <p className="text-[11px] text-slate-400">Recurring salary, business, dividends, rentals</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Recurring salary, business, dividends, rentals</p>
                 </div>
                 <button
                   onClick={() => { setModalItem(null); setModalType("INCOME"); }}
-                  className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold"
+                  className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-semibold"
                 >
                   + Add Stream
                 </button>
@@ -796,45 +796,45 @@ export default function Client360Page({
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-slate-800 text-slate-400">
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
                       <th className="pb-2 font-semibold">Category</th>
                       <th className="pb-2 font-semibold text-right">Monthly</th>
                       <th className="pb-2 font-semibold text-right">Annual</th>
                       <th className="pb-2 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                     {visibleIncomes.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="py-6 text-center text-slate-500">
+                        <td colSpan={4} className="py-6 text-center text-slate-400 dark:text-slate-500">
                           No income sources logged.
                         </td>
                       </tr>
                     ) : (
                       visibleIncomes.map((inc) => (
-                        <tr key={inc.income_id} className="hover:bg-slate-800/20">
+                        <tr key={inc.income_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
                           <td className="py-2.5">
-                            <div className="font-semibold text-white">{inc.category}</div>
-                            {inc.notes && <div className="text-[10px] text-slate-400">{inc.notes}</div>}
+                            <div className="font-semibold text-slate-900 dark:text-white">{inc.category}</div>
+                            {inc.notes && <div className="text-[10px] text-slate-500 dark:text-slate-400">{inc.notes}</div>}
                           </td>
-                          <td className="py-2.5 text-right font-bold text-emerald-400">
+                          <td className="py-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400">
                             {formatINR(Number(inc.monthly_amount))}
                           </td>
-                          <td className="py-2.5 text-right text-slate-300">
+                          <td className="py-2.5 text-right text-slate-700 dark:text-slate-300">
                             {formatINR(Number(inc.monthly_amount) * 12)}
                           </td>
                           <td className="py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={() => { setModalItem(inc); setModalType("INCOME"); }}
-                                className="p-1 rounded text-slate-400 hover:text-white"
+                                className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white"
                                 title="Edit Income"
                               >
                                 <Pencil className="h-3 w-3" />
                               </button>
                               <button
                                 onClick={() => handleDeleteItem("incomes", "income_id", inc.income_id)}
-                                className="p-1 rounded text-slate-400 hover:text-rose-400"
+                                className="p-1 rounded text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
                                 title="Delete Income"
                               >
                                 <Trash2 className="h-3 w-3" />
@@ -850,18 +850,18 @@ export default function Client360Page({
             </div>
 
             {/* Expenses Table */}
-            <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-rose-400" />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                     Living Expenses ({visibleExpenses.length})
                   </h3>
-                  <p className="text-[11px] text-slate-400">Essential living vs discretionary outflows</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Essential living vs discretionary outflows</p>
                 </div>
                 <button
                   onClick={() => { setModalItem(null); setModalType("EXPENSE"); }}
-                  className="text-xs text-rose-400 hover:text-rose-300 font-semibold"
+                  className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-semibold"
                 >
                   + Add Expense
                 </button>
@@ -870,53 +870,53 @@ export default function Client360Page({
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-slate-800 text-slate-400">
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
                       <th className="pb-2 font-semibold">Category</th>
                       <th className="pb-2 font-semibold">Classification</th>
                       <th className="pb-2 font-semibold text-right">Monthly</th>
                       <th className="pb-2 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                     {visibleExpenses.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="py-6 text-center text-slate-500">
+                        <td colSpan={4} className="py-6 text-center text-slate-400 dark:text-slate-500">
                           No living expenses recorded.
                         </td>
                       </tr>
                     ) : (
                       visibleExpenses.map((exp) => (
-                        <tr key={exp.expense_id} className="hover:bg-slate-800/20">
+                        <tr key={exp.expense_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
                           <td className="py-2.5">
-                            <div className="font-semibold text-white">{exp.category}</div>
-                            {exp.notes && <div className="text-[10px] text-slate-400">{exp.notes}</div>}
+                            <div className="font-semibold text-slate-900 dark:text-white">{exp.category}</div>
+                            {exp.notes && <div className="text-[10px] text-slate-500 dark:text-slate-400">{exp.notes}</div>}
                           </td>
                           <td className="py-2.5">
                             <span
                               className={`px-1.5 py-0.2 rounded text-[10px] font-semibold uppercase ${
                                 exp.is_essential
-                                  ? "bg-slate-800 text-slate-300 border border-slate-700"
-                                  : "bg-purple-500/10 text-purple-300 border border-purple-500/20"
+                                  ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                                  : "bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20"
                               }`}
                             >
                               {exp.is_essential ? "Essential" : "Discretionary"}
                             </span>
                           </td>
-                          <td className="py-2.5 text-right font-bold text-rose-400">
+                          <td className="py-2.5 text-right font-bold text-rose-600 dark:text-rose-400">
                             {formatINR(Number(exp.monthly_amount))}
                           </td>
                           <td className="py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={() => { setModalItem(exp); setModalType("EXPENSE"); }}
-                                className="p-1 rounded text-slate-400 hover:text-white"
+                                className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white"
                                 title="Edit Expense"
                               >
                                 <Pencil className="h-3 w-3" />
                               </button>
                               <button
                                 onClick={() => handleDeleteItem("expenses", "expense_id", exp.expense_id)}
-                                className="p-1 rounded text-slate-400 hover:text-rose-400"
+                                className="p-1 rounded text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
                                 title="Delete Expense"
                               >
                                 <Trash2 className="h-3 w-3" />
@@ -942,11 +942,11 @@ export default function Client360Page({
           {/* Header Action Bar */}
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-sky-400" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-sky-500" />
                 Comprehensive Asset Portfolio ({visibleAssets.length + visibleInvestments.length + visibleRetirementAssets.length} Holdings)
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Tracking physical assets, bank deposits, real estate, mutual funds, NPS, and provident funds.
               </p>
             </div>
@@ -976,21 +976,21 @@ export default function Client360Page({
           </div>
 
           {/* Section 1: Market Investments Portfolio */}
-          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-emerald-400" />
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                   Mutual Funds &amp; Direct Equity Holdings ({filteredInvestments.length})
                 </h4>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-emerald-400">
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                   Total Market Value: {formatINR(m.investmentAssets)}
                 </span>
                 <Link
                   href={`/dashboard/portfolio?clientId=${clientId}`}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 text-xs font-bold transition shadow-xs"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-xs font-bold transition shadow-xs"
                 >
                   <TrendingUp className="h-3.5 w-3.5" />
                   <span>Open in Mutual Fund Console</span>
@@ -1008,7 +1008,7 @@ export default function Client360Page({
                   placeholder="Search schemes, folios, or owners..."
                   value={invSearch}
                   onChange={(e) => setInvSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-800 bg-slate-950 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
@@ -1019,8 +1019,8 @@ export default function Client360Page({
                     onClick={() => setInvClassFilter(cat)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition border ${
                       invClassFilter === cat
-                        ? "bg-white text-slate-900 border-transparent font-bold shadow-sm"
-                        : "bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700"
+                        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent font-bold shadow-sm"
+                        : "bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800/80 dark:text-slate-300 border-slate-200 dark:border-slate-700 dark:hover:bg-slate-700"
                     }`}
                   >
                     {cat}
@@ -1031,7 +1031,7 @@ export default function Client360Page({
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold border-y border-slate-800">
+                <thead className="bg-slate-50 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 uppercase tracking-wider font-semibold border-y border-slate-200 dark:border-slate-800">
                   <tr>
                     <th className="py-2.5 px-3">Scheme &amp; Category</th>
                     <th className="py-2.5 px-3">Owner / Member</th>
@@ -1045,10 +1045,10 @@ export default function Client360Page({
                     <th className="py-2.5 px-3 text-center">Earmarked Goal / Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {filteredInvestments.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="py-8 text-center text-slate-500">
+                      <td colSpan={10} className="py-8 text-center text-slate-400 dark:text-slate-500">
                         No investment portfolio holdings match your criteria.
                       </td>
                     </tr>
@@ -1070,69 +1070,69 @@ export default function Client360Page({
                       const xirr = inv.xirr !== undefined ? inv.xirr : 15.2;
 
                       return (
-                        <tr key={inv.investment_id} className="hover:bg-slate-800/20 transition group">
+                        <tr key={inv.investment_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition group">
                           <td className="py-3 px-3">
-                            <div className="font-bold text-white max-w-xs">{schemeName}</div>
-                            <div className="text-[10px] text-sky-400 mt-0.5">{assetClass}</div>
+                            <div className="font-bold text-slate-900 dark:text-white max-w-xs">{schemeName}</div>
+                            <div className="text-[10px] text-sky-600 dark:text-sky-400 mt-0.5">{assetClass}</div>
                           </td>
-                          <td className="py-3 px-3 text-slate-300">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300">
+                          <td className="py-3 px-3 text-slate-700 dark:text-slate-300">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                               <User className="h-3 w-3" />
                               {inv.owner_name}
                             </span>
                           </td>
-                          <td className="py-3 px-3 font-mono text-[11px] text-slate-400">
+                          <td className="py-3 px-3 font-mono text-[11px] text-slate-500 dark:text-slate-400">
                             {folio}
                           </td>
-                          <td className="py-3 px-3 text-right font-medium text-slate-300">
+                          <td className="py-3 px-3 text-right font-medium text-slate-700 dark:text-slate-300">
                             {units > 0 ? units.toLocaleString("en-IN", { maximumFractionDigits: 3 }) : "—"}
                           </td>
                           <td className="py-3 px-3 text-right">
-                            <div className="font-bold text-white">₹{curNav}</div>
-                            <div className="text-[10px] text-slate-400">Avg: ₹{avgNav}</div>
+                            <div className="font-bold text-slate-900 dark:text-white">₹{curNav}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">Avg: ₹{avgNav}</div>
                           </td>
-                          <td className="py-3 px-3 text-right font-medium text-slate-400">
+                          <td className="py-3 px-3 text-right font-medium text-slate-500 dark:text-slate-400">
                             {formatINR(cost)}
                           </td>
-                          <td className="py-3 px-3 text-right font-bold text-white">
+                          <td className="py-3 px-3 text-right font-bold text-slate-900 dark:text-white">
                             {formatINR(value)}
-                            <div className={`text-[10px] font-bold ${unrealized >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                            <div className={`text-[10px] font-bold ${unrealized >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                               {unrealized >= 0 ? "+" : ""}{formatINR(unrealized)} ({absReturn >= 0 ? "+" : ""}{absReturn}%)
                             </div>
                           </td>
                           <td className="py-3 px-3 text-right">
-                            <span className={`font-semibold ${dayChange >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                            <span className={`font-semibold ${dayChange >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                               {dayChange >= 0 ? "+" : ""}{formatINR(dayChange)}
                             </span>
-                            <div className="text-[10px] text-slate-400">
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">
                               {dayChangePct >= 0 ? "+" : ""}{dayChangePct}%
                             </div>
                           </td>
                           <td className="py-3 px-3 text-right">
-                            <div className="font-bold text-white">{cagr}%</div>
-                            <div className="text-[10px] text-sky-400 font-bold">XIRR: {xirr}%</div>
+                            <div className="font-bold text-slate-900 dark:text-white">{cagr}%</div>
+                            <div className="text-[10px] text-sky-600 dark:text-sky-400 font-bold">XIRR: {xirr}%</div>
                           </td>
                           <td className="py-3 px-3 text-center">
                             <div className="flex flex-col items-center gap-1.5">
                               {inv.linked_goal_id ? (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
                                   <Target className="h-2.5 w-2.5" />
                                   {data?.goals?.find((g: any) => g.goal_id === inv.linked_goal_id)?.goal_name || "Linked Goal"}
                                 </span>
                               ) : (
-                                <span className="text-[10px] text-slate-500 font-mono">Unassigned</span>
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Unassigned</span>
                               )}
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => { setModalItem(inv); setModalType("INVESTMENT"); }}
-                                  className="p-1 rounded text-slate-400 hover:text-white"
+                                  className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white"
                                   title="Edit Holding"
                                 >
                                   <Pencil className="h-3 w-3" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteItem("investments", "investment_id", inv.investment_id)}
-                                  className="p-1 rounded text-slate-400 hover:text-rose-400"
+                                  className="p-1 rounded text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
                                   title="Delete Holding"
                                 >
                                   <Trash2 className="h-3 w-3" />
@@ -1150,15 +1150,15 @@ export default function Client360Page({
           </div>
 
           {/* Section 2: Physical & Fixed Assets */}
-          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
               <div className="flex items-center gap-2">
-                <Home className="h-4 w-4 text-sky-400" />
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                <Home className="h-4 w-4 text-sky-500" />
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                   Real Estate, FDs, Gold &amp; Physical Assets ({visibleAssets.length})
                 </h4>
               </div>
-              <span className="text-xs font-bold text-slate-200">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
                 Physical Valuation: {formatINR(m.physicalAssets)}
               </span>
             </div>
@@ -1166,7 +1166,7 @@ export default function Client360Page({
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400">
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
                     <th className="pb-2 font-semibold">Category / Description</th>
                     <th className="pb-2 font-semibold">Owner</th>
                     <th className="pb-2 font-semibold text-right">Valuation (Today)</th>
@@ -1177,60 +1177,60 @@ export default function Client360Page({
                     <th className="pb-2 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {visibleAssets.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-6 text-center text-slate-500">
+                      <td colSpan={8} className="py-6 text-center text-slate-400 dark:text-slate-500">
                         No physical or fixed assets recorded.
                       </td>
                     </tr>
                   ) : (
                     visibleAssets.map((ast) => (
-                      <tr key={ast.asset_id} className="hover:bg-slate-800/20">
+                      <tr key={ast.asset_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
                         <td className="py-2.5">
-                          <div className="font-bold text-white">{ast.asset_category}</div>
-                          <div className="text-[10px] text-slate-400">{ast.description}</div>
+                          <div className="font-bold text-slate-900 dark:text-white">{ast.asset_category}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400">{ast.description}</div>
                         </td>
-                        <td className="py-2.5 text-slate-300">{ast.owner_name}</td>
-                        <td className="py-2.5 text-right font-bold text-white">{formatINR(Number(ast.current_market_value))}</td>
-                        <td className="py-2.5 font-mono text-slate-300">
+                        <td className="py-2.5 text-slate-700 dark:text-slate-300">{ast.owner_name}</td>
+                        <td className="py-2.5 text-right font-bold text-slate-900 dark:text-white">{formatINR(Number(ast.current_market_value))}</td>
+                        <td className="py-2.5 font-mono text-slate-700 dark:text-slate-300">
                           {ast.target_liquidation_date ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-sky-300 border border-slate-700">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-800 text-sky-700 dark:text-sky-300 border border-slate-200 dark:border-slate-700">
                               <Clock className="h-2.5 w-2.5" />
                               {new Date(ast.target_liquidation_date).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}
                             </span>
                           ) : (
-                            <span className="text-[10px] text-slate-500 font-mono">Not Set</span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Not Set</span>
                           )}
                         </td>
-                        <td className="py-2.5 text-right font-mono text-slate-300">
+                        <td className="py-2.5 text-right font-mono text-slate-700 dark:text-slate-300">
                           {ast.expected_cagr !== undefined && ast.expected_cagr !== null ? `${ast.expected_cagr}%` : "—"}
                         </td>
-                        <td className="py-2.5 text-right font-bold text-sky-400">
+                        <td className="py-2.5 text-right font-bold text-sky-600 dark:text-sky-400">
                           {ast.expected_liquidation_value ? formatINR(Number(ast.expected_liquidation_value)) : formatINR(Number(ast.current_market_value))}
                         </td>
                         <td className="py-2.5">
                           {ast.linked_goal_id ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
                               <Target className="h-2.5 w-2.5" />
                               {data?.goals?.find((g: any) => g.goal_id === ast.linked_goal_id)?.goal_name || "Linked Goal"}
                             </span>
                           ) : (
-                            <span className="text-[10px] text-slate-500 font-mono">Unassigned</span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Unassigned</span>
                           )}
                         </td>
                         <td className="py-2.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => { setModalItem(ast); setModalType("ASSET"); }}
-                              className="p-1 rounded text-slate-400 hover:text-white"
+                              className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white"
                               title="Edit Asset"
                             >
                               <Pencil className="h-3 w-3" />
                             </button>
                             <button
                               onClick={() => handleDeleteItem("assets", "asset_id", ast.asset_id)}
-                              className="p-1 rounded text-slate-400 hover:text-rose-400"
+                              className="p-1 rounded text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
                               title="Delete Asset"
                             >
                               <Trash2 className="h-3 w-3" />
@@ -1246,22 +1246,22 @@ export default function Client360Page({
           </div>
 
           {/* Section 3: NPS & Provident Funds (EPF, PPF, VPF, NPS) */}
-          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-purple-400" />
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                <ShieldCheck className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                   NPS &amp; Provident Funds (EPF, PPF, VPF, NPS) ({visibleRetirementAssets.length})
                 </h4>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-xs font-bold text-slate-300">
-                  Current Corpus: <span className="text-white">{formatINR(visibleRetirementAssets.reduce((sum, a) => sum + Number(a.current_market_value || 0), 0))}</span>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                  Current Corpus: <span className="text-slate-900 dark:text-white">{formatINR(visibleRetirementAssets.reduce((sum, a) => sum + Number(a.current_market_value || 0), 0))}</span>
                 </span>
-                <span className="text-xs font-bold text-sky-400">
+                <span className="text-xs font-bold text-sky-600 dark:text-sky-400">
                   Monthly Deposits: {formatINR(visibleRetirementAssets.reduce((sum, a) => sum + Number(a.monthly_deposit || 0), 0))}/mo
                 </span>
-                <span className="text-xs font-bold text-purple-400">
+                <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
                   Projected at Tenure End: {formatINR(visibleRetirementAssets.reduce((sum, a) => sum + Number(a.expected_maturity_value || a.expected_liquidation_value || a.current_market_value || 0), 0))}
                 </span>
                 <button
@@ -1277,7 +1277,7 @@ export default function Client360Page({
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400">
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
                     <th className="pb-2 font-semibold">Account / Scheme Category</th>
                     <th className="pb-2 font-semibold">Owner</th>
                     <th className="pb-2 font-semibold text-right">Current Value</th>
@@ -1290,15 +1290,15 @@ export default function Client360Page({
                     <th className="pb-2 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {visibleRetirementAssets.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="py-8 text-center text-slate-500">
+                      <td colSpan={10} className="py-8 text-center text-slate-400 dark:text-slate-500">
                         <div className="space-y-2">
                           <p>No NPS or Provident Fund accounts recorded.</p>
                           <button
                             onClick={() => { setModalItem(null); setModalType("RETIREMENT"); }}
-                            className="inline-flex items-center gap-1 text-xs font-bold text-purple-400 hover:underline"
+                            className="inline-flex items-center gap-1 text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline"
                           >
                             <Plus className="h-3 w-3" />
                             <span>Add EPF, PPF, VPF or NPS Account</span>
@@ -1328,36 +1328,36 @@ export default function Client360Page({
                       const gainPct = totalInvested > 0 ? Number(((gain / totalInvested) * 100).toFixed(1)) : 0;
 
                       return (
-                        <tr key={ast.asset_id} className="hover:bg-slate-800/20 transition group">
+                        <tr key={ast.asset_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition group">
                           <td className="py-3">
-                            <div className="font-bold text-white flex items-center gap-1.5">
-                              <Landmark className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                              <Landmark className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
                               <span>{ast.asset_category}</span>
                             </div>
-                            <div className="text-[11px] text-slate-400 mt-0.5">{ast.description}</div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{ast.description}</div>
                           </td>
-                          <td className="py-3 text-slate-300">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300">
+                          <td className="py-3 text-slate-700 dark:text-slate-300">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                               <User className="h-3 w-3" />
                               {ast.owner_name}
                             </span>
                           </td>
-                          <td className="py-3 text-right font-bold text-white font-mono">
+                          <td className="py-3 text-right font-bold text-slate-900 dark:text-white font-mono">
                             {formatINR(curVal)}
                           </td>
-                          <td className="py-3 text-right font-semibold text-emerald-400 font-mono">
+                          <td className="py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
                             {roi}% p.a.
                           </td>
-                          <td className="py-3 text-right font-medium text-slate-300 font-mono">
+                          <td className="py-3 text-right font-medium text-slate-700 dark:text-slate-300 font-mono">
                             {mDeposit > 0 ? `${formatINR(mDeposit)}/mo` : "—"}
                           </td>
-                          <td className="py-3 text-right font-semibold text-sky-400 font-mono">
+                          <td className="py-3 text-right font-semibold text-sky-600 dark:text-sky-400 font-mono">
                             {mDeposit > 0 ? `${roiMonthly}% p.a.` : "—"}
                           </td>
                           <td className="py-3 text-center">
                             {targetDateStr ? (
                               <div className="inline-flex flex-col items-center">
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-purple-300 border border-slate-700 font-mono">
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-800 text-purple-700 dark:text-purple-300 border border-slate-200 dark:border-slate-700 font-mono">
                                   <Clock className="h-2.5 w-2.5" />
                                   {new Date(targetDateStr).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}
                                 </span>
@@ -1368,41 +1368,41 @@ export default function Client360Page({
                                 )}
                               </div>
                             ) : (
-                              <span className="text-[10px] text-slate-500 font-mono">Not Set</span>
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Not Set</span>
                             )}
                           </td>
                           <td className="py-3 text-right">
-                            <div className="font-bold text-purple-400 font-mono text-xs">
+                            <div className="font-bold text-purple-600 dark:text-purple-400 font-mono text-xs">
                               {formatINR(maturityVal)}
                             </div>
                             {gain > 0 && (
-                              <div className="text-[10px] font-bold text-emerald-400">
+                              <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
                                 +{formatINR(gain)} (+{gainPct}%)
                               </div>
                             )}
                           </td>
                           <td className="py-3">
                             {ast.linked_goal_id ? (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
                                 <Target className="h-2.5 w-2.5" />
                                 {data?.goals?.find((g: any) => g.goal_id === ast.linked_goal_id)?.goal_name || "Linked Goal"}
                               </span>
                             ) : (
-                              <span className="text-[10px] text-slate-500 font-mono">Unassigned</span>
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Unassigned</span>
                             )}
                           </td>
                           <td className="py-3 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={() => { setModalItem(ast); setModalType("RETIREMENT"); }}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                                 title="Edit Account"
                               >
                                 <Pencil className="h-3 w-3" />
                               </button>
                               <button
                                 onClick={() => handleDeleteItem("assets", "asset_id", ast.asset_id)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                                 title="Delete Account"
                               >
                                 <Trash2 className="h-3 w-3" />
@@ -1427,11 +1427,11 @@ export default function Client360Page({
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-rose-400" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                 Active Liabilities &amp; Borrowings ({visibleLiabilities.length})
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Track home loans, car loans, personal loans, remaining tenures, and interest outgoes.
               </p>
             </div>
@@ -1444,11 +1444,11 @@ export default function Client360Page({
             </button>
           </div>
 
-          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-800 bg-slate-950/50 text-slate-400">
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 text-slate-500 dark:text-slate-400">
                     <th className="py-3 px-4 font-semibold">Debt Type</th>
                     <th className="py-3 px-4 font-semibold">Lender Institution</th>
                     <th className="py-3 px-4 font-semibold text-right">Outstanding Principal</th>
@@ -1458,42 +1458,42 @@ export default function Client360Page({
                     <th className="py-3 px-4 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {visibleLiabilities.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-slate-500">
+                      <td colSpan={7} className="py-8 text-center text-slate-400 dark:text-slate-500">
                         No outstanding liabilities recorded. Client is debt-free!
                       </td>
                     </tr>
                   ) : (
                     visibleLiabilities.map((lia) => (
-                      <tr key={lia.liability_id} className="hover:bg-slate-800/20">
-                        <td className="py-3 px-4 font-bold text-white">{lia.liability_type}</td>
-                        <td className="py-3 px-4 text-slate-300">{lia.lender_name || "—"}</td>
-                        <td className="py-3 px-4 text-right font-bold text-rose-400">
+                      <tr key={lia.liability_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
+                        <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{lia.liability_type}</td>
+                        <td className="py-3 px-4 text-slate-700 dark:text-slate-300">{lia.lender_name || "—"}</td>
+                        <td className="py-3 px-4 text-right font-bold text-rose-600 dark:text-rose-400">
                           {formatINR(Number(lia.outstanding_principal))}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono text-slate-300">
+                        <td className="py-3 px-4 text-right font-mono text-slate-700 dark:text-slate-300">
                           {Number(lia.annual_interest_rate || 0).toFixed(2)}%
                         </td>
-                        <td className="py-3 px-4 text-right font-bold text-slate-200">
+                        <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-slate-200">
                           {formatINR(Number(lia.monthly_emi || 0))}/mo
                         </td>
-                        <td className="py-3 px-4 text-right text-slate-400">
+                        <td className="py-3 px-4 text-right text-slate-500 dark:text-slate-400">
                           {lia.tenure_remaining_months} Months ({Math.round((lia.tenure_remaining_months || 0) / 12)} yrs)
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => { setModalItem(lia); setModalType("LIABILITY"); }}
-                              className="p-1 rounded text-slate-400 hover:text-white"
+                              className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white"
                               title="Edit Liability"
                             >
                               <Pencil className="h-3 w-3" />
                             </button>
                             <button
                               onClick={() => handleDeleteItem("liabilities", "liability_id", lia.liability_id)}
-                              className="p-1 rounded text-slate-400 hover:text-rose-400"
+                              className="p-1 rounded text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
                               title="Delete Liability"
                             >
                               <Trash2 className="h-3 w-3" />
@@ -1517,11 +1517,11 @@ export default function Client360Page({
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <Target className="h-4 w-4 text-purple-400" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                <Target className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 Life Financial Goals &amp; Projections ({visibleGoals.length})
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Future value inflation adjustments, corpus allocation, and required monthly SIP calculation.
               </p>
             </div>
@@ -1536,7 +1536,7 @@ export default function Client360Page({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {visibleGoals.length === 0 ? (
-              <div className="col-span-3 p-12 text-center text-slate-500 border border-slate-800 rounded-2xl bg-slate-900/30">
+              <div className="col-span-3 p-12 text-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900/30 shadow-sm">
                 No life goals recorded yet. Click &quot;+ Define New Goal&quot; to plan for Retirement, Child&apos;s Education, or Home Purchase.
               </div>
             ) : (
@@ -1596,23 +1596,23 @@ export default function Client360Page({
                 return (
                   <div
                     key={g.goal_id}
-                    className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 shadow-xl space-y-4 relative group"
+                    className="p-5 rounded-2xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-xl space-y-4 relative group"
                   >
                     <div className="flex items-start justify-between">
                       <div>
                         <span
                           className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase mb-1.5 ${
                             g.priority === "High"
-                              ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                              ? "bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20"
                               : g.priority === "Medium"
-                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                              : "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                              ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
+                              : "bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20"
                           }`}
                         >
                           {g.priority || "High"} Priority
                         </span>
-                        <h4 className="text-sm font-bold text-white tracking-tight">{g.goal_name}</h4>
-                        <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">{g.goal_name}</h4>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                           <Calendar className="h-3 w-3" />
                           <span>Target Year: <strong>{g.target_year}</strong> ({yearsLeft} yrs away)</span>
                         </div>
@@ -1621,14 +1621,14 @@ export default function Client360Page({
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => { setModalItem(g); setModalType("GOAL"); }}
-                          className="p-1 rounded text-slate-400 hover:text-white"
+                          className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white"
                           title="Edit Goal"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteItem("goals", "goal_id", g.goal_id)}
-                          className="p-1 rounded text-slate-400 hover:text-rose-400"
+                          className="p-1 rounded text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
                           title="Delete Goal"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -1640,22 +1640,22 @@ export default function Client360Page({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-xs">
                         <div>
-                          <span className="text-[10px] text-slate-400 uppercase font-semibold block">Achieved Today</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">Achieved Today</span>
                           <div className="flex items-baseline gap-1 mt-0.5">
-                            <span className="font-bold text-emerald-400 text-sm">{formatINR(achievedToday)}</span>
-                            <span className="text-[10px] text-slate-400 font-medium">({achievedPct}% of target today)</span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">{formatINR(achievedToday)}</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">({achievedPct}% of target today)</span>
                           </div>
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] text-slate-400 uppercase font-semibold block">Total Projected Coverage</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">Total Projected Coverage</span>
                           <div className="flex items-baseline justify-end gap-1 mt-0.5">
-                            <span className="font-bold text-white text-sm">{progressPct}%</span>
-                            <span className="text-[10px] text-purple-300 font-medium">({formatINR(totalCovered)})</span>
+                            <span className="font-bold text-slate-900 dark:text-white text-sm">{progressPct}%</span>
+                            <span className="text-[10px] text-purple-700 dark:text-purple-300 font-medium">({formatINR(totalCovered)})</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                      <div className="w-full bg-slate-100 dark:bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800">
                         <div
                           className="bg-gradient-to-r from-purple-500 via-sky-400 to-emerald-400 h-full rounded-full transition-all duration-500"
                           style={{ width: `${progressPct}%` }}
@@ -1664,44 +1664,44 @@ export default function Client360Page({
                     </div>
 
                     {/* Numbers Breakdown */}
-                    <div className="pt-2 border-t border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                       <div>
                         <span className="text-slate-500 text-[10px] uppercase">Today&apos;s Target</span>
-                        <div className="font-semibold text-slate-200">{formatINR(targetAmt)}</div>
+                        <div className="font-semibold text-slate-800 dark:text-slate-200">{formatINR(targetAmt)}</div>
                       </div>
                       <div>
                         <span className="text-slate-500 text-[10px] uppercase">Inflated Target</span>
-                        <div className="font-bold text-purple-400">{formatINR(futureVal)}</div>
+                        <div className="font-bold text-purple-600 dark:text-purple-400">{formatINR(futureVal)}</div>
                       </div>
                       <div>
                         <span className="text-slate-500 text-[10px] uppercase">Achieved Today</span>
-                        <div className="font-bold text-emerald-400">{formatINR(achievedToday)}</div>
+                        <div className="font-bold text-emerald-600 dark:text-emerald-400">{formatINR(achievedToday)}</div>
                       </div>
                       <div>
                         <span className="text-slate-500 text-[10px] uppercase">Total Projected</span>
-                        <div className="font-bold text-sky-400">{formatINR(totalCovered)}</div>
+                        <div className="font-bold text-sky-600 dark:text-sky-400">{formatINR(totalCovered)}</div>
                       </div>
                       <div>
                         <span className="text-slate-500 text-[10px] uppercase">NPS &amp; Provident</span>
-                        <div className="font-semibold text-purple-300">
+                        <div className="font-semibold text-purple-700 dark:text-purple-300">
                           {totalRetirementProceeds > 0 ? `${formatINR(totalRetirementProceeds)} (${mappedRetirementAssets.length})` : "—"}
                         </div>
                       </div>
                       <div>
                         <span className="text-slate-500 text-[10px] uppercase">Asset Liquidations</span>
-                        <div className="font-semibold text-sky-400">
+                        <div className="font-semibold text-sky-600 dark:text-sky-400">
                           {totalAssetProceeds > 0 ? `${formatINR(totalAssetProceeds)} (${mappedAssets.length})` : "—"}
                         </div>
                       </div>
                       <div>
                         <span className="text-slate-500 text-[10px] uppercase">Mapped Portfolio</span>
-                        <div className="font-semibold text-emerald-400">
+                        <div className="font-semibold text-emerald-600 dark:text-emerald-400">
                           {totalInvValue > 0 ? `${formatINR(totalInvValue)} (${mappedInvs.length})` : "—"}
                         </div>
                       </div>
                       <div>
                         <span className="text-slate-500 text-[10px] uppercase">Dedicated Corpus</span>
-                        <div className="font-semibold text-slate-300">
+                        <div className="font-semibold text-slate-700 dark:text-slate-300">
                           {corpusAlloc > 0 ? formatINR(corpusAlloc) : "—"}
                         </div>
                       </div>
@@ -1709,8 +1709,8 @@ export default function Client360Page({
 
                     {/* Earmarked Backing Assets Preview */}
                     {(mappedRetirementAssets.length > 0 || mappedAssets.length > 0 || mappedInvs.length > 0) && (
-                      <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
-                        <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1.5">
+                        <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">
                           Earmarked Backing Holdings:
                         </div>
                         <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
@@ -1719,16 +1719,16 @@ export default function Client360Page({
                             return (
                               <div
                                 key={ast.asset_id}
-                                className="flex items-center justify-between p-1.5 rounded-lg bg-purple-950/20 border border-purple-800/30 text-[11px]"
+                                className="flex items-center justify-between p-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30 text-[11px]"
                               >
                                 <div className="flex items-center gap-1.5 truncate">
-                                  <ShieldCheck className="h-3 w-3 text-purple-400 shrink-0" />
-                                  <span className="text-white font-medium truncate">{ast.description || ast.asset_category}</span>
+                                  <ShieldCheck className="h-3 w-3 text-purple-600 dark:text-purple-400 shrink-0" />
+                                  <span className="text-slate-900 dark:text-white font-medium truncate">{ast.description || ast.asset_category}</span>
                                   {ast.monthly_deposit > 0 && (
-                                    <span className="text-[10px] text-purple-300">({formatINR(ast.monthly_deposit)}/mo)</span>
+                                    <span className="text-[10px] text-purple-700 dark:text-purple-300">({formatINR(ast.monthly_deposit)}/mo)</span>
                                   )}
                                 </div>
-                                <span className="font-mono font-bold text-purple-300 shrink-0 ml-2">
+                                <span className="font-mono font-bold text-purple-700 dark:text-purple-300 shrink-0 ml-2">
                                   {formatINR(retProj.projectedProceeds)}
                                 </span>
                               </div>
@@ -1739,13 +1739,13 @@ export default function Client360Page({
                             return (
                               <div
                                 key={ast.asset_id}
-                                className="flex items-center justify-between p-1.5 rounded-lg bg-sky-950/20 border border-sky-800/30 text-[11px]"
+                                className="flex items-center justify-between p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-800/30 text-[11px]"
                               >
                                 <div className="flex items-center gap-1.5 truncate">
-                                  <Home className="h-3 w-3 text-sky-400 shrink-0" />
-                                  <span className="text-white font-medium truncate">{ast.description || ast.asset_category}</span>
+                                  <Home className="h-3 w-3 text-sky-600 dark:text-sky-400 shrink-0" />
+                                  <span className="text-slate-900 dark:text-white font-medium truncate">{ast.description || ast.asset_category}</span>
                                 </div>
-                                <span className="font-mono font-bold text-sky-400 shrink-0 ml-2">
+                                <span className="font-mono font-bold text-sky-600 dark:text-sky-400 shrink-0 ml-2">
                                   {formatINR(astProj.projectedProceeds)}
                                 </span>
                               </div>
@@ -1756,13 +1756,13 @@ export default function Client360Page({
                             return (
                               <div
                                 key={inv.investment_id}
-                                className="flex items-center justify-between p-1.5 rounded-lg bg-emerald-950/20 border border-emerald-800/30 text-[11px]"
+                                className="flex items-center justify-between p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30 text-[11px]"
                               >
                                 <div className="flex items-center gap-1.5 truncate">
-                                  <TrendingUp className="h-3 w-3 text-emerald-400 shrink-0" />
-                                  <span className="text-white font-medium truncate">{inv.scheme_instrument_name}</span>
+                                  <TrendingUp className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                  <span className="text-slate-900 dark:text-white font-medium truncate">{inv.scheme_instrument_name}</span>
                                 </div>
-                                <span className="font-mono font-bold text-emerald-400 shrink-0 ml-2">
+                                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0 ml-2">
                                   {formatINR(invProj.totalProjectedCorpus)}
                                 </span>
                               </div>
@@ -1773,45 +1773,45 @@ export default function Client360Page({
                     )}
 
                     {/* Action Requirements: Net Required SIP & Required Lumpsum to Achieve */}
-                    <div className="pt-2.5 border-t border-slate-800/80 space-y-2 text-xs">
+                    <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800/80 space-y-2 text-xs">
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
-                          <div className="text-[10px] text-purple-400 font-semibold uppercase flex items-center gap-1">
-                            <Sparkles className="h-3 w-3 text-purple-400" />
+                        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800">
+                          <div className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold uppercase flex items-center gap-1">
+                            <Sparkles className="h-3 w-3 text-purple-600 dark:text-purple-400" />
                             <span>Net Required SIP</span>
                           </div>
                           <div className="mt-1">
                             {netShortfall === 0 || totalCovered >= futureVal ? (
-                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                                 ₹0/mo • Fully Covered
                               </span>
                             ) : (
                               <div className="flex items-baseline gap-1">
-                                <span className="font-bold text-purple-300 text-sm">
+                                <span className="font-bold text-purple-700 dark:text-purple-300 text-sm">
                                   {formatINR(reqSip)}
                                 </span>
-                                <span className="text-[10px] text-slate-400">/mo</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400">/mo</span>
                               </div>
                             )}
                           </div>
                         </div>
 
-                        <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
-                          <div className="text-[10px] text-amber-400 font-semibold uppercase flex items-center gap-1">
-                            <Coins className="h-3 w-3 text-amber-400" />
+                        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800">
+                          <div className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold uppercase flex items-center gap-1">
+                            <Coins className="h-3 w-3 text-amber-600 dark:text-amber-400" />
                             <span>Required Lumpsum to Achieve</span>
                           </div>
                           <div className="mt-1">
                             {netShortfall === 0 || totalCovered >= futureVal ? (
-                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                                 ₹0 • Target Secured
                               </span>
                             ) : (
                               <div className="flex items-baseline gap-1">
-                                <span className="font-bold text-amber-300 text-sm">
+                                <span className="font-bold text-amber-700 dark:text-amber-300 text-sm">
                                   {formatINR(reqLumpsum)}
                                 </span>
-                                <span className="text-[10px] text-slate-400">lumpsum</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400">lumpsum</span>
                               </div>
                             )}
                           </div>
@@ -1819,8 +1819,8 @@ export default function Client360Page({
                       </div>
 
                       {netShortfall > 0 && (
-                        <div className="text-[10px] text-slate-400 flex items-center justify-between px-0.5">
-                          <span>Remaining Gap: <strong className="text-slate-200">{formatINR(netShortfall)}</strong></span>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between px-0.5">
+                          <span>Remaining Gap: <strong className="text-slate-800 dark:text-slate-200">{formatINR(netShortfall)}</strong></span>
                           <span>Assumes 11% CAGR over {yearsLeft} yrs</span>
                         </div>
                       )}
@@ -1880,34 +1880,34 @@ export default function Client360Page({
           >
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Full Legal Name *</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Full Legal Name *</label>
                 <input
                   type="text"
                   name="full_name"
                   required
                   defaultValue={client.full_name}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Date of Birth *</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Date of Birth *</label>
                 <input
                   type="date"
                   name="date_of_birth"
                   required
                   defaultValue={client.date_of_birth}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Marital Status</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Marital Status</label>
                 <select
                   name="marital_status"
                   defaultValue={client.marital_status || "Married"}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="Married">Married</option>
                   <option value="Single">Single</option>
@@ -1916,21 +1916,21 @@ export default function Client360Page({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Dependents</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Dependents</label>
                 <input
                   type="number"
                   min="0"
                   name="dependents_count"
                   defaultValue={client.dependents_count || 0}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Risk Profile</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Risk Profile</label>
                 <select
                   name="risk_profile"
                   defaultValue={client.risk_profile || "Moderate"}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="Conservative">Conservative</option>
                   <option value="Moderate">Moderate</option>
@@ -1941,33 +1941,33 @@ export default function Client360Page({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Occupation</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Occupation</label>
                 <input
                   type="text"
                   name="occupation"
                   defaultValue={client.occupation || ""}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Annual Gross Income (₹)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Annual Gross Income (₹)</label>
                 <input
                   type="number"
                   min="0"
                   name="annual_gross_income"
                   defaultValue={client.annual_gross_income || 0}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Planning Notes</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Planning Notes</label>
               <textarea
                 name="planning_disclosures_notes"
                 rows={2}
                 defaultValue={client.planning_disclosures_notes || ""}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
             </div>
 
@@ -2012,18 +2012,18 @@ export default function Client360Page({
           >
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Member Full Name *</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Member Full Name *</label>
                 <input
                   type="text"
                   name="full_name"
                   required
                   placeholder="e.g. Radhika Sharma"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Relationship to Primary *</label>
-                <select name="relationship" className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Relationship to Primary *</label>
+                <select name="relationship" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500">
                   <option value="Spouse">Spouse</option>
                   <option value="Child">Child (Son / Daughter)</option>
                   <option value="Parent">Parent (Father / Mother)</option>
@@ -2035,22 +2035,22 @@ export default function Client360Page({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Date of Birth *</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Date of Birth *</label>
                 <input
                   type="date"
                   name="date_of_birth"
                   required
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Annual Income (₹)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Annual Income (₹)</label>
                 <input
                   type="number"
                   min="0"
                   name="annual_gross_income"
                   placeholder="0"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
             </div>
@@ -2095,13 +2095,13 @@ export default function Client360Page({
             className="space-y-4"
           >
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Household Title</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Household Title</label>
               <input
                 type="text"
                 name="household_name"
                 required
                 defaultValue={household?.household_name || `${client.full_name} Household`}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
             </div>
             <ModalFooter onCancel={() => setModalType(null)} isSubmitting={isSubmitting} submitLabel="Save Name" />
@@ -2144,12 +2144,12 @@ export default function Client360Page({
             className="space-y-4"
           >
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Income Category *</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Income Category *</label>
               <select
                 name="category"
                 required
                 defaultValue={modalItem?.category || "Salary"}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
               >
                 <option value="Salary">Salary (Employment)</option>
                 <option value="Business Profits">Business / Professional Income</option>
@@ -2162,7 +2162,7 @@ export default function Client360Page({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Monthly Inflow (₹) *</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Monthly Inflow (₹) *</label>
               <input
                 type="number"
                 min="0"
@@ -2171,18 +2171,18 @@ export default function Client360Page({
                 required
                 defaultValue={modalItem?.monthly_amount || ""}
                 placeholder="e.g. 150000"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Notes / Description</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Notes / Description</label>
               <input
                 type="text"
                 name="notes"
                 defaultValue={modalItem?.notes || ""}
                 placeholder="e.g. Primary salary from Google"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
             </div>
 
@@ -2229,12 +2229,12 @@ export default function Client360Page({
             className="space-y-4"
           >
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Expense Category *</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Expense Category *</label>
               <select
                 name="category"
                 required
                 defaultValue={modalItem?.category || "Housing & Rent"}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
               >
                 <option value="Housing & Rent">Housing &amp; Rent</option>
                 <option value="Groceries & Food">Groceries &amp; Food</option>
@@ -2250,7 +2250,7 @@ export default function Client360Page({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Monthly Outflow (₹) *</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Monthly Outflow (₹) *</label>
                 <input
                   type="number"
                   min="0"
@@ -2259,16 +2259,16 @@ export default function Client360Page({
                   required
                   defaultValue={modalItem?.monthly_amount || ""}
                   placeholder="e.g. 45000"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Classification</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Classification</label>
                 <select
                   name="is_essential"
                   defaultValue={modalItem?.is_essential ? "true" : "false"}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="true">Essential Living Need</option>
                   <option value="false">Discretionary / Lifestyle</option>
@@ -2277,13 +2277,13 @@ export default function Client360Page({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Notes</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Notes</label>
               <input
                 type="text"
                 name="notes"
                 defaultValue={modalItem?.notes || ""}
                 placeholder="Optional comments"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
             </div>
 
@@ -2337,12 +2337,12 @@ export default function Client360Page({
           >
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Asset Category *</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Asset Category *</label>
                 <select
                   name="asset_category"
                   required
                   defaultValue={modalItem?.asset_category || "Real Estate (Residential)"}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="Real Estate (Residential)">Real Estate (Residential)</option>
                   <option value="Real Estate (Commercial)">Real Estate (Commercial)</option>
@@ -2355,20 +2355,20 @@ export default function Client360Page({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Owner Mapping</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Owner Mapping</label>
                 <input
                   type="text"
                   name="owner_name"
                   defaultValue={modalItem?.owner_name || client.full_name}
                   placeholder="e.g. Self / Spouse / Joint"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Current Market Value (₹) *</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Current Market Value (₹) *</label>
                 <input
                   type="number"
                   min="0"
@@ -2377,16 +2377,16 @@ export default function Client360Page({
                   required
                   defaultValue={modalItem?.current_market_value || ""}
                   placeholder="e.g. 8500000"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Liquidity</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Liquidity</label>
                 <select
                   name="is_liquid"
                   defaultValue={modalItem?.is_liquid ? "true" : "false"}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="false">Illiquid (Locked / Property)</option>
                   <option value="true">Liquid (Convertible &lt; 3 days)</option>
@@ -2395,70 +2395,70 @@ export default function Client360Page({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Description / Location</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Description / Location</label>
               <input
                 type="text"
                 name="description"
                 defaultValue={modalItem?.description || ""}
                 placeholder="e.g. 3BHK Apartment, Whitefield Bangalore"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
             </div>
 
             {/* Liquidation Planning & Goal Alignment Section */}
-            <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-sky-400 flex items-center gap-1.5">
+                <span className="text-xs font-bold text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5" />
                   Target Liquidation &amp; Goal Alignment
                 </span>
-                <span className="text-[10px] text-slate-500">Maturity / Sale Strategy</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">Maturity / Sale Strategy</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">Target Date to Liquidate</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Target Date to Liquidate</label>
                   <input
                     type="date"
                     name="target_liquidation_date"
                     defaultValue={modalItem?.target_liquidation_date ? modalItem.target_liquidation_date.substring(0, 10) : ""}
-                    className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                   />
-                  <span className="text-[9px] text-slate-500 mt-0.5 block">When funds will be realized</span>
+                  <span className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 block">When funds will be realized</span>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">Expected CAGR (% p.a.)</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Expected CAGR (% p.a.)</label>
                   <input
                     type="number"
                     step="0.1"
                     name="expected_cagr"
                     defaultValue={modalItem?.expected_cagr ?? 8.0}
                     placeholder="e.g. 8.0"
-                    className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                   />
-                  <span className="text-[9px] text-slate-500 mt-0.5 block">Real Estate ~8%, FDs ~7%, Gold ~9%</span>
+                  <span className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 block">Real Estate ~8%, FDs ~7%, Gold ~9%</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">Expected Value at Liquidation (₹)</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Expected Value at Liquidation (₹)</label>
                   <input
                     type="number"
                     step="any"
                     name="expected_liquidation_value"
                     defaultValue={modalItem?.expected_liquidation_value || ""}
                     placeholder="Auto-calculated from CAGR"
-                    className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                   />
-                  <span className="text-[9px] text-slate-500 mt-0.5 block">Leave blank to auto-compound</span>
+                  <span className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 block">Leave blank to auto-compound</span>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">Earmark for Financial Goal</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Earmark for Financial Goal</label>
                   <select
                     name="linked_goal_id"
                     defaultValue={modalItem?.linked_goal_id || "none"}
-                    className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                   >
                     <option value="none">Unassigned / General Wealth</option>
                     {data?.goals?.map((g: any) => (
@@ -2467,7 +2467,7 @@ export default function Client360Page({
                       </option>
                     ))}
                   </select>
-                  <span className="text-[9px] text-slate-500 mt-0.5 block">Proceeds fund this goal</span>
+                  <span className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 block">Proceeds fund this goal</span>
                 </div>
               </div>
             </div>
@@ -2529,24 +2529,24 @@ export default function Client360Page({
             className="space-y-4"
           >
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Scheme / Instrument Name *</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Scheme / Instrument Name *</label>
               <input
                 type="text"
                 name="scheme_instrument_name"
                 required
                 defaultValue={modalItem?.scheme_instrument_name || ""}
                 placeholder="e.g. Parag Parikh Flexi Cap Fund - Direct Growth"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Asset Class</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Asset Class</label>
                 <select
                   name="asset_class"
                   defaultValue={modalItem?.asset_class || "Equity Mutual Fund"}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="Equity Mutual Fund">Equity Mutual Fund</option>
                   <option value="Hybrid / Balanced Fund">Hybrid / Balanced Fund</option>
@@ -2559,19 +2559,19 @@ export default function Client360Page({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Owner Mapping</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Owner Mapping</label>
                 <input
                   type="text"
                   name="owner_name"
                   defaultValue={modalItem?.owner_name || client.full_name}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Invested Amount (₹)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Invested Amount (₹)</label>
                 <input
                   type="number"
                   min="0"
@@ -2579,12 +2579,12 @@ export default function Client360Page({
                   name="invested_amount"
                   defaultValue={modalItem?.invested_amount || ""}
                   placeholder="0"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Current Valuation (₹) *</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Current Valuation (₹) *</label>
                 <input
                   type="number"
                   min="0"
@@ -2593,12 +2593,12 @@ export default function Client360Page({
                   required
                   defaultValue={modalItem?.current_value || ""}
                   placeholder="0"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Monthly SIP (₹)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Monthly SIP (₹)</label>
                 <input
                   type="number"
                   min="0"
@@ -2606,30 +2606,30 @@ export default function Client360Page({
                   name="monthly_sip_amount"
                   defaultValue={modalItem?.monthly_sip_amount || 0}
                   placeholder="0"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Expected Return CAGR (% p.a.)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Expected Return CAGR (% p.a.)</label>
                 <input
                   type="number"
                   step="0.1"
                   name="expected_return_cagr"
                   defaultValue={((Number(modalItem?.expected_return_cagr || 0.12)) * (Number(modalItem?.expected_return_cagr || 0.12) <= 1 ? 100 : 1)).toFixed(1)}
                   placeholder="e.g. 12.0"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Earmark for Financial Goal</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Earmark for Financial Goal</label>
                 <select
                   name="linked_goal_id"
                   defaultValue={modalItem?.linked_goal_id || "none"}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="none">General / Unassigned Portfolio</option>
                   {data?.goals?.map((g: any) => (
@@ -2682,12 +2682,12 @@ export default function Client360Page({
           >
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Debt Type *</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Debt Type *</label>
                 <select
                   name="liability_type"
                   required
                   defaultValue={modalItem?.liability_type || "Home Loan"}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="Home Loan">Home Loan</option>
                   <option value="Car / Auto Loan">Car / Auto Loan</option>
@@ -2700,20 +2700,20 @@ export default function Client360Page({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Lender / Bank Name</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Lender / Bank Name</label>
                 <input
                   type="text"
                   name="lender_name"
                   defaultValue={modalItem?.lender_name || ""}
                   placeholder="e.g. HDFC Bank"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Outstanding Principal (₹) *</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Outstanding Principal (₹) *</label>
                 <input
                   type="number"
                   min="0"
@@ -2722,26 +2722,26 @@ export default function Client360Page({
                   required
                   defaultValue={modalItem?.outstanding_principal || ""}
                   placeholder="e.g. 4500000"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Interest Rate (% p.a.)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Interest Rate (% p.a.)</label>
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   name="annual_interest_rate"
                   defaultValue={modalItem?.annual_interest_rate || 8.5}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Monthly EMI (₹)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Monthly EMI (₹)</label>
                 <input
                   type="number"
                   min="0"
@@ -2749,18 +2749,18 @@ export default function Client360Page({
                   name="monthly_emi"
                   defaultValue={modalItem?.monthly_emi || ""}
                   placeholder="e.g. 42000"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Remaining Tenure (Months)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Remaining Tenure (Months)</label>
                 <input
                   type="number"
                   min="0"
                   name="tenure_remaining_months"
                   defaultValue={modalItem?.tenure_remaining_months || 180}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
             </div>
@@ -2800,11 +2800,11 @@ function ModalWrapper({
   maxWidth?: string;
 }) {
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className={`bg-slate-900 border border-slate-800 rounded-2xl ${maxWidth} w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto`}>
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h3 className="text-sm font-bold text-white tracking-tight">{title}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition">
+    <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl ${maxWidth} w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto`}>
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">{title}</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -3050,23 +3050,23 @@ function GoalModalForm({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Live Goal Feasibility & Asset Backing Engine Banner */}
-        <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
+        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-400" />
-              <span className="text-xs font-bold text-white uppercase tracking-wider">
+              <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                 Live Feasibility Engine (Horizon: {validTargetYear} • {yearsLeft} yrs)
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold text-emerald-400">
+              <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                 Achieved: {formatINR(achievedToday)} ({achievedPct}%)
               </span>
               <span
                 className={`text-[11px] font-bold px-2 py-0.5 rounded ${
                   coveragePct >= 100
-                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                    : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                    ? "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                    : "bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30"
                 }`}
               >
                 {coveragePct}% Pre-funded
@@ -3075,42 +3075,42 @@ function GoalModalForm({
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs">
-            <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Inflated Target</div>
-              <div className="text-sm font-bold text-white mt-0.5">{formatINR(inflatedTarget)}</div>
+            <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 shadow-xs">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">Inflated Target</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{formatINR(inflatedTarget)}</div>
               <div className="text-[10px] text-slate-500">at {inflationRate}% inflation</div>
             </div>
-            <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
-              <div className="text-[10px] text-emerald-400 uppercase font-semibold">Achieved Today</div>
-              <div className="text-sm font-bold text-emerald-300 mt-0.5">{formatINR(achievedToday)}</div>
+            <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 shadow-xs">
+              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase font-semibold">Achieved Today</div>
+              <div className="text-sm font-bold text-emerald-600 dark:text-emerald-300 mt-0.5">{formatINR(achievedToday)}</div>
               <div className="text-[10px] text-slate-500">{achievedPct}% of target today</div>
             </div>
-            <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
-              <div className="text-[10px] text-sky-400 uppercase font-semibold">Total Projected</div>
-              <div className="text-sm font-bold text-sky-300 mt-0.5">{formatINR(totalPreFunded)}</div>
+            <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 shadow-xs">
+              <div className="text-[10px] text-sky-600 dark:text-sky-400 uppercase font-semibold">Total Projected</div>
+              <div className="text-sm font-bold text-sky-600 dark:text-sky-300 mt-0.5">{formatINR(totalPreFunded)}</div>
               <div className="text-[10px] text-slate-500">{coveragePct}% coverage</div>
             </div>
-            <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
-              <div className="text-[10px] text-purple-400 uppercase font-semibold">Earmarked Backing</div>
-              <div className="text-sm font-bold text-purple-300 mt-0.5">
+            <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 shadow-xs">
+              <div className="text-[10px] text-purple-600 dark:text-purple-400 uppercase font-semibold">Earmarked Backing</div>
+              <div className="text-sm font-bold text-purple-600 dark:text-purple-300 mt-0.5">
                 {formatINR(totalAssetProceeds + totalRetirementProceeds + totalInvestmentProceeds)}
               </div>
               <div className="text-[10px] text-slate-500">
                 {selectedAssetIds.length + selectedInvestmentIds.length} items linked
               </div>
             </div>
-            <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
-              <div className="text-[10px] text-purple-400 uppercase font-semibold">Net Required SIP</div>
-              <div className="text-sm font-bold text-purple-300 mt-0.5">
+            <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 shadow-xs">
+              <div className="text-[10px] text-purple-600 dark:text-purple-400 uppercase font-semibold">Net Required SIP</div>
+              <div className="text-sm font-bold text-purple-600 dark:text-purple-300 mt-0.5">
                 {requiredMonthlySip === 0 ? "₹0 / mo" : `${formatINR(requiredMonthlySip)} / mo`}
               </div>
               <div className="text-[10px] text-slate-500">
                 {requiredMonthlySip === 0 ? "Fully Covered!" : `Gap: ${formatINR(netShortfall)}`}
               </div>
             </div>
-            <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80">
-              <div className="text-[10px] text-amber-400 uppercase font-semibold">Req. Lumpsum to Achieve</div>
-              <div className="text-sm font-bold text-amber-300 mt-0.5">
+            <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 shadow-xs">
+              <div className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-semibold">Req. Lumpsum to Achieve</div>
+              <div className="text-sm font-bold text-amber-600 dark:text-amber-300 mt-0.5">
                 {requiredLumpsum === 0 ? "₹0 Lumpsum" : formatINR(requiredLumpsum)}
               </div>
               <div className="text-[10px] text-slate-500">
@@ -3119,7 +3119,7 @@ function GoalModalForm({
             </div>
           </div>
 
-          <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-800">
+          <div className="w-full bg-slate-200 dark:bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-800">
             <div
               className="bg-gradient-to-r from-purple-500 via-sky-400 to-emerald-400 h-full rounded-full transition-all duration-300"
               style={{ width: `${coveragePct}%` }}
@@ -3128,14 +3128,14 @@ function GoalModalForm({
         </div>
 
         {/* Form Mode Sub-Tabs */}
-        <div className="flex border-b border-slate-800 gap-1 overflow-x-auto">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1 overflow-x-auto">
           <button
             type="button"
             onClick={() => setFormTab("params")}
             className={`px-3 py-2 text-xs font-semibold border-b-2 transition -mb-px flex items-center gap-1.5 shrink-0 ${
               formTab === "params"
-                ? "border-purple-500 text-purple-400"
-                : "border-transparent text-slate-400 hover:text-white"
+                ? "border-purple-600 dark:border-purple-500 text-purple-600 dark:text-purple-400"
+                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <Target className="h-3.5 w-3.5" />
@@ -3146,8 +3146,8 @@ function GoalModalForm({
             onClick={() => setFormTab("retirement")}
             className={`px-3 py-2 text-xs font-semibold border-b-2 transition -mb-px flex items-center gap-1.5 shrink-0 ${
               formTab === "retirement"
-                ? "border-purple-500 text-purple-400"
-                : "border-transparent text-slate-400 hover:text-white"
+                ? "border-purple-600 dark:border-purple-500 text-purple-600 dark:text-purple-400"
+                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -3158,8 +3158,8 @@ function GoalModalForm({
             onClick={() => setFormTab("investments")}
             className={`px-3 py-2 text-xs font-semibold border-b-2 transition -mb-px flex items-center gap-1.5 shrink-0 ${
               formTab === "investments"
-                ? "border-emerald-500 text-emerald-400"
-                : "border-transparent text-slate-400 hover:text-white"
+                ? "border-emerald-600 dark:border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <TrendingUp className="h-3.5 w-3.5" />
@@ -3170,8 +3170,8 @@ function GoalModalForm({
             onClick={() => setFormTab("assets")}
             className={`px-3 py-2 text-xs font-semibold border-b-2 transition -mb-px flex items-center gap-1.5 shrink-0 ${
               formTab === "assets"
-                ? "border-sky-500 text-sky-400"
-                : "border-transparent text-slate-400 hover:text-white"
+                ? "border-sky-600 dark:border-sky-500 text-sky-600 dark:text-sky-400"
+                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             <Home className="h-3.5 w-3.5" />
@@ -3183,36 +3183,36 @@ function GoalModalForm({
         {formTab === "params" && (
           <div className="space-y-3 pt-1">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Goal Objective / Name *</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Goal Objective / Name *</label>
               <input
                 type="text"
                 required
                 value={goalName}
                 onChange={(e) => setGoalName(e.target.value)}
                 placeholder="e.g. Retirement Corpus / Daughter's College Abroad / Buying Villa"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Target Horizon Year *</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Target Horizon Year *</label>
                 <input
                   type="number"
                   min={currentYear + 1}
                   required
                   value={targetYear}
                   onChange={(e) => setTargetYear(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Priority Level</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Priority Level</label>
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="High">High (Mandatory)</option>
                   <option value="Medium">Medium (Important)</option>
@@ -3223,7 +3223,7 @@ function GoalModalForm({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Target Amount in Today&apos;s Value (₹) *</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Target Amount in Today&apos;s Value (₹) *</label>
                 <input
                   type="number"
                   min="1"
@@ -3232,12 +3232,12 @@ function GoalModalForm({
                   value={targetAmountToday}
                   onChange={(e) => setTargetAmountToday(e.target.value)}
                   placeholder="e.g. 5000000"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Dedicated Existing Cash/Corpus (₹)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Dedicated Existing Cash/Corpus (₹)</label>
                 <input
                   type="number"
                   min="0"
@@ -3245,32 +3245,32 @@ function GoalModalForm({
                   value={currentCorpus}
                   onChange={(e) => setCurrentCorpus(e.target.value)}
                   placeholder="0"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Expected Inflation Rate (% p.a.)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Expected Inflation Rate (% p.a.)</label>
                 <input
                   type="number"
                   min="0"
                   step="0.1"
                   value={inflationRate}
                   onChange={(e) => setInflationRate(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">{terms.notesLabel} / Strategy</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{terms.notesLabel} / Strategy</label>
                 <input
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="e.g. To be funded partially from EPF & farm land liquidation"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
             </div>
@@ -3281,14 +3281,14 @@ function GoalModalForm({
         {formTab === "retirement" && (
           <div className="space-y-3 pt-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400">
+              <span className="text-slate-600 dark:text-slate-400">
                 Select NPS, EPF, PPF &amp; VPF accounts to earmark. Compounded at their stated interest rates up to goal horizon.
               </span>
-              <span className="text-purple-400 font-bold">{formatINR(totalRetirementProceeds)} earmarked</span>
+              <span className="text-purple-600 dark:text-purple-400 font-bold">{formatINR(totalRetirementProceeds)} earmarked</span>
             </div>
 
             {retirementCalculations.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-500 border border-slate-800 rounded-xl bg-slate-950">
+              <div className="p-8 text-center text-xs text-slate-500 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950">
                 No NPS or Provident Fund accounts found for this household. Add EPF or NPS under the Assets tab.
               </div>
             ) : (
@@ -3303,26 +3303,26 @@ function GoalModalForm({
                       onClick={() => toggleAsset(ast.asset_id)}
                       className={`p-3 rounded-xl border text-xs cursor-pointer transition flex items-start gap-3 ${
                         isChecked
-                          ? "bg-purple-950/30 border-purple-600/50"
-                          : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                          ? "bg-purple-50 dark:bg-purple-950/30 border-purple-300 dark:border-purple-600/50"
+                          : "bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => {}}
-                        className="mt-0.5 rounded border-slate-700 text-purple-600 focus:ring-0 cursor-pointer"
+                        className="mt-0.5 rounded border-slate-300 dark:border-slate-700 text-purple-600 focus:ring-0 cursor-pointer"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-white truncate">
+                          <span className="font-bold text-slate-900 dark:text-white truncate">
                             {ast.asset_category} {ast.description ? `— ${ast.description}` : ""}
                           </span>
-                          <span className="font-mono font-bold text-purple-400">
+                          <span className="font-mono font-bold text-purple-600 dark:text-purple-400">
                             {formatINR(ast.projectedProceeds)}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
                           <span>Current: {formatINR(ast.current_market_value)}</span>
                           {ast.monthly_deposit > 0 && (
                             <span>• Deposit: {formatINR(ast.monthly_deposit)}/mo</span>
@@ -3334,7 +3334,7 @@ function GoalModalForm({
                             </span>
                           )}
                           {isLinkedOther && (
-                            <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                               Already linked to another goal
                             </span>
                           )}
@@ -3352,14 +3352,14 @@ function GoalModalForm({
         {formTab === "investments" && (
           <div className="space-y-3 pt-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400">
+              <span className="text-slate-600 dark:text-slate-400">
                 Select investment holdings whose future compounded corpus + ongoing SIP will fund this goal.
               </span>
-              <span className="text-emerald-400 font-bold">{formatINR(totalInvestmentProceeds)} earmarked</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">{formatINR(totalInvestmentProceeds)} earmarked</span>
             </div>
 
             {investmentCalculations.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-500 border border-slate-800 rounded-xl bg-slate-950">
+              <div className="p-8 text-center text-xs text-slate-500 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950">
                 No market investments found for this household. Add Mutual Funds or Stocks under the Assets tab.
               </div>
             ) : (
@@ -3374,27 +3374,27 @@ function GoalModalForm({
                       onClick={() => toggleInvestment(inv.investment_id)}
                       className={`p-3 rounded-xl border text-xs cursor-pointer transition flex items-start gap-3 ${
                         isChecked
-                          ? "bg-emerald-950/30 border-emerald-600/50"
-                          : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                          ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-600/50"
+                          : "bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => {}}
-                        className="mt-0.5 rounded border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
+                        className="mt-0.5 rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-0 cursor-pointer"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-white truncate">
+                          <span className="font-bold text-slate-900 dark:text-white truncate">
                             {inv.scheme_instrument_name}
                           </span>
-                          <span className="font-mono font-bold text-emerald-400">
+                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                             {formatINR(inv.totalProjectedCorpus)}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
-                          <span className="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-300">
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
+                          <span className="px-1.5 py-0.2 rounded text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                             {inv.asset_class}
                           </span>
                           <span>Current: {formatINR(inv.current_value)}</span>
@@ -3403,7 +3403,7 @@ function GoalModalForm({
                           )}
                           <span>• Projected CAGR: {inv.expectedCagr}%</span>
                           {isLinkedOther && (
-                            <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                               Already linked to another goal
                             </span>
                           )}
@@ -3421,14 +3421,14 @@ function GoalModalForm({
         {formTab === "assets" && (
           <div className="space-y-3 pt-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400">
+              <span className="text-slate-600 dark:text-slate-400">
                 Select physical assets to earmark. Compounded at their expected CAGR up to liquidation/target year.
               </span>
-              <span className="text-sky-400 font-bold">{formatINR(totalAssetProceeds)} earmarked</span>
+              <span className="text-sky-600 dark:text-sky-400 font-bold">{formatINR(totalAssetProceeds)} earmarked</span>
             </div>
 
             {assetCalculations.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-500 border border-slate-800 rounded-xl bg-slate-950">
+              <div className="p-8 text-center text-xs text-slate-500 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950">
                 No physical assets found for this household. Add Real Estate, FDs, or Gold under the Assets tab.
               </div>
             ) : (
@@ -3443,26 +3443,26 @@ function GoalModalForm({
                       onClick={() => toggleAsset(ast.asset_id)}
                       className={`p-3 rounded-xl border text-xs cursor-pointer transition flex items-start gap-3 ${
                         isChecked
-                          ? "bg-sky-950/30 border-sky-600/50"
-                          : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                          ? "bg-sky-50 dark:bg-sky-950/30 border-sky-300 dark:border-sky-600/50"
+                          : "bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => {}}
-                        className="mt-0.5 rounded border-slate-700 text-sky-600 focus:ring-0 cursor-pointer"
+                        className="mt-0.5 rounded border-slate-300 dark:border-slate-700 text-sky-600 focus:ring-0 cursor-pointer"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-white truncate">
+                          <span className="font-bold text-slate-900 dark:text-white truncate">
                             {ast.asset_category} {ast.description ? `— ${ast.description}` : ""}
                           </span>
-                          <span className="font-mono font-bold text-sky-400">
+                          <span className="font-mono font-bold text-sky-600 dark:text-sky-400">
                             {formatINR(ast.projectedProceeds)}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
                           <span>Current: {formatINR(ast.current_market_value)}</span>
                           <span>•</span>
                           <span>CAGR: {ast.expectedCagr}%</span>
@@ -3471,7 +3471,7 @@ function GoalModalForm({
                             Target Liq: {ast.target_liquidation_date ? new Date(ast.target_liquidation_date).toLocaleDateString() : "At Goal Horizon"}
                           </span>
                           {isLinkedOther && (
-                            <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                               Already linked to another goal
                             </span>
                           )}
@@ -3617,11 +3617,11 @@ function RetirementAssetModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Account Category *</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Account Category *</label>
             <select
               value={category}
               onChange={(e) => handleCategoryChange(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
             >
               <option value="National Pension System (NPS - Tier 1)">National Pension System (NPS - Tier 1)</option>
               <option value="National Pension System (NPS - Tier 2)">National Pension System (NPS - Tier 2)</option>
@@ -3633,31 +3633,31 @@ function RetirementAssetModal({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Owner Mapping</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Owner Mapping</label>
             <input
               type="text"
               value={ownerName}
               onChange={(e) => setOwnerName(e.target.value)}
               placeholder="e.g. Self / Spouse / Primary"
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1">Account Description / PRAN / UAN</label>
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Account Description / PRAN / UAN</label>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="e.g. PRAN 110045239128 (HDFC Pension Fund), SBI PPF Account"
-            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
           />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Current Value / Balance (₹) *</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Current Value / Balance (₹) *</label>
             <input
               type="number"
               min="0"
@@ -3666,15 +3666,15 @@ function RetirementAssetModal({
               value={currentValue}
               onChange={(e) => setCurrentValue(e.target.value)}
               placeholder="e.g. 500000"
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
             {Number(currentValue) > 0 && (
-              <span className="text-[10px] text-sky-400 mt-0.5 block">{formatINR(Number(currentValue))}</span>
+              <span className="text-[10px] text-sky-600 dark:text-sky-400 mt-0.5 block">{formatINR(Number(currentValue))}</span>
             )}
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Rate of Interest on Current Value (% p.a.)</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Rate of Interest on Current Value (% p.a.)</label>
             <input
               type="number"
               min="0"
@@ -3682,7 +3682,7 @@ function RetirementAssetModal({
               value={rateOfInterest}
               onChange={(e) => setRateOfInterest(e.target.value)}
               placeholder="e.g. 10.0"
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
             <span className="text-[10px] text-slate-500 mt-0.5 block">EPF: 8.25%, PPF: 7.10%, NPS: ~10.0%</span>
           </div>
@@ -3690,7 +3690,7 @@ function RetirementAssetModal({
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Monthly Deposit (₹)</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Monthly Deposit (₹)</label>
             <input
               type="number"
               min="0"
@@ -3698,13 +3698,13 @@ function RetirementAssetModal({
               value={monthlyDeposit}
               onChange={(e) => setMonthlyDeposit(e.target.value)}
               placeholder="e.g. 12500"
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
             <span className="text-[10px] text-slate-500 mt-0.5 block">Ongoing monthly contribution</span>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Expected ROI for Monthly Deposit (% p.a.)</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Expected ROI for Monthly Deposit (% p.a.)</label>
             <input
               type="number"
               min="0"
@@ -3712,53 +3712,53 @@ function RetirementAssetModal({
               value={expectedRoiMonthly}
               onChange={(e) => setExpectedRoiMonthly(e.target.value)}
               placeholder="e.g. 10.0"
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
             <span className="text-[10px] text-slate-500 mt-0.5 block">Compounding on future deposits</span>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Target Date / End of Tenure</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Target Date / End of Tenure</label>
             <input
               type="date"
               value={targetDate}
               onChange={(e) => setTargetDate(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
             <span className="text-[10px] text-slate-500 mt-0.5 block">Retirement / Maturity date</span>
           </div>
         </div>
 
         {/* Live Tenure Compounding & Maturity Value Calculation Card */}
-        <div className="p-4 rounded-xl bg-purple-950/30 border border-purple-500/30 space-y-3">
-          <div className="flex items-center justify-between border-b border-purple-500/20 pb-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-purple-300">
-              <Sparkles className="h-4 w-4 text-purple-400" />
+        <div className="p-4 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-500/30 space-y-3">
+          <div className="flex items-center justify-between border-b border-purple-200 dark:border-purple-500/20 pb-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-purple-700 dark:text-purple-300">
+              <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               <span>Tenure Projection &amp; Maturity Calculation</span>
             </div>
-            <span className="text-[11px] font-mono text-purple-200 bg-purple-900/60 px-2 py-0.5 rounded border border-purple-500/30">
+            <span className="text-[11px] font-mono text-purple-700 dark:text-purple-200 bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-500/30">
               {calc.tenureYears > 0 ? `${calc.tenureYears} Years (${calc.tenureMonths} Months)` : "Set Target Date"}
             </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
-            <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
-              <div className="text-[10px] text-slate-400">Current Balance Growth</div>
-              <div className="text-xs font-bold text-white mt-0.5 font-mono">{formatINR(calc.corpusGrowth)}</div>
+            <div className="bg-white dark:bg-slate-900/80 p-2.5 rounded-lg border border-purple-100 dark:border-slate-800 shadow-xs">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">Current Balance Growth</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 font-mono">{formatINR(calc.corpusGrowth)}</div>
             </div>
-            <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
-              <div className="text-[10px] text-slate-400">Future Monthly Deposits</div>
-              <div className="text-xs font-bold text-slate-200 mt-0.5 font-mono">{formatINR(calc.totalDeposits)}</div>
+            <div className="bg-white dark:bg-slate-900/80 p-2.5 rounded-lg border border-purple-100 dark:border-slate-800 shadow-xs">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">Future Monthly Deposits</div>
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5 font-mono">{formatINR(calc.totalDeposits)}</div>
             </div>
-            <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
-              <div className="text-[10px] text-slate-400">Deposit Growth / Interest</div>
-              <div className="text-xs font-bold text-emerald-400 mt-0.5 font-mono">+{formatINR(calc.depositsGrowth)}</div>
+            <div className="bg-white dark:bg-slate-900/80 p-2.5 rounded-lg border border-purple-100 dark:border-slate-800 shadow-xs">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">Deposit Growth / Interest</div>
+              <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 font-mono">+{formatINR(calc.depositsGrowth)}</div>
             </div>
-            <div className="bg-purple-900/40 p-2.5 rounded-lg border border-purple-500/30">
-              <div className="text-[10px] text-purple-300 font-semibold">Expected Value at Tenure End</div>
-              <div className="text-xs font-black text-white mt-0.5 font-mono">{formatINR(calc.expectedMaturityValue)}</div>
+            <div className="bg-purple-100/80 dark:bg-purple-900/40 p-2.5 rounded-lg border border-purple-300 dark:border-purple-500/30">
+              <div className="text-[10px] text-purple-900 dark:text-purple-300 font-semibold">Expected Value at Tenure End</div>
+              <div className="text-xs font-black text-purple-950 dark:text-white mt-0.5 font-mono">{formatINR(calc.expectedMaturityValue)}</div>
               {calc.totalGain > 0 && (
-                <div className="text-[9px] font-bold text-emerald-400">
+                <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
                   +{formatINR(calc.totalGain)} total gain
                 </div>
               )}
@@ -3768,11 +3768,11 @@ function RetirementAssetModal({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Earmark for Financial Goal</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Earmark for Financial Goal</label>
             <select
               value={linkedGoalId}
               onChange={(e) => setLinkedGoalId(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
             >
               <option value="none">Unassigned / General Retirement</option>
               {goals.map((g: any) => (
@@ -3784,13 +3784,13 @@ function RetirementAssetModal({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Account Notes / Remarks</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Account Notes / Remarks</label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Employer matched contribution, Tier 1 Corporate NPS"
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
           </div>
         </div>
@@ -3816,11 +3816,11 @@ function ModalFooter({
   submitLabel?: string;
 }) {
   return (
-    <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
+    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
       <button
         type="button"
         onClick={onCancel}
-        className="px-4 py-2 border border-slate-800 rounded-lg text-xs text-slate-400 hover:text-white transition"
+        className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition"
       >
         Cancel
       </button>

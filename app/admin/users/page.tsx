@@ -225,15 +225,15 @@ export default function TenantAdminUsersPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-900 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-900 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">Team &amp; User Provisioning</h1>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Team &amp; User Provisioning</h1>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
               Staff Directory
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Provision internal advisors and staff, configure role permissions, and manage account access.
           </p>
         </div>
@@ -242,7 +242,7 @@ export default function TenantAdminUsersPage() {
           <button
             onClick={fetchUsers}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition shadow-sm"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
             <span>Refresh</span>
@@ -269,7 +269,7 @@ export default function TenantAdminUsersPage() {
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
@@ -277,17 +277,17 @@ export default function TenantAdminUsersPage() {
 
       {/* Plan Seat Usage Overview */}
       {seatCapacity && (
-        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="p-4 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-white uppercase tracking-wider">
+              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                 Plan Seat Capacity: {seatCapacity.currentSeats} of {seatCapacity.maxSeats} Active Seats Used
               </span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                 {seatCapacity.planName}
               </span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {seatCapacity.canAddSeat
                 ? `You have ${seatCapacity.maxSeats - seatCapacity.currentSeats} available seat(s) remaining for sub-advisors or operations staff.`
                 : `Seat limit reached for your ${seatCapacity.planName}. Upgrade your subscription tier to provision additional advisors.`}
@@ -295,10 +295,10 @@ export default function TenantAdminUsersPage() {
           </div>
 
           <div className="flex items-center gap-4 w-full sm:w-auto">
-            <div className="w-32 bg-slate-800 h-2 rounded-full overflow-hidden hidden sm:block">
+            <div className="w-32 bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden hidden sm:block">
               <div
                 className={`h-full ${
-                  seatCapacity.currentSeats >= seatCapacity.maxSeats ? "bg-rose-500" : "bg-amber-400"
+                  seatCapacity.currentSeats >= seatCapacity.maxSeats ? "bg-rose-500" : "bg-amber-500"
                 }`}
                 style={{
                   width: `${Math.min(100, (seatCapacity.currentSeats / seatCapacity.maxSeats) * 100)}%`,
@@ -307,7 +307,7 @@ export default function TenantAdminUsersPage() {
             </div>
             <Link
               href="/admin/billing"
-              className="px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-300 transition whitespace-nowrap shadow-sm"
+              className="px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-700 dark:text-amber-300 transition whitespace-nowrap shadow-xs"
             >
               Manage Seats
             </Link>
@@ -316,27 +316,27 @@ export default function TenantAdminUsersPage() {
       )}
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900/40 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-500" />
+          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
           <input
             type="text"
             placeholder="Search by advisor name, email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
+            className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
           />
         </div>
 
-        <div className="flex items-center gap-1 self-start sm:self-auto bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+        <div className="flex items-center gap-1 self-start sm:self-auto bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800 text-xs">
           {["ALL", "ADVISOR", "STAFF", "TENANT_ADMIN"].map((r) => (
             <button
               key={r}
               onClick={() => setRoleFilter(r)}
               className={`px-3 py-1 rounded-md text-[11px] font-semibold transition ${
                 roleFilter === r
-                  ? "bg-amber-500/20 text-amber-300"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               {r === "ALL" ? "All Roles" : r}
@@ -346,11 +346,11 @@ export default function TenantAdminUsersPage() {
       </div>
 
       {/* Team Table */}
-      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm dark:shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-800 bg-slate-950/50 text-slate-400">
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 text-slate-600 dark:text-slate-400">
                 <th className="py-3 px-4 font-semibold">Staff Member</th>
                 <th className="py-3 px-4 font-semibold">Assigned Role</th>
                 <th className="py-3 px-4 font-semibold">Phone Contact</th>
@@ -360,30 +360,30 @@ export default function TenantAdminUsersPage() {
                 <th className="py-3 px-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-500">
-                    <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-amber-400" />
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                    <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-amber-500" />
                     <span>Loading team members...</span>
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
                     No team members found matching your filters.
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-800/20 transition">
+                  <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition">
                     {/* User info */}
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-white text-sm">
+                      <div className="font-bold text-slate-900 dark:text-white text-sm">
                         {user.first_name} {user.last_name}
                       </div>
-                      <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
-                        <Mail className="h-3 w-3 text-slate-500" />
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+                        <Mail className="h-3 w-3 text-slate-400 dark:text-slate-500" />
                         <span>{user.email}</span>
                       </div>
                     </td>
@@ -393,10 +393,10 @@ export default function TenantAdminUsersPage() {
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                           user.role === "TENANT_ADMIN"
-                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                            ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
                             : user.role === "ADVISOR"
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                            : "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                            : "bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20"
                         }`}
                       >
                         {user.role}
@@ -404,17 +404,17 @@ export default function TenantAdminUsersPage() {
                     </td>
 
                     {/* Phone */}
-                    <td className="py-3.5 px-4 text-slate-300 font-mono text-[11px]">
-                      {user.phone_number || <span className="text-slate-600">&mdash;</span>}
+                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 font-mono text-[11px]">
+                      {user.phone_number || <span className="text-slate-400 dark:text-slate-600">&mdash;</span>}
                     </td>
 
                     {/* Assigned clients */}
-                    <td className="py-3.5 px-4 font-semibold text-slate-200">
+                    <td className="py-3.5 px-4 font-semibold text-slate-800 dark:text-slate-200">
                       {user.clientCount || 0}
                     </td>
 
                     {/* Last Login */}
-                    <td className="py-3.5 px-4 text-slate-400 text-[11px]">
+                    <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 text-[11px]">
                       {user.last_login_at
                         ? new Date(user.last_login_at).toLocaleDateString("en-IN", {
                             day: "numeric",
@@ -431,8 +431,8 @@ export default function TenantAdminUsersPage() {
                         onClick={() => handleToggleStatus(user)}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase transition ${
                           user.is_active
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-red-500/10 hover:text-red-400"
-                            : "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-emerald-500/10 hover:text-emerald-400"
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-red-500/10 hover:text-red-500"
+                            : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 hover:bg-emerald-500/10 hover:text-emerald-500"
                         }`}
                         title="Click to toggle account activation"
                       >
@@ -449,10 +449,10 @@ export default function TenantAdminUsersPage() {
                           setNewPasswordValue(generateRandomPassword());
                           setResetSuccessMessage(null);
                         }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium transition"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white text-[11px] font-medium transition"
                         title="Reset password"
                       >
-                        <KeyRound className="h-3 w-3 text-amber-400" />
+                        <KeyRound className="h-3 w-3 text-amber-500" />
                         <span>Reset Pass</span>
                       </button>
                     </td>
@@ -466,16 +466,16 @@ export default function TenantAdminUsersPage() {
 
       {/* Modal: Add Team Member */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <UserPlus className="h-4 w-4 text-amber-400" />
+        <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                <UserPlus className="h-4 w-4 text-amber-500" />
                 Add {terms.advisorLabel} / Staff Member
               </h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -484,24 +484,24 @@ export default function TenantAdminUsersPage() {
             {createdCredentials ? (
               <div className="space-y-4 py-2">
                 <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <div className="text-xs font-bold text-white">Staff Account Provisioned!</div>
-                    <div className="text-[11px] text-slate-300 mt-1">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">Staff Account Provisioned!</div>
+                    <div className="text-[11px] text-slate-600 dark:text-slate-300 mt-1">
                       Share these initial credentials securely with the staff member:
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2 text-xs">
+                <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
                   <div>
-                    <span className="text-slate-500">Email:</span>
-                    <span className="font-mono text-white ml-2">{createdCredentials.email}</span>
+                    <span className="text-slate-500 dark:text-slate-400">Email:</span>
+                    <span className="font-mono text-slate-900 dark:text-white ml-2">{createdCredentials.email}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-slate-500">Temporary Password:</span>
-                      <span className="font-mono text-amber-400 font-bold ml-2">
+                      <span className="text-slate-500 dark:text-slate-400">Temporary Password:</span>
+                      <span className="font-mono text-amber-600 dark:text-amber-400 font-bold ml-2">
                         {createdCredentials.tempPass}
                       </span>
                     </div>
@@ -511,7 +511,7 @@ export default function TenantAdminUsersPage() {
                           `WealthOS Staff Credentials:\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.tempPass}`
                         )
                       }
-                      className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[11px] flex items-center gap-1"
+                      className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded text-[11px] font-medium flex items-center gap-1 transition"
                     >
                       <Copy className="h-3 w-3" />
                       <span>{copied ? "Copied" : "Copy"}</span>
@@ -531,18 +531,18 @@ export default function TenantAdminUsersPage() {
             ) : (
               <form onSubmit={handleCreateUser} className="space-y-3.5">
                 {seatCapacity && !seatCapacity.canAddSeat && (
-                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-300">
-                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-amber-400" />
+                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
                     <div className="flex-1">
                       <div className="font-bold uppercase tracking-wider">Plan Seat Limit Reached</div>
-                      <div className="text-slate-300 mt-0.5">
+                      <div className="text-slate-600 dark:text-slate-300 mt-0.5">
                         Your current plan ({seatCapacity.planName}) allows up to {seatCapacity.maxSeats} active seat(s). All {seatCapacity.currentSeats} seats are currently assigned.
                       </div>
                       <div className="mt-2">
                         <Link
                           href="/admin/billing"
                           onClick={() => setIsAddModalOpen(false)}
-                          className="inline-flex items-center gap-1 font-bold text-amber-400 hover:text-amber-300 underline"
+                          className="inline-flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400 hover:underline"
                         >
                           Upgrade your plan to unlock more advisor seats →
                         </Link>
@@ -553,7 +553,7 @@ export default function TenantAdminUsersPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                       First Name *
                     </label>
                     <input
@@ -564,11 +564,11 @@ export default function TenantAdminUsersPage() {
                       onChange={(e) =>
                         setNewUserForm({ ...newUserForm, firstName: e.target.value })
                       }
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                       Last Name *
                     </label>
                     <input
@@ -579,13 +579,13 @@ export default function TenantAdminUsersPage() {
                       onChange={(e) =>
                         setNewUserForm({ ...newUserForm, lastName: e.target.value })
                       }
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                     Email Address *
                   </label>
                   <input
@@ -596,13 +596,13 @@ export default function TenantAdminUsersPage() {
                     onChange={(e) =>
                       setNewUserForm({ ...newUserForm, email: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                       Role
                     </label>
                     <select
@@ -610,7 +610,7 @@ export default function TenantAdminUsersPage() {
                       onChange={(e) =>
                         setNewUserForm({ ...newUserForm, role: e.target.value })
                       }
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                     >
                       <option value="ADVISOR">ADVISOR (Relationship Manager)</option>
                       <option value="STAFF">STAFF (Operations / Backoffice)</option>
@@ -618,7 +618,7 @@ export default function TenantAdminUsersPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                       Phone Number
                     </label>
                     <input
@@ -628,13 +628,13 @@ export default function TenantAdminUsersPage() {
                       onChange={(e) =>
                         setNewUserForm({ ...newUserForm, phoneNumber: e.target.value })
                       }
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                     Initial Password
                   </label>
                   <input
@@ -643,22 +643,22 @@ export default function TenantAdminUsersPage() {
                     onChange={(e) =>
                       setNewUserForm({ ...newUserForm, password: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-amber-500 transition"
                   />
                 </div>
 
-                <div className="pt-2 flex justify-end gap-2 border-t border-slate-800">
+                <div className="pt-2 flex justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
                   <button
                     type="button"
                     onClick={() => setIsAddModalOpen(false)}
-                    className="px-4 py-2 border border-slate-800 rounded-lg text-xs text-slate-400 hover:text-white"
+                    className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isCreatingUser || Boolean(seatCapacity && !seatCapacity.canAddSeat)}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 disabled:opacity-50 transition"
                   >
                     {isCreatingUser ? (
                       <>
@@ -678,24 +678,24 @@ export default function TenantAdminUsersPage() {
 
       {/* Modal: Reset Password */}
       {resetModalUser && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <KeyRound className="h-4 w-4 text-amber-400" />
+        <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                <KeyRound className="h-4 w-4 text-amber-500" />
                 Reset Password
               </h3>
               <button
                 onClick={() => setResetModalUser(null)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               Reset the password for{" "}
-              <span className="font-semibold text-white">
+              <span className="font-semibold text-slate-900 dark:text-white">
                 {resetModalUser.first_name} {resetModalUser.last_name}
               </span>{" "}
               ({resetModalUser.email}).
@@ -703,16 +703,16 @@ export default function TenantAdminUsersPage() {
 
             {resetSuccessMessage ? (
               <div className="space-y-3 py-2">
-                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs">
                   {resetSuccessMessage}
                 </div>
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-                  <span className="font-mono text-amber-400 font-bold text-xs">
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <span className="font-mono text-amber-600 dark:text-amber-400 font-bold text-xs">
                     {newPasswordValue}
                   </span>
                   <button
                     onClick={() => copyToClipboard(newPasswordValue)}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs"
+                    className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white rounded text-xs transition"
                   >
                     {copied ? "Copied" : "Copy"}
                   </button>
@@ -729,7 +729,7 @@ export default function TenantAdminUsersPage() {
             ) : (
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                     New Temporary Password
                   </label>
                   <input
@@ -737,22 +737,22 @@ export default function TenantAdminUsersPage() {
                     required
                     value={newPasswordValue}
                     onChange={(e) => setNewPasswordValue(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-amber-500 transition"
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 border-t border-slate-800 pt-3">
+                <div className="flex justify-end gap-2 border-t border-slate-200 dark:border-slate-800 pt-3">
                   <button
                     type="button"
                     onClick={() => setResetModalUser(null)}
-                    className="px-4 py-2 border border-slate-800 rounded-lg text-xs text-slate-400 hover:text-white"
+                    className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isResetting}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 disabled:opacity-50 transition"
                   >
                     {isResetting ? (
                       <>

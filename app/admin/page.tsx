@@ -118,17 +118,17 @@ export default function TenantAdminDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-900 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-900 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">{terms.portalTitle}</h1>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{terms.portalTitle}</h1>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
               {terms.shortTitle} Admin
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Real-time AUM oversight, advisor allocation, and monthly SIP book metrics for{" "}
-            <span className="text-white font-medium">{data?.tenant?.firm_brand_name || "your firm"}</span>.
+            <span className="text-slate-900 dark:text-white font-medium">{data?.tenant?.firm_brand_name || "your firm"}</span>.
           </p>
         </div>
 
@@ -136,7 +136,7 @@ export default function TenantAdminDashboardPage() {
           <button
             onClick={fetchMetrics}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
             <span>Refresh</span>
@@ -152,7 +152,7 @@ export default function TenantAdminDashboardPage() {
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
@@ -166,18 +166,18 @@ export default function TenantAdminDashboardPage() {
         if (daysLeft > 15 || daysLeft <= 0) return null;
 
         return (
-          <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-slate-900 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-50 to-white dark:from-amber-500/15 dark:via-rose-500/10 dark:to-slate-900 border border-amber-300 dark:border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 mt-0.5">
+              <div className="p-2 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 mt-0.5">
                 <Clock className="h-5 w-5" />
               </div>
               <div>
-                <div className="text-xs font-bold text-amber-300 uppercase tracking-wide">
+                <div className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wide">
                   Upcoming Renewal: {daysLeft} Days Remaining
                 </div>
-                <div className="text-xs text-slate-300 mt-0.5">
+                <div className="text-xs text-slate-700 dark:text-slate-300 mt-0.5">
                   Your firm's subscription expires on{" "}
-                  <strong className="text-white">
+                  <strong className="text-slate-900 dark:text-white">
                     {expiresAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                   </strong>
                   . Renew now to avoid any interruption in advisor portal access or white-label styling.
@@ -198,66 +198,66 @@ export default function TenantAdminDashboardPage() {
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Firm AUM */}
-        <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-5 hover:border-slate-700 transition">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
+        <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm dark:shadow-none hover:border-slate-300 dark:hover:border-slate-700 transition">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">{terms.aumLabel}</span>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <TrendingUp className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white tracking-tight">
+          <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
             {isLoading ? "..." : formatINR(kpis.totalAUM)}
           </div>
-          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-emerald-400 font-medium">
+          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
             <ArrowUpRight className="h-3.5 w-3.5" />
             <span>Consolidated client assets</span>
           </div>
         </div>
 
         {/* Active Clients */}
-        <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-5 hover:border-slate-700 transition">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
+        <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm dark:shadow-none hover:border-slate-300 dark:hover:border-slate-700 transition">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">{terms.clientHeading}</span>
-            <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
+            <div className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
               <Users className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white tracking-tight">
+          <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
             {isLoading ? "..." : kpis.activeClients}
           </div>
-          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-slate-400">
+          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-slate-500 dark:text-slate-400">
             <span>Onboarded investor profiles</span>
           </div>
         </div>
 
         {/* Active Advisors & Staff */}
-        <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-5 hover:border-slate-700 transition">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
+        <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm dark:shadow-none hover:border-slate-300 dark:hover:border-slate-700 transition">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">Advisors &amp; Staff</span>
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
               <Briefcase className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white tracking-tight">
+          <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
             {isLoading ? "..." : kpis.activeAdvisors}
           </div>
-          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-slate-400">
+          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-slate-500 dark:text-slate-400">
             <span>Licensed relationship managers</span>
           </div>
         </div>
 
         {/* Monthly SIP Book */}
-        <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-5 hover:border-slate-700 transition">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
+        <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm dark:shadow-none hover:border-slate-300 dark:hover:border-slate-700 transition">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider">Monthly SIP Book</span>
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
               <Calendar className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-white tracking-tight">
+          <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
             {isLoading ? "..." : formatINR(kpis.monthlySIPBook)}
           </div>
-          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-purple-400 font-medium">
+          <div className="flex items-center gap-1.5 mt-2 text-[11px] text-purple-600 dark:text-purple-400 font-medium">
             <span>Recurring monthly inflows</span>
           </div>
         </div>
@@ -266,17 +266,17 @@ export default function TenantAdminDashboardPage() {
       {/* 2-Column: Advisory Team Performance + Quick Management Shortcuts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Advisory Team Performance Summary */}
-        <div className="lg:col-span-2 bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm dark:shadow-none">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/60 pb-3">
             <div>
-              <h2 className="text-sm font-bold text-white tracking-tight">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
                 Advisory Team Performance Summary
               </h2>
-              <p className="text-[11px] text-slate-400">Relationship managers and client book allocations</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Relationship managers and client book allocations</p>
             </div>
             <Link
               href="/admin/users"
-              className="text-xs text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1"
+              className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-500 font-medium flex items-center gap-1"
             >
               <span>Manage Team</span>
               <ChevronRight className="h-3 w-3" />
@@ -286,7 +286,7 @@ export default function TenantAdminDashboardPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400">
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
                   <th className="pb-2.5 font-semibold">Advisor Name</th>
                   <th className="pb-2.5 font-semibold">Role</th>
                   <th className="pb-2.5 font-semibold">Assigned Clients</th>
@@ -294,33 +294,33 @@ export default function TenantAdminDashboardPage() {
                   <th className="pb-2.5 font-semibold text-right">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={5} className="py-6 text-center text-slate-500">
+                    <td colSpan={5} className="py-6 text-center text-slate-400">
                       Loading advisors...
                     </td>
                   </tr>
                 ) : data?.advisors?.length ? (
                   data.advisors.map((adv) => (
-                    <tr key={adv.id} className="hover:bg-slate-800/20">
-                      <td className="py-3 font-semibold text-white">
+                    <tr key={adv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition">
+                      <td className="py-3 font-semibold text-slate-900 dark:text-white">
                         <div>{adv.name}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">{adv.email}</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{adv.email}</div>
                       </td>
                       <td className="py-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                           {adv.role}
                         </span>
                       </td>
-                      <td className="py-3 text-slate-200 font-semibold">{adv.clientCount}</td>
-                      <td className="py-3 text-emerald-400 font-bold">{formatINR(adv.aum)}</td>
+                      <td className="py-3 text-slate-800 dark:text-slate-200 font-semibold">{adv.clientCount}</td>
+                      <td className="py-3 text-emerald-600 dark:text-emerald-400 font-bold">{formatINR(adv.aum)}</td>
                       <td className="py-3 text-right">
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             adv.isActive
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
                           }`}
                         >
                           {adv.isActive ? "Active" : "Inactive"}
@@ -330,7 +330,7 @@ export default function TenantAdminDashboardPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="py-6 text-center text-slate-500">
+                    <td colSpan={5} className="py-6 text-center text-slate-400">
                       No advisors registered in your firm yet.
                     </td>
                   </tr>
@@ -342,63 +342,63 @@ export default function TenantAdminDashboardPage() {
 
         {/* Quick Management Shortcuts */}
         <div className="space-y-4">
-          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-3">
-            <h3 className="text-sm font-bold text-white tracking-tight">Administrative Modules</h3>
-            <p className="text-[11px] text-slate-400">Quick links to firm management operations</p>
+          <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3 shadow-sm dark:shadow-none">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Administrative Modules</h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Quick links to firm management operations</p>
 
             <div className="space-y-2 pt-2">
               <Link
                 href="/admin/users"
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-900/60 transition group"
+                className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-amber-500/40 hover:bg-slate-100 dark:hover:bg-slate-900/60 transition group shadow-sm dark:shadow-none"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <div className="p-2 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                     <Users className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-white group-hover:text-amber-300 transition">
+                    <div className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-300 transition">
                       Team &amp; User Provisioning
                     </div>
-                    <div className="text-[10px] text-slate-400">Add staff, reset passwords, set roles</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">Add staff, reset passwords, set roles</div>
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-amber-400 transition" />
+                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-amber-500 transition" />
               </Link>
 
               <Link
                 href="/admin/clients"
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-900/60 transition group"
+                className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-amber-500/40 hover:bg-slate-100 dark:hover:bg-slate-900/60 transition group shadow-sm dark:shadow-none"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                  <div className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
                     <Briefcase className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-white group-hover:text-sky-300 transition">
+                    <div className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-300 transition">
                       Client &amp; Advisor Oversight
                     </div>
-                    <div className="text-[10px] text-slate-400">Reassign accounts, review net worths</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">Reassign accounts, review net worths</div>
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-sky-400 transition" />
+                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-sky-500 transition" />
               </Link>
 
               <Link
                 href="/admin/settings"
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-900/60 transition group"
+                className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-amber-500/40 hover:bg-slate-100 dark:hover:bg-slate-900/60 transition group shadow-sm dark:shadow-none"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                  <div className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                     <Settings className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-white group-hover:text-rose-300 transition">
+                    <div className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-300 transition">
                       Firm Branding &amp; Settings
                     </div>
-                    <div className="text-[10px] text-slate-400">White-label colors, logos, disclaimers</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">White-label colors, logos, disclaimers</div>
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-rose-400 transition" />
+                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-rose-500 transition" />
               </Link>
             </div>
           </div>
@@ -407,4 +407,3 @@ export default function TenantAdminDashboardPage() {
     </div>
   );
 }
-

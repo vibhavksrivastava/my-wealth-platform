@@ -367,23 +367,23 @@ export default function TenantAdminSettingsPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-900 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-900 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">Firm Branding &amp; White-Label</h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Firm Branding &amp; White-Label</h1>
             {plan && (
               <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
                 plan.slug === "basic"
-                  ? "bg-slate-800 text-slate-300 border-slate-700"
+                  ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                   : plan.slug === "arn_partnership"
-                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                  : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                  : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
               }`}>
                 {plan.name}
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Customize your firm brand colors, legal entity disclosures, logos, and custom hostnames.
           </p>
         </div>
@@ -391,16 +391,16 @@ export default function TenantAdminSettingsPage() {
         <div className="flex items-center gap-2">
           <Link
             href="/admin/billing"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-300 transition"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-700 dark:text-amber-300 transition"
           >
-            <Zap className="h-3.5 w-3.5 text-amber-400" />
+            <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
             <span>Manage Plan &amp; Billing</span>
           </Link>
 
           <button
             onClick={() => fetchSettings()}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition shadow-sm"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
             <span>Reload</span>
@@ -410,17 +410,17 @@ export default function TenantAdminSettingsPage() {
 
       {/* SuperAdmin Multi-Tenant Practice Switcher */}
       {isSuperAdmin && (
-        <div className="p-3.5 rounded-xl bg-slate-900/90 border border-amber-500/30 flex flex-wrap items-center justify-between gap-3 shadow-md">
+        <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-amber-500/30 flex flex-wrap items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-amber-400" />
+            <Building2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             <div>
-              <div className="text-xs font-bold text-white flex items-center gap-2">
+              <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <span>SuperAdmin Practice Switcher</span>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-amber-500/20 text-amber-300">
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-amber-500/20 text-amber-700 dark:text-amber-300">
                   Global Access
                 </span>
               </div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">
                 Switch between Platform HQ and any tenant advisory firm to manage their branding &amp; credentials.
               </div>
             </div>
@@ -444,8 +444,8 @@ export default function TenantAdminSettingsPage() {
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
                   (selectedTenantSlug || "platform") === firm.slug
-                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-sm"
-                    : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800 hover:bg-slate-900"
+                    ? "bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/50 shadow-sm"
+                    : "bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900"
                 }`}
               >
                 <span>{firm.name}</span>
@@ -456,14 +456,14 @@ export default function TenantAdminSettingsPage() {
       )}
 
       {error && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {successMessage && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
           <span>{successMessage}</span>
         </div>
@@ -472,18 +472,18 @@ export default function TenantAdminSettingsPage() {
       {/* 2-Column: Form + Live Preview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Settings Form */}
-        <div className="lg:col-span-2 bg-slate-900/40 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm dark:shadow-xl space-y-6">
           <form onSubmit={handleSave} className="space-y-6">
             {/* Firm Identity */}
-            <div className="border-b border-slate-800 pb-5 space-y-4">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-amber-400" />
+            <div className="border-b border-slate-200 dark:border-slate-800 pb-5 space-y-4">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 Firm Identity &amp; Registrations
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                     Firm Brand Name *
                   </label>
                   <input
@@ -491,26 +491,26 @@ export default function TenantAdminSettingsPage() {
                     required
                     value={formData.firmBrandName}
                     onChange={(e) => setFormData({ ...formData, firmBrandName: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                     Firm Legal Entity Name
                   </label>
                   <input
                     type="text"
                     value={formData.firmLegalName}
                     onChange={(e) => setFormData({ ...formData, firmLegalName: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                     AMFI ARN Number
                   </label>
                   <input
@@ -518,13 +518,13 @@ export default function TenantAdminSettingsPage() {
                     placeholder="ARN-XXXXXX"
                     value={formData.arnNumber}
                     onChange={(e) => setFormData({ ...formData, arnNumber: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-amber-500 transition"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">Used for automated BSE StAR MF routing &amp; distributor reports.</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Used for automated BSE StAR MF routing &amp; distributor reports.</p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                     SEBI RIA Number
                   </label>
                   <input
@@ -532,20 +532,20 @@ export default function TenantAdminSettingsPage() {
                     placeholder="INAXXXXXXXXX"
                     value={formData.riaNumber}
                     onChange={(e) => setFormData({ ...formData, riaNumber: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-amber-500 transition"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">Used for fiduciary advisory contracts &amp; client fee billing.</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Used for fiduciary advisory contracts &amp; client fee billing.</p>
                 </div>
               </div>
 
               {/* Dynamic Practice Model Selector */}
               <div className="pt-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2 flex items-center justify-between">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <Scale className="h-4 w-4 text-amber-400" />
+                    <Scale className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                     Regulatory Practice Model &amp; Nomenclature
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  <span className="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                     Mode: {formData.firmType}
                   </span>
                 </label>
@@ -555,20 +555,20 @@ export default function TenantAdminSettingsPage() {
                     onClick={() => setFormData({ ...formData, firmType: "MFD" })}
                     className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
                       formData.firmType === "MFD"
-                        ? "bg-amber-500/15 border-amber-500 text-white shadow-lg shadow-amber-500/10"
-                        : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                        ? "bg-amber-500/10 border-amber-500 text-slate-900 dark:text-white shadow-md shadow-amber-500/10"
+                        : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                     }`}
                   >
                     <div>
-                      <div className="text-xs font-bold text-white flex items-center justify-between">
+                      <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
                         <span>Mutual Fund Distributor</span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold">MFD</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 font-mono font-bold">MFD</span>
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
                         Execution &amp; distribution focus. UI terminology highlights ARN, Distribution AUM, and BSE StAR MF routing.
                       </p>
                     </div>
-                    <div className="mt-2.5 pt-2 border-t border-slate-800/80 text-[10px] text-amber-400 font-medium">
+                    <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-800/80 text-[10px] text-amber-600 dark:text-amber-400 font-medium">
                       &bull; Commission &amp; Brokerage Model
                     </div>
                   </button>
@@ -578,20 +578,20 @@ export default function TenantAdminSettingsPage() {
                     onClick={() => setFormData({ ...formData, firmType: "RIA" })}
                     className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
                       formData.firmType === "RIA"
-                        ? "bg-sky-500/15 border-sky-500 text-white shadow-lg shadow-sky-500/10"
-                        : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                        ? "bg-sky-500/10 border-sky-500 text-slate-900 dark:text-white shadow-md shadow-sky-500/10"
+                        : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                     }`}
                   >
                     <div>
-                      <div className="text-xs font-bold text-white flex items-center justify-between">
+                      <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
                         <span>Registered Investment Advisor</span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono font-bold">RIA</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-700 dark:text-sky-300 font-mono font-bold">RIA</span>
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
                         SEBI fiduciary advisory focus. UI terminology highlights INA registration, Advisory Portfolios, and Fee Models.
                       </p>
                     </div>
-                    <div className="mt-2.5 pt-2 border-t border-slate-800/80 text-[10px] text-sky-400 font-medium">
+                    <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-800/80 text-[10px] text-sky-600 dark:text-sky-400 font-medium">
                       &bull; Fee-Only / Advisory Retainer
                     </div>
                   </button>
@@ -601,20 +601,20 @@ export default function TenantAdminSettingsPage() {
                     onClick={() => setFormData({ ...formData, firmType: "BOTH" })}
                     className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
                       formData.firmType === "BOTH"
-                        ? "bg-purple-500/15 border-purple-500 text-white shadow-lg shadow-purple-500/10"
-                        : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                        ? "bg-purple-500/10 border-purple-500 text-slate-900 dark:text-white shadow-md shadow-purple-500/10"
+                        : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                     }`}
                   >
                     <div>
-                      <div className="text-xs font-bold text-white flex items-center justify-between">
+                      <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
                         <span>Hybrid (MFD + RIA)</span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono font-bold">HYBRID</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-700 dark:text-purple-300 font-mono font-bold">HYBRID</span>
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
                         Dual practice. The layout automatically adapts based on the logged-in user&apos;s individual role (Advisors vs Execution staff).
                       </p>
                     </div>
-                    <div className="mt-2.5 pt-2 border-t border-slate-800/80 text-[10px] text-purple-400 font-medium">
+                    <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-800/80 text-[10px] text-purple-600 dark:text-purple-400 font-medium">
                       &bull; Dynamic Role-Based Adaptation
                     </div>
                   </button>
@@ -623,18 +623,18 @@ export default function TenantAdminSettingsPage() {
             </div>
 
             {/* Login Experience & Access Portal Style Selection */}
-            <div className="border-b border-slate-800 pb-5 space-y-4">
+            <div className="border-b border-slate-200 dark:border-slate-800 pb-5 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                    <LogIn className="h-4 w-4 text-amber-400" />
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <LogIn className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                     Login Portal Experience &amp; Access Style
                   </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     Select how clients, distributors, and firm staff sign into your white-labeled portal.
                   </p>
                 </div>
-                <span className="text-[10px] px-2.5 py-0.5 rounded font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 whitespace-nowrap self-start sm:self-auto">
+                <span className="text-[10px] px-2.5 py-0.5 rounded font-mono font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 whitespace-nowrap self-start sm:self-auto">
                   Active: {formData.loginPortalStyle === "UNIVERSAL" ? "Option 1: Universal Auto-Detect" : formData.loginPortalStyle === "INVESTOR_PORTAL" ? "Option 2: Dedicated Investor Portal" : "Option 3: Classic Multi-Tab"}
                 </span>
               </div>
@@ -646,33 +646,33 @@ export default function TenantAdminSettingsPage() {
                   onClick={() => setFormData({ ...formData, loginPortalStyle: "UNIVERSAL" })}
                   className={`p-4 rounded-xl border text-left transition flex flex-col justify-between relative group ${
                     formData.loginPortalStyle === "UNIVERSAL"
-                      ? "bg-amber-500/15 border-amber-500 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/40"
-                      : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                      ? "bg-amber-500/10 border-amber-500 text-slate-900 dark:text-white shadow-md ring-1 ring-amber-500/40"
+                      : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <span className="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                         Option 1 • Recommended
                       </span>
-                      <Sparkles className="h-4 w-4 text-emerald-400" />
+                      <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                     </div>
-                    <h4 className="text-xs font-bold text-white mb-1 flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white mb-1 flex items-center justify-between">
                       <span>Universal Auto-Detect</span>
-                      <span className="text-[9px] font-mono text-emerald-400 font-bold">Zero Tabs</span>
+                      <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">Zero Tabs</span>
                     </h4>
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
                       Single unified login form. The platform automatically determines whether the user is a Client, Advisor, Staff, or Admin and instantly routes them to their portal.
                     </p>
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[10px] text-emerald-400 font-medium space-y-1">
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/80 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium space-y-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                       <span>Zero tab confusion &bull; No wrong-tab errors</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-slate-600"></span>
+                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-slate-600"></span>
                       <span>Modern SaaS UX (Stripe, Google style)</span>
                     </div>
                   </div>
@@ -684,33 +684,33 @@ export default function TenantAdminSettingsPage() {
                   onClick={() => setFormData({ ...formData, loginPortalStyle: "INVESTOR_PORTAL" })}
                   className={`p-4 rounded-xl border text-left transition flex flex-col justify-between relative group ${
                     formData.loginPortalStyle === "INVESTOR_PORTAL"
-                      ? "bg-sky-500/15 border-sky-500 text-white shadow-lg shadow-sky-500/10 ring-1 ring-sky-500/40"
-                      : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                      ? "bg-sky-500/10 border-sky-500 text-slate-900 dark:text-white shadow-md ring-1 ring-sky-500/40"
+                      : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                      <span className="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/30">
                         Option 2 • Client First
                       </span>
-                      <UserCheck className="h-4 w-4 text-sky-400" />
+                      <UserCheck className="h-4 w-4 text-sky-600 dark:text-sky-400" />
                     </div>
-                    <h4 className="text-xs font-bold text-white mb-1 flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white mb-1 flex items-center justify-between">
                       <span>Dedicated Investor Portal</span>
-                      <span className="text-[9px] font-mono text-sky-400 font-bold">Subtle Staff Link</span>
+                      <span className="text-[9px] font-mono text-sky-600 dark:text-sky-400 font-bold">Subtle Staff Link</span>
                     </h4>
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
                       100% investor-focused presentation. Internal distributor/staff tools are hidden from clients, with a discreet footer link to toggle the staff console.
                     </p>
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[10px] text-sky-400 font-medium space-y-1">
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/80 text-[10px] text-sky-600 dark:text-sky-400 font-medium space-y-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400"></span>
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-500"></span>
                       <span>High-trust client portal branding</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-slate-600"></span>
+                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-slate-600"></span>
                       <span>Subtle switcher for firm staff</span>
                     </div>
                   </div>
@@ -722,33 +722,33 @@ export default function TenantAdminSettingsPage() {
                   onClick={() => setFormData({ ...formData, loginPortalStyle: "MULTI_TAB" })}
                   className={`p-4 rounded-xl border text-left transition flex flex-col justify-between relative group ${
                     formData.loginPortalStyle === "MULTI_TAB"
-                      ? "bg-purple-500/15 border-purple-500 text-white shadow-lg shadow-purple-500/10 ring-1 ring-purple-500/40"
-                      : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                      ? "bg-purple-500/10 border-purple-500 text-slate-900 dark:text-white shadow-md ring-1 ring-purple-500/40"
+                      : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      <span className="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30">
                         Option 3 • Multi-Tab
                       </span>
-                      <Sliders className="h-4 w-4 text-purple-400" />
+                      <Sliders className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                     </div>
-                    <h4 className="text-xs font-bold text-white mb-1 flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white mb-1 flex items-center justify-between">
                       <span>Classic Multi-Tab Selector</span>
-                      <span className="text-[9px] font-mono text-purple-400 font-bold">Explicit Tabs</span>
+                      <span className="text-[9px] font-mono text-purple-600 dark:text-purple-400 font-bold">Explicit Tabs</span>
                     </h4>
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
                       Traditional multi-tab layout with visible &ldquo;Client&rdquo;, &ldquo;Advisor / Distributor&rdquo;, and &ldquo;Admin&rdquo; tabs across the top of the login card.
                     </p>
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[10px] text-purple-400 font-medium space-y-1">
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800/80 text-[10px] text-purple-600 dark:text-purple-400 font-medium space-y-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="h-1.5 w-1.5 rounded-full bg-purple-400"></span>
+                      <span className="h-1.5 w-1.5 rounded-full bg-purple-500"></span>
                       <span>Role segregation explicitly visible</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-slate-600"></span>
+                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-slate-600"></span>
                       <span>Familiar multi-portal experience</span>
                     </div>
                   </div>
@@ -757,14 +757,14 @@ export default function TenantAdminSettingsPage() {
             </div>
 
             {/* Plan-Gated White Label Section */}
-            <div className="border-b border-slate-800 pb-5 space-y-4">
+            <div className="border-b border-slate-200 dark:border-slate-800 pb-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Palette className="h-4 w-4 text-amber-400" />
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <Palette className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   Brand Styling &amp; Colors
                 </h2>
                 {!hasWhiteLabel && (
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
                     <Lock className="h-3 w-3" />
                     Locked on Starter Plan
                   </span>
@@ -773,22 +773,22 @@ export default function TenantAdminSettingsPage() {
 
               {/* Upgrade Banner if Plan does not include White-Label */}
               {!hasWhiteLabel ? (
-                <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-600/5 to-slate-900 border border-amber-500/30 space-y-3">
+                <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-600/5 to-slate-100 dark:to-slate-900 border border-amber-500/30 space-y-3">
                   <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 mt-0.5">
+                    <div className="p-2 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 mt-0.5">
                       <Lock className="h-4 w-4" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+                      <h4 className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
                         Upgrade to Growth to unlock White-Labeling
                       </h4>
-                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                        Custom brand logos, tailored portal color schemes, and client report branding are exclusive to the <strong className="text-white">Growth Practice Plan</strong> or <strong className="text-white">Zero-Fee ARN Partnership</strong>.
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                        Custom brand logos, tailored portal color schemes, and client report branding are exclusive to the <strong className="text-slate-900 dark:text-white">Growth Practice Plan</strong> or <strong className="text-slate-900 dark:text-white">Zero-Fee ARN Partnership</strong>.
                       </p>
                     </div>
                   </div>
                   <div className="pt-1 flex items-center justify-between border-t border-amber-500/20">
-                    <span className="text-[11px] text-amber-400/90 font-medium">BSE StAR MF &amp; CAS imports remain 100% active on Starter.</span>
+                    <span className="text-[11px] text-amber-700 dark:text-amber-400/90 font-medium">BSE StAR MF &amp; CAS imports remain 100% active on Starter.</span>
                     <Link
                       href="/admin/billing"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition"
@@ -802,7 +802,7 @@ export default function TenantAdminSettingsPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                         Primary Brand Color
                       </label>
                       <div className="flex items-center gap-2">
@@ -810,19 +810,19 @@ export default function TenantAdminSettingsPage() {
                           type="color"
                           value={formData.primaryColor}
                           onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
-                          className="h-8 w-8 rounded-lg border border-slate-800 bg-slate-950 cursor-pointer p-0.5"
+                          className="h-8 w-8 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 cursor-pointer p-0.5"
                         />
                         <input
                           type="text"
                           value={formData.primaryColor}
                           onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
-                          className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                          className="flex-1 px-3 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                         Secondary / Surface Color
                       </label>
                       <div className="flex items-center gap-2">
@@ -830,13 +830,13 @@ export default function TenantAdminSettingsPage() {
                           type="color"
                           value={formData.secondaryColor}
                           onChange={(e) => setFormData({ ...formData, secondaryColor: e.target.value })}
-                          className="h-8 w-8 rounded-lg border border-slate-800 bg-slate-950 cursor-pointer p-0.5"
+                          className="h-8 w-8 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 cursor-pointer p-0.5"
                         />
                         <input
                           type="text"
                           value={formData.secondaryColor}
                           onChange={(e) => setFormData({ ...formData, secondaryColor: e.target.value })}
-                          className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                          className="flex-1 px-3 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                         />
                       </div>
                     </div>
@@ -844,7 +844,7 @@ export default function TenantAdminSettingsPage() {
 
                   {/* Portal Theme Mode Selector */}
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
                       Default Portal Theme Mode
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -853,16 +853,16 @@ export default function TenantAdminSettingsPage() {
                         onClick={() => setFormData({ ...formData, themeMode: "light" })}
                         className={`p-3 rounded-xl border flex items-center gap-3 transition text-left ${
                           formData.themeMode === "light"
-                            ? "bg-amber-500/15 border-amber-500 text-white font-bold shadow-md shadow-amber-500/10"
-                            : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                            ? "bg-amber-500/10 border-amber-500 text-slate-900 dark:text-white font-bold shadow-md shadow-amber-500/10"
+                            : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                         }`}
                       >
-                        <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400">
+                        <div className="p-2 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
                           <Sun className="h-4 w-4" />
                         </div>
                         <div>
                           <div className="text-xs font-semibold">Light Mode Canvas</div>
-                          <div className="text-[10px] text-slate-500 mt-0.5">Crisp, high-contrast white aesthetic</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Crisp, high-contrast white aesthetic</div>
                         </div>
                       </button>
 
@@ -871,16 +871,16 @@ export default function TenantAdminSettingsPage() {
                         onClick={() => setFormData({ ...formData, themeMode: "dark" })}
                         className={`p-3 rounded-xl border flex items-center gap-3 transition text-left ${
                           formData.themeMode === "dark"
-                            ? "bg-amber-500/15 border-amber-500 text-white font-bold shadow-md shadow-amber-500/10"
-                            : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                            ? "bg-amber-500/10 border-amber-500 text-slate-900 dark:text-white font-bold shadow-md shadow-amber-500/10"
+                            : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                         }`}
                       >
-                        <div className="p-2 rounded-lg bg-sky-500/20 text-sky-400">
+                        <div className="p-2 rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-400">
                           <Moon className="h-4 w-4" />
                         </div>
                         <div>
                           <div className="text-xs font-semibold">Dark Mode Canvas</div>
-                          <div className="text-[10px] text-slate-500 mt-0.5">Deep slate institutional theme</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Deep slate institutional theme</div>
                         </div>
                       </button>
                     </div>
@@ -902,7 +902,7 @@ export default function TenantAdminSettingsPage() {
                         placeholder="https://example.com/logo.png"
                         value={formData.logoUrl}
                         onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
-                        className="flex-1 px-2.5 py-1 bg-slate-950 border border-slate-800 rounded text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono"
+                        className="flex-1 px-2.5 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono transition"
                       />
                     </div>
                   </div>
@@ -913,8 +913,8 @@ export default function TenantAdminSettingsPage() {
             {/* Custom Domain & Regulatory Text */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-amber-400" />
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   Domains &amp; Compliance Disclaimers
                 </h2>
                 {!hasCustomDomain && (
@@ -925,7 +925,7 @@ export default function TenantAdminSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                   Custom Domain Hostname
                 </label>
                 <input
@@ -934,63 +934,63 @@ export default function TenantAdminSettingsPage() {
                   placeholder={hasCustomDomain ? "e.g. portal.myfirm.com" : "Upgrade to Enterprise to link custom domain (e.g. portal.myfirm.com)"}
                   value={formData.customDomain}
                   onChange={(e) => setFormData({ ...formData, customDomain: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                   Mandatory Investor Compliance Disclaimer
                 </label>
                 <textarea
                   rows={3}
                   value={formData.disclaimerText}
                   onChange={(e) => setFormData({ ...formData, disclaimerText: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                 />
               </div>
             </div>
 
             {/* Tenant-Level Environment Variables & API Keys (Encrypted at Rest) */}
-            <div className="border-t border-slate-800 pt-6 space-y-4">
+            <div className="border-t border-slate-200 dark:border-slate-800 pt-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                    <Key className="h-4 w-4 text-emerald-400" />
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <Key className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                     Dedicated Tenant API Keys &amp; Integrations
                   </h2>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                     Configure your firm&apos;s dedicated WhatsApp Business account, Twilio SMS, or custom SMTP gateway. All secrets are encrypted at rest with AES-256-GCM.
                   </p>
                 </div>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 whitespace-nowrap">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 whitespace-nowrap">
                   <ShieldCheck className="h-3 w-3" />
                   AES-256 Encrypted
                 </span>
               </div>
 
               {/* WhatsApp Business API */}
-              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+              <div className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                       <MessageSquare className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-white">Meta WhatsApp Cloud API</h4>
-                      <p className="text-[10px] text-slate-400">Send automated CAS ingestion alerts, portfolio reviews, and meeting reminders from your firm&apos;s own WhatsApp number.</p>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">Meta WhatsApp Cloud API</h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Send automated CAS ingestion alerts, portfolio reviews, and meeting reminders from your firm&apos;s own WhatsApp number.</p>
                     </div>
                   </div>
                   {maskedIntegrations["WHATSAPP_API_TOKEN"]?.isConfigured ? (
-                    <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Active</span>
+                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Active</span>
                   ) : (
-                    <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Platform Default</span>
+                    <span className="text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800">Platform Default</span>
                   )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       WhatsApp Phone Number ID
                     </label>
                     <input
@@ -998,18 +998,18 @@ export default function TenantAdminSettingsPage() {
                       placeholder="e.g. 109876543210987"
                       value={envVars.WHATSAPP_PHONE_NUMBER_ID}
                       onChange={(e) => setEnvVars({ ...envVars, WHATSAPP_PHONE_NUMBER_ID: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-emerald-500 transition"
                     />
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-semibold text-slate-300">
+                      <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                         System User Access Token
                       </label>
                       <button
                         type="button"
                         onClick={() => setRevealedFields(p => ({ ...p, wa: !p.wa }))}
-                        className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1"
+                        className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition"
                       >
                         {revealedFields.wa ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                         <span>{revealedFields.wa ? "Hide" : "Show"}</span>
@@ -1020,34 +1020,34 @@ export default function TenantAdminSettingsPage() {
                       placeholder={maskedIntegrations["WHATSAPP_API_TOKEN"]?.isConfigured ? "•••••••• (Encrypted at rest)" : "EAAGm0PX..."}
                       value={envVars.WHATSAPP_API_TOKEN}
                       onChange={(e) => setEnvVars({ ...envVars, WHATSAPP_API_TOKEN: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-emerald-500 transition"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Custom SMTP / Email Gateway */}
-              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+              <div className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                    <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
                       <Mail className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-white">Custom Transactional SMTP / Email</h4>
-                      <p className="text-[10px] text-slate-400">Dispatch client statements and fact-find links using your own advisory email domain (e.g. notifications@zenithwealth.com).</p>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">Custom Transactional SMTP / Email</h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Dispatch client statements and fact-find links using your own advisory email domain (e.g. notifications@zenithwealth.com).</p>
                     </div>
                   </div>
                   {maskedIntegrations["SMTP_HOST"]?.isConfigured ? (
-                    <span className="text-[10px] font-semibold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">Active</span>
+                    <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">Active</span>
                   ) : (
-                    <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Platform Default</span>
+                    <span className="text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800">Platform Default</span>
                   )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       SMTP Host
                     </label>
                     <input
@@ -1055,11 +1055,11 @@ export default function TenantAdminSettingsPage() {
                       placeholder="smtp.sendgrid.net / smtp.office365.com"
                       value={envVars.SMTP_HOST}
                       onChange={(e) => setEnvVars({ ...envVars, SMTP_HOST: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-sky-500 transition"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       SMTP Port
                     </label>
                     <input
@@ -1067,11 +1067,11 @@ export default function TenantAdminSettingsPage() {
                       placeholder="587"
                       value={envVars.SMTP_PORT}
                       onChange={(e) => setEnvVars({ ...envVars, SMTP_PORT: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-sky-500 transition"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       From Email Address
                     </label>
                     <input
@@ -1079,14 +1079,14 @@ export default function TenantAdminSettingsPage() {
                       placeholder="advisory@yourfirm.com"
                       value={envVars.SMTP_FROM_EMAIL}
                       onChange={(e) => setEnvVars({ ...envVars, SMTP_FROM_EMAIL: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-sky-500 transition"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       SMTP Username / API Key
                     </label>
                     <input
@@ -1094,18 +1094,18 @@ export default function TenantAdminSettingsPage() {
                       placeholder="apikey / user@yourfirm.com"
                       value={envVars.SMTP_USER}
                       onChange={(e) => setEnvVars({ ...envVars, SMTP_USER: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-sky-500 transition"
                     />
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-semibold text-slate-300">
+                      <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                         SMTP Password / Secret
                       </label>
                       <button
                         type="button"
                         onClick={() => setRevealedFields(p => ({ ...p, smtp: !p.smtp }))}
-                        className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1"
+                        className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition"
                       >
                         {revealedFields.smtp ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                         <span>{revealedFields.smtp ? "Hide" : "Show"}</span>
@@ -1116,34 +1116,34 @@ export default function TenantAdminSettingsPage() {
                       placeholder={maskedIntegrations["SMTP_PASSWORD"]?.isConfigured ? "•••••••• (Encrypted at rest)" : "Enter SMTP password..."}
                       value={envVars.SMTP_PASSWORD}
                       onChange={(e) => setEnvVars({ ...envVars, SMTP_PASSWORD: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-sky-500 transition"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Twilio SMS Gateway */}
-              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+              <div className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                    <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
                       <Server className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-white">Twilio SMS Gateway</h4>
-                      <p className="text-[10px] text-slate-400">Optional custom Twilio credentials for DLT SMS broadcasts.</p>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">Twilio SMS Gateway</h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Optional custom Twilio credentials for DLT SMS broadcasts.</p>
                     </div>
                   </div>
                   {maskedIntegrations["TWILIO_ACCOUNT_SID"]?.isConfigured ? (
-                    <span className="text-[10px] font-semibold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Active</span>
+                    <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Active</span>
                   ) : (
-                    <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Platform Default</span>
+                    <span className="text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800">Platform Default</span>
                   )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       Twilio Account SID
                     </label>
                     <input
@@ -1151,18 +1151,18 @@ export default function TenantAdminSettingsPage() {
                       placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                       value={envVars.TWILIO_ACCOUNT_SID}
                       onChange={(e) => setEnvVars({ ...envVars, TWILIO_ACCOUNT_SID: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-purple-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-purple-500 transition"
                     />
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-semibold text-slate-300">
+                      <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                         Auth Token
                       </label>
                       <button
                         type="button"
                         onClick={() => setRevealedFields(p => ({ ...p, twilio: !p.twilio }))}
-                        className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1"
+                        className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition"
                       >
                         {revealedFields.twilio ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                         <span>{revealedFields.twilio ? "Hide" : "Show"}</span>
@@ -1173,11 +1173,11 @@ export default function TenantAdminSettingsPage() {
                       placeholder={maskedIntegrations["TWILIO_AUTH_TOKEN"]?.isConfigured ? "•••••••• (Encrypted at rest)" : "Twilio Auth Token..."}
                       value={envVars.TWILIO_AUTH_TOKEN}
                       onChange={(e) => setEnvVars({ ...envVars, TWILIO_AUTH_TOKEN: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-purple-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-purple-500 transition"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       Sender Phone Number
                     </label>
                     <input
@@ -1185,7 +1185,7 @@ export default function TenantAdminSettingsPage() {
                       placeholder="+1234567890"
                       value={envVars.TWILIO_PHONE_NUMBER}
                       onChange={(e) => setEnvVars({ ...envVars, TWILIO_PHONE_NUMBER: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white font-mono focus:outline-none focus:border-purple-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-purple-500 transition"
                     />
                   </div>
                 </div>
@@ -1193,14 +1193,14 @@ export default function TenantAdminSettingsPage() {
             </div>
 
             {/* Role-Based Feature Permissions Matrix */}
-            <div className="border-t border-slate-800 pt-5 space-y-4">
+            <div className="border-t border-slate-200 dark:border-slate-800 pt-5 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                    <Sliders className="h-4 w-4 text-amber-400" />
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <Sliders className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                     Role-Based Feature Permissions &amp; Capabilities
                   </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     Configure which platform tabs and modules are accessible for Clients, Advisors, and Staff.
                   </p>
                 </div>
@@ -1216,23 +1216,23 @@ export default function TenantAdminSettingsPage() {
               </div>
 
               {featuresFeedback && (
-                <div className="p-3 rounded-xl bg-slate-950 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-amber-400 shrink-0" />
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-amber-500 dark:text-amber-400 shrink-0" />
                   <span>{featuresFeedback}</span>
                 </div>
               )}
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden shadow-sm dark:shadow-none">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-slate-800 bg-slate-900/60 text-slate-400 text-[10px] uppercase font-bold">
+                    <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 text-[10px] uppercase font-bold">
                       <th className="py-2.5 px-3">Platform Capability / Tab</th>
                       <th className="py-2.5 px-3 text-center w-24">Clients</th>
                       <th className="py-2.5 px-3 text-center w-24">Advisors</th>
                       <th className="py-2.5 px-3 text-center w-24">MFD / Staff</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                     {MASTER_FEATURE_CATALOG.map((f) => {
                       const isSuperAdminBlocked = tenantMasterFeatures[f.key] === false;
                       const clientAllowed = !isSuperAdminBlocked && rolePermissions.CLIENT?.[f.key] !== false;
@@ -1240,23 +1240,23 @@ export default function TenantAdminSettingsPage() {
                       const staffAllowed = !isSuperAdminBlocked && rolePermissions.STAFF?.[f.key] !== false;
 
                       return (
-                        <tr key={f.key} className={isSuperAdminBlocked ? "bg-slate-950/40 opacity-60" : "hover:bg-slate-900/30"}>
+                        <tr key={f.key} className={isSuperAdminBlocked ? "bg-slate-50/50 dark:bg-slate-950/40 opacity-60" : "hover:bg-slate-50 dark:hover:bg-slate-900/30 transition"}>
                           <td className="py-2.5 px-3">
-                            <div className="font-bold text-white flex items-center gap-2">
+                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                               <span>{f.label}</span>
                               {f.isUpcoming && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
                                   Coming Soon
                                 </span>
                               )}
                               {isSuperAdminBlocked && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center gap-1">
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center gap-1">
                                   <Lock className="h-2.5 w-2.5" />
                                   <span>Super Admin Locked</span>
                                 </span>
                               )}
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-0.5">{f.description}</p>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{f.description}</p>
                           </td>
 
                           <td className="py-2.5 px-3 text-center">
@@ -1319,20 +1319,20 @@ export default function TenantAdminSettingsPage() {
         </div>
 
         {/* Live White-Label Preview */}
-        <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div className="border-b border-slate-800 pb-2">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+        <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm dark:shadow-xl">
+          <div className="border-b border-slate-200 dark:border-slate-800 pb-2">
+            <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
               Live Portal Preview
             </h3>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {hasWhiteLabel ? "Preview with your custom brand color & logo" : "Showing default platform preview (Upgrade for custom)"}
             </p>
           </div>
 
           {/* Mock Header */}
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-900">
+          <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-900">
               <div className="flex items-center gap-2">
                 {formData.logoUrl && hasWhiteLabel ? (
                   <img
@@ -1348,7 +1348,7 @@ export default function TenantAdminSettingsPage() {
                     {formData.firmBrandName ? formData.firmBrandName.charAt(0) : "W"}
                   </div>
                 )}
-                <span className="font-bold text-xs text-white">
+                <span className="font-bold text-xs text-slate-900 dark:text-white">
                   {formData.firmBrandName || "Firm Brand Name"}
                 </span>
               </div>
@@ -1358,9 +1358,9 @@ export default function TenantAdminSettingsPage() {
             </div>
 
             {/* Dynamic Practice Model Badge in Preview */}
-            <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[10px]">
-              <span className="text-slate-400">Operating Model:</span>
-              <span className="font-bold uppercase text-amber-400 font-mono">
+            <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px]">
+              <span className="text-slate-500 dark:text-slate-400">Operating Model:</span>
+              <span className="font-bold uppercase text-amber-600 dark:text-amber-400 font-mono">
                 {formData.firmType === "MFD"
                   ? "MFD Practice (AMFI)"
                   : formData.firmType === "RIA"
@@ -1377,20 +1377,20 @@ export default function TenantAdminSettingsPage() {
               >
                 Dashboard
               </span>
-              <span className="px-2.5 py-1 rounded text-[10px] font-semibold text-slate-400 bg-slate-900">
+              <span className="px-2.5 py-1 rounded text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-200 dark:bg-slate-900">
                 Portfolios
               </span>
-              <span className="px-2.5 py-1 rounded text-[10px] font-semibold text-slate-400 bg-slate-900">
+              <span className="px-2.5 py-1 rounded text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-200 dark:bg-slate-900">
                 Reports
               </span>
             </div>
 
             {/* Mock Card */}
-            <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800/80 space-y-1.5">
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">
+            <div className="p-3 rounded-lg bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 space-y-1.5 shadow-xs">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">
                 {formData.firmType === "RIA" ? "Advisory Assets Under Care" : "Total Practice AUM"}
               </div>
-              <div className="text-base font-black text-white">₹3,15,24,886</div>
+              <div className="text-base font-black text-slate-900 dark:text-white">₹3,15,24,886</div>
               <div
                 className="h-1 rounded-full w-2/3"
                 style={{ backgroundColor: hasWhiteLabel ? formData.primaryColor : "#0284c7" }}
@@ -1398,21 +1398,21 @@ export default function TenantAdminSettingsPage() {
             </div>
 
             {/* Regulatory Compliance Indicator */}
-            <div className="p-2 rounded bg-slate-900/80 border border-slate-800 text-[10px] text-emerald-400 flex items-center justify-between">
+            <div className="p-2 rounded bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
               <span>{formData.firmType === "RIA" ? "SEBI RIA Compliance:" : "AMFI BSE StAR Routing:"}</span>
               <span className="font-mono font-bold uppercase">Active &amp; Ready</span>
             </div>
 
             {/* Mock Disclaimer */}
-            <div className="text-[9px] text-slate-500 leading-tight pt-1 border-t border-slate-900">
+            <div className="text-[9px] text-slate-500 leading-tight pt-1 border-t border-slate-200 dark:border-slate-900">
               {formData.disclaimerText || "Compliance disclaimer will appear here in investor reports."}
             </div>
 
             {/* Mock Login Page Preview */}
-            <div className="pt-3 border-t border-slate-900 space-y-2">
-              <div className="text-[10px] text-slate-400 uppercase font-semibold flex items-center justify-between">
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-900 space-y-2">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold flex items-center justify-between">
                 <span>Login Page Preview</span>
-                <span className="text-[9px] font-mono text-amber-400 font-bold">
+                <span className="text-[9px] font-mono text-amber-600 dark:text-amber-400 font-bold">
                   {formData.loginPortalStyle === "UNIVERSAL"
                     ? "Universal"
                     : formData.loginPortalStyle === "INVESTOR_PORTAL"
@@ -1420,27 +1420,27 @@ export default function TenantAdminSettingsPage() {
                     : "Multi-Tab"}
                 </span>
               </div>
-              <div className="p-3 rounded-lg bg-slate-900/90 border border-slate-800 space-y-2 text-left">
+              <div className="p-3 rounded-lg bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-2 text-left shadow-xs">
                 {formData.loginPortalStyle === "MULTI_TAB" ? (
-                  <div className="flex gap-1 bg-slate-950 p-1 rounded-md text-[9px] font-semibold text-center">
-                    <span className="flex-1 py-1 rounded bg-amber-500/20 text-amber-300">Client</span>
-                    <span className="flex-1 py-1 text-slate-400">{formData.firmType === "MFD" ? "Distributor" : "Advisor"}</span>
+                  <div className="flex gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-md text-[9px] font-semibold text-center">
+                    <span className="flex-1 py-1 rounded bg-amber-500/20 text-amber-800 dark:text-amber-300">Client</span>
+                    <span className="flex-1 py-1 text-slate-500 dark:text-slate-400">{formData.firmType === "MFD" ? "Distributor" : "Advisor"}</span>
                   </div>
                 ) : formData.loginPortalStyle === "INVESTOR_PORTAL" ? (
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold">Investor Portal</span>
+                    <span className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-700 dark:text-sky-300 font-bold">Investor Portal</span>
                     <span className="text-[9px] text-slate-500">Staff link below &rarr;</span>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">Smart Auto-Detect</span>
-                    <span className="text-[9px] text-emerald-400 font-mono">Zero Tabs</span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold">Smart Auto-Detect</span>
+                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono">Zero Tabs</span>
                   </div>
                 )}
-                <div className="text-xs font-bold text-white truncate">
+                <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
                   {formData.firmBrandName || "Firm Brand"}
                 </div>
-                <div className="h-6 bg-slate-950 rounded border border-slate-800 text-[10px] text-slate-500 flex items-center px-2">
+                <div className="h-6 bg-slate-50 dark:bg-slate-950 rounded border border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 flex items-center px-2">
                   {formData.loginPortalStyle === "UNIVERSAL" ? "name@example.com" : "investor@example.com"}
                 </div>
                 <div 
@@ -1450,7 +1450,7 @@ export default function TenantAdminSettingsPage() {
                   {formData.loginPortalStyle === "INVESTOR_PORTAL" ? "Sign In to Investor Portfolio" : "Sign In to Portal"} &rarr;
                 </div>
                 {formData.loginPortalStyle === "INVESTOR_PORTAL" && (
-                  <div className="text-[9px] text-sky-400 text-center pt-0.5">
+                  <div className="text-[9px] text-sky-600 dark:text-sky-400 text-center pt-0.5">
                     Sign in to {formData.firmType === "MFD" ? "Distributor" : "Advisor"} Console &rarr;
                   </div>
                 )}

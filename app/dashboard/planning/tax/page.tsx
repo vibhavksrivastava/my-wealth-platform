@@ -283,13 +283,13 @@ function TaxPlanningContent() {
 
   if (error) {
     return (
-      <div className="p-8 rounded-3xl bg-red-950/20 border border-red-500/30 text-center space-y-4 max-w-2xl mx-auto my-12">
-        <AlertTriangle className="h-10 w-10 text-red-400 mx-auto" />
-        <h2 className="text-lg font-bold text-white">Tax Planning Data Unavailable</h2>
-        <p className="text-xs text-slate-300">{error}</p>
+      <div className="p-8 rounded-3xl bg-rose-50 dark:bg-red-950/20 border border-rose-200 dark:border-red-500/30 text-center space-y-4 max-w-2xl mx-auto my-12">
+        <AlertTriangle className="h-10 w-10 text-rose-500 dark:text-red-400 mx-auto" />
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Tax Planning Data Unavailable</h2>
+        <p className="text-xs text-slate-600 dark:text-slate-300">{error}</p>
         <button
           onClick={() => fetchData(selectedClientId, fiscalYear)}
-          className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-semibold"
+          className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold"
         >
           Retry Connection
         </button>
@@ -300,40 +300,40 @@ function TaxPlanningContent() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto py-4 px-2 sm:px-4">
       {/* Breadcrumbs & Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800/60">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800/60">
         <div>
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <Link href={isAdvisor ? "/dashboard/advisor" : "/dashboard/client"} className="hover:text-white transition">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <Link href={isAdvisor ? "/dashboard/advisor" : "/dashboard/client"} className="hover:text-slate-900 dark:hover:text-white transition">
               {isAdvisor ? `${terms.advisorLabel} Dashboard` : "My Dashboard"}
             </Link>
             <ChevronRight className="h-3 w-3" />
-            <Link href="/dashboard/planning" className="hover:text-white transition">Planning</Link>
+            <Link href="/dashboard/planning" className="hover:text-slate-900 dark:hover:text-white transition">Planning</Link>
             <ChevronRight className="h-3 w-3" />
-            <span className="text-emerald-400 font-medium">Tax Planning &amp; Withdrawals</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">Tax Planning &amp; Withdrawals</span>
           </div>
           <div className="flex items-center gap-3 mt-1">
-            <div className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <div className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <Calculator className="h-4 w-4" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                 {isAdvisor ? (
                   <>
                     Tax Planning &amp; Mutual Fund Withdrawal Strategy
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                       {terms.advisorLabel} View
                     </span>
                   </>
                 ) : (
                   <>
                     Welcome, {client?.fullName || "Investor"} &bull; Tax Liability &amp; Withdrawal Strategy
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                       Client View
                     </span>
                   </>
                 )}
               </h1>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {isAdvisor
                   ? "Select a client to evaluate regime suitability, total applicable tax, tax-free mutual fund withdrawals, and suggested fund redemptions."
                   : "View your personalized income tax liability, optimal regime recommendation, and tax-free mutual fund withdrawal quota."}
@@ -346,15 +346,15 @@ function TaxPlanningContent() {
         <div className="flex items-center gap-3">
           {/* ADVISOR-ONLY: Client Switcher Dropdown (Hidden for Client Login) */}
           {isAdvisor && data?.clientList && data.clientList.length > 0 && (
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 shadow-sm">
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 shadow-sm">
               <User className="h-3.5 w-3.5 text-slate-400" />
               <select
                 value={selectedClientId}
                 onChange={(e) => handleClientChange(e.target.value)}
-                className="bg-transparent text-xs text-white font-medium focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs text-slate-800 dark:text-white font-medium focus:outline-none cursor-pointer"
               >
                 {data.clientList.map((c: any) => (
-                  <option key={c.clientId} value={c.clientId} className="bg-slate-900 text-white">
+                  <option key={c.clientId} value={c.clientId} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
                     {c.fullName} ({formatINR(c.annualIncome)})
                   </option>
                 ))}
@@ -363,22 +363,22 @@ function TaxPlanningContent() {
           )}
 
           {/* Fiscal Year Switcher */}
-          <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 shadow-sm">
-            <Calendar className="h-3.5 w-3.5 text-emerald-400" />
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 shadow-sm">
+            <Calendar className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
             <select
               value={fiscalYear}
               onChange={(e) => handleFiscalYearChange(e.target.value)}
-              className="bg-transparent text-xs text-white font-medium focus:outline-none cursor-pointer"
+              className="bg-transparent text-xs text-slate-800 dark:text-white font-medium focus:outline-none cursor-pointer"
             >
-              <option value="2026-2027" className="bg-slate-900 text-white">FY 2026-27 (AY 2027-28)</option>
-              <option value="2025-2026" className="bg-slate-900 text-white">FY 2025-26 (AY 2026-27)</option>
+              <option value="2026-2027" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">FY 2026-27 (AY 2027-28)</option>
+              <option value="2025-2026" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">FY 2025-26 (AY 2026-27)</option>
             </select>
           </div>
 
           <button
             onClick={() => fetchData(selectedClientId, fiscalYear)}
             title="Refresh Holdings & Tax Exposure"
-            className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition"
+            className="p-2 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition shadow-sm"
           >
             <RefreshCw className="h-4 w-4" />
           </button>
@@ -390,36 +390,36 @@ function TaxPlanningContent() {
       {/* ========================================================================= */}
       {comp && (
         <div
-          className={`p-6 rounded-3xl border transition shadow-xl relative overflow-hidden ${
+          className={`p-6 rounded-3xl border transition shadow-sm dark:shadow-xl relative overflow-hidden ${
             isNewOptimal
-              ? "bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border-emerald-500/40"
-              : "bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border-indigo-500/40"
+              ? "bg-gradient-to-r from-emerald-50 via-white to-emerald-50/30 dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border-emerald-200 dark:border-emerald-500/40"
+              : "bg-gradient-to-r from-indigo-50 via-white to-indigo-50/30 dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-900 border-indigo-200 dark:border-indigo-500/40"
           }`}
         >
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Sparkles className={`h-5 w-5 ${isNewOptimal ? "text-emerald-400" : "text-indigo-400"}`} />
+                <Sparkles className={`h-5 w-5 ${isNewOptimal ? "text-emerald-600 dark:text-emerald-400" : "text-indigo-600 dark:text-indigo-400"}`} />
                 <span
                   className={`text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
                     isNewOptimal
-                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                      : "bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+                      ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/30"
+                      : "bg-indigo-500/20 text-indigo-800 dark:text-indigo-300 border-indigo-500/30"
                   }`}
                 >
                   RECOMMENDED: {isNewOptimal ? "NEW TAX REGIME (SECTION 115BAC)" : "OLD TAX REGIME"}
                 </span>
               </div>
 
-              <h2 className="text-xl sm:text-2xl font-black text-white">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
                 Choosing the {isNewOptimal ? "New Tax Regime" : "Old Tax Regime"} saves {isAdvisor ? `${client?.fullName}` : "you"}{" "}
-                <span className={isNewOptimal ? "text-emerald-400" : "text-indigo-400"}>
+                <span className={isNewOptimal ? "text-emerald-600 dark:text-emerald-400" : "text-indigo-600 dark:text-indigo-400"}>
                   {formatINR(comp.taxSavingsWithRecommended)}
                 </span>{" "}
                 in net annual tax liability.
               </h2>
 
-              <p className="text-xs text-slate-300 leading-relaxed max-w-3xl">
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-3xl">
                 {isNewOptimal
                   ? `For an annual gross income of ${formatINR(
                       grossIncome
@@ -439,14 +439,14 @@ function TaxPlanningContent() {
             </div>
 
             {/* Total Applicable Tax Pill */}
-            <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 shrink-0 text-right space-y-1">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+            <div className="bg-white dark:bg-slate-950/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shrink-0 text-right space-y-1 shadow-sm">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                 Total Applicable Tax
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono">
                 {formatINR(isNewOptimal ? comp.newRegime.totalTax : comp.oldRegime.totalTax)}
               </div>
-              <div className="text-xs text-emerald-400 font-semibold">
+              <div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
                 Effective Rate: {isNewOptimal ? comp.newRegime.effectiveTaxRatePct : comp.oldRegime.effectiveTaxRatePct}%
               </div>
             </div>
@@ -458,75 +458,75 @@ function TaxPlanningContent() {
       {/* 2. MUTUAL FUND TAX-FREE WITHDRAWAL QUOTA CARD */}
       {/* ========================================================================= */}
       {withdrawal && (
-        <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-sky-950/20 to-slate-900 border border-sky-500/30 shadow-xl space-y-4">
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-sky-50/60 via-white to-sky-50/30 dark:from-slate-900 dark:via-sky-950/20 dark:to-slate-900 border border-sky-200 dark:border-sky-500/30 shadow-sm dark:shadow-xl space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center gap-1">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/30 flex items-center gap-1">
                   <ArrowDownToLine className="h-3 w-3" /> Section 112A Tax-Free Quota
                 </span>
-                <h3 className="text-lg font-bold text-white">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                   Mutual Fund Tax-Free Withdrawal Quota
                 </h3>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 How much {isAdvisor ? `${client?.fullName}` : "you"} can withdraw from mutual funds today with ZERO rupees of tax liability.
               </p>
             </div>
 
             {/* Total Tax-Free Capacity Big Badge */}
-            <div className="bg-slate-950/80 px-5 py-3 rounded-2xl border border-sky-500/40 text-right">
-              <div className="text-[10px] text-sky-400 font-bold uppercase tracking-wider">
+            <div className="bg-white dark:bg-slate-950/80 px-5 py-3 rounded-2xl border border-sky-200 dark:border-sky-500/40 text-right shadow-sm">
+              <div className="text-[10px] text-sky-600 dark:text-sky-400 font-bold uppercase tracking-wider">
                 Total Tax-Free Cash Withdrawal Capacity
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-emerald-300 font-mono">
+              <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-300 font-mono">
                 {formatINR(withdrawal.totalTaxFreeGrossWithdrawalCapacity)}
               </div>
-              <div className="text-[11px] text-slate-300 flex items-center justify-end gap-1 mt-0.5">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+              <div className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center justify-end gap-1 mt-0.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Applicable Tax on this Withdrawal: </span>
-                <span className="font-bold text-emerald-400">₹0 (Zero Tax)</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">₹0 (Zero Tax)</span>
               </div>
             </div>
           </div>
 
           {/* Breakdown Pills */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
-            <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-1">
-              <div className="text-[11px] text-slate-400">Tax-Free LTCG Quota (Section 112A)</div>
-              <div className="text-lg font-bold text-white font-mono">
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-1 shadow-sm">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">Tax-Free LTCG Quota (Section 112A)</div>
+              <div className="text-lg font-bold text-slate-900 dark:text-white font-mono">
                 {formatINR(withdrawal.totalTaxFreeGainExtracted)} / ₹1,25,000
               </div>
-              <div className="text-[10px] text-emerald-400">0% Tax Rate on this gain portion</div>
+              <div className="text-[10px] text-emerald-600 dark:text-emerald-400">0% Tax Rate on this gain portion</div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-1">
-              <div className="text-[11px] text-slate-400">Principal Cost Basis Returned</div>
-              <div className="text-lg font-bold text-white font-mono">
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-1 shadow-sm">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">Principal Cost Basis Returned</div>
+              <div className="text-lg font-bold text-slate-900 dark:text-white font-mono">
                 {formatINR(Math.max(0, withdrawal.totalTaxFreeGrossWithdrawalCapacity - withdrawal.totalTaxFreeGainExtracted))}
               </div>
-              <div className="text-[10px] text-slate-400">Untaxed capital return</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">Untaxed capital return</div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-1">
-              <div className="text-[11px] text-slate-400">Permanent Tax Saved via Step-Up</div>
-              <div className="text-lg font-bold text-sky-300 font-mono">
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-1 shadow-sm">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">Permanent Tax Saved via Step-Up</div>
+              <div className="text-lg font-bold text-sky-600 dark:text-sky-300 font-mono">
                 {formatINR(withdrawal.permanentTaxSaved)}
               </div>
-              <div className="text-[10px] text-sky-400">12.5% tax permanently saved on future exit</div>
+              <div className="text-[10px] text-sky-600 dark:text-sky-400">12.5% tax permanently saved on future exit</div>
             </div>
           </div>
         </div>
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto text-xs font-semibold">
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto text-xs font-semibold">
         <button
           onClick={() => setActiveTab("withdrawals")}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
             activeTab === "withdrawals"
-              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
           }`}
         >
           <ArrowDownToLine className="h-4 w-4" />
@@ -537,8 +537,8 @@ function TaxPlanningContent() {
           onClick={() => setActiveTab("regime")}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
             activeTab === "regime"
-              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
           }`}
         >
           <Scale className="h-4 w-4" />
@@ -549,8 +549,8 @@ function TaxPlanningContent() {
           onClick={() => setActiveTab("schedule-cg")}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
             activeTab === "schedule-cg"
-              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
           }`}
         >
           <FileText className="h-4 w-4" />
@@ -564,11 +564,11 @@ function TaxPlanningContent() {
           }}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
             activeTab === "ai-advisory"
-              ? "bg-gradient-to-r from-emerald-500/20 to-purple-500/20 text-purple-300 border border-purple-500/40"
-              : "text-slate-400 hover:text-white hover:bg-slate-900"
+              ? "bg-gradient-to-r from-emerald-500/10 to-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/30"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900"
           }`}
         >
-          <Sparkles className="h-4 w-4 text-purple-400" />
+          <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           Gemini AI Wealth Tax {terms.advisoryLabel === "Distribution" ? "Optimization" : "Advisory"} Memo
         </button>
       </div>
@@ -580,20 +580,20 @@ function TaxPlanningContent() {
         <div className="space-y-6">
           {/* Optimal 4-Step Withdrawal Hierarchy */}
           {withdrawal?.hierarchyGuidance && (
-            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Layers className="h-4 w-4 text-emerald-400" />
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm">
+              <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <Layers className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 Optimal Mutual Fund Withdrawal Priority Hierarchy
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
                 {withdrawal.hierarchyGuidance.map((step: any, idx: number) => (
-                  <div key={idx} className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1.5 flex flex-col justify-between">
+                  <div key={idx} className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 space-y-1.5 flex flex-col justify-between shadow-xs">
                     <div>
-                      <div className="text-[11px] font-bold text-white">{step.title}</div>
-                      <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{step.description}</p>
+                      <div className="text-[11px] font-bold text-slate-900 dark:text-white">{step.title}</div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">{step.description}</p>
                     </div>
-                    <div className="text-[10px] font-mono font-semibold text-emerald-400 pt-2 border-t border-slate-800/60">
+                    <div className="text-[10px] font-mono font-semibold text-emerald-600 dark:text-emerald-400 pt-2 border-t border-slate-200 dark:border-slate-800/60">
                       {step.taxImplication}
                     </div>
                   </div>
@@ -605,13 +605,13 @@ function TaxPlanningContent() {
           {/* Category Filter Pills */}
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-400 font-semibold">Filter Asset Category:</span>
+              <span className="text-slate-500 dark:text-slate-400 font-semibold">Filter Asset Category:</span>
               <button
                 onClick={() => setWithdrawalFilter("ALL")}
                 className={`px-3 py-1 rounded-xl transition ${
                   withdrawalFilter === "ALL"
-                    ? "bg-slate-800 text-white font-bold border border-slate-700"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-slate-800 text-white font-bold border border-slate-700 shadow-sm"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 All Schemes ({withdrawal?.allSuggestions?.length || 0})
@@ -620,8 +620,8 @@ function TaxPlanningContent() {
                 onClick={() => setWithdrawalFilter("LTCG")}
                 className={`px-3 py-1 rounded-xl transition ${
                   withdrawalFilter === "LTCG"
-                    ? "bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/40 shadow-sm"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 Equity LTCG ({withdrawal?.equityLtcgFunds?.length || 0})
@@ -630,8 +630,8 @@ function TaxPlanningContent() {
                 onClick={() => setWithdrawalFilter("STCG")}
                 className={`px-3 py-1 rounded-xl transition ${
                   withdrawalFilter === "STCG"
-                    ? "bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold border border-amber-500/40 shadow-sm"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 Equity STCG ({withdrawal?.equityStcgFunds?.length || 0})
@@ -640,24 +640,24 @@ function TaxPlanningContent() {
                 onClick={() => setWithdrawalFilter("DEBT")}
                 className={`px-3 py-1 rounded-xl transition ${
                   withdrawalFilter === "DEBT"
-                    ? "bg-sky-500/20 text-sky-300 font-bold border border-sky-500/40"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-sky-500/20 text-sky-700 dark:text-sky-300 font-bold border border-sky-500/40 shadow-sm"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 Debt / Section 50AA ({withdrawal?.debtFunds?.length || 0})
               </button>
             </div>
 
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-slate-500 dark:text-slate-400">
               Showing {filteredWithdrawals.length} holdings
             </div>
           </div>
 
           {/* Categorized Funds Table */}
           {filteredWithdrawals.length > 0 ? (
-            <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/50">
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/50 shadow-sm">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-900/80 text-slate-400 font-semibold border-b border-slate-800">
+                <thead className="bg-slate-50 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
                   <tr>
                     <th className="py-3 px-4">Scheme / Folio</th>
                     <th className="py-3 px-4">Asset Class &amp; Category</th>
@@ -669,17 +669,17 @@ function TaxPlanningContent() {
                     <th className="py-3 px-4 text-center">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
                   {filteredWithdrawals.map((item: any, idx: number) => {
                     const isLtcg = item.category === "EQUITY_LTCG";
                     const isStcg = item.category === "EQUITY_STCG";
                     const isDebt = item.category === "DEBT_SECTION_50AA";
 
                     return (
-                      <tr key={idx} className="hover:bg-slate-900/40 transition">
+                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
                         {/* Scheme */}
                         <td className="py-3 px-4">
-                          <div className="font-semibold text-white">{item.schemeName}</div>
+                          <div className="font-semibold text-slate-900 dark:text-white">{item.schemeName}</div>
                           {item.folioNumber && (
                             <div className="text-[10px] text-slate-500">Folio: {item.folioNumber}</div>
                           )}
@@ -690,12 +690,12 @@ function TaxPlanningContent() {
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               isLtcg
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20"
                                 : isStcg
                                 ? item.unrealizedGain < 0
-                                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                                  : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                                  ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20"
+                                  : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20"
+                                : "bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20"
                             }`}
                           >
                             {isLtcg ? "Equity LTCG (>1Y)" : isStcg ? "Equity STCG (<1Y)" : "Debt / Sec 50AA"}
@@ -704,15 +704,15 @@ function TaxPlanningContent() {
 
                         {/* Holding Value */}
                         <td className="py-3 px-4 text-right font-mono">
-                          <div className="text-white font-bold">{formatINR(item.currentValue)}</div>
-                          <div className="text-[10px] text-slate-400">Cost: {formatINR(item.investedCost)}</div>
+                          <div className="text-slate-900 dark:text-white font-bold">{formatINR(item.currentValue)}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400">Cost: {formatINR(item.investedCost)}</div>
                         </td>
 
                         {/* Gain */}
                         <td className="py-3 px-4 text-right font-mono">
                           <div
                             className={`font-bold ${
-                              item.unrealizedGain >= 0 ? "text-emerald-400" : "text-red-400"
+                              item.unrealizedGain >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-red-400"
                             }`}
                           >
                             {item.unrealizedGain >= 0 ? "+" : ""}
@@ -727,13 +727,13 @@ function TaxPlanningContent() {
                         <td className="py-3 px-4 text-right font-mono">
                           {item.maxTaxFreeWithdrawalAmount > 0 ? (
                             <>
-                              <div className="text-white font-bold">{formatINR(item.maxTaxFreeWithdrawalAmount)}</div>
-                              <div className="text-[10px] text-emerald-400">
+                              <div className="text-slate-900 dark:text-white font-bold">{formatINR(item.maxTaxFreeWithdrawalAmount)}</div>
+                              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
                                 Gain: +{formatINR(item.taxFreeGainBooked)} (0% Tax)
                               </div>
                             </>
                           ) : (
-                            <span className="text-slate-500 text-[11px]">—</span>
+                            <span className="text-slate-400 text-[11px]">—</span>
                           )}
                         </td>
 
@@ -742,16 +742,16 @@ function TaxPlanningContent() {
                           <span
                             className={`px-1.5 py-0.5 rounded text-[11px] font-bold ${
                               item.taxRateIfWithdrawnPct === 0
-                                ? "bg-emerald-500/20 text-emerald-300"
+                                ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                                 : item.taxRateIfWithdrawnPct === 20
-                                ? "bg-amber-500/20 text-amber-400"
-                                : "bg-slate-800 text-slate-300"
+                                ? "bg-amber-500/20 text-amber-700 dark:text-amber-400"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                             }`}
                           >
                             {item.taxRateIfWithdrawnPct}%
                           </span>
                           {item.estimatedTaxPayable > 0 && (
-                            <div className="text-[10px] text-slate-400 mt-0.5">
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                               Tax: {formatINR(item.estimatedTaxPayable)}
                             </div>
                           )}
@@ -759,18 +759,18 @@ function TaxPlanningContent() {
 
                         {/* Action Instructions */}
                         <td className="py-3 px-4 text-[11px] max-w-sm">
-                          <div className="text-slate-300 leading-relaxed">{item.actionInstructions}</div>
+                          <div className="text-slate-600 dark:text-slate-300 leading-relaxed">{item.actionInstructions}</div>
                         </td>
 
                         {/* Copy button */}
                         <td className="py-3 px-4 text-center">
                           <button
                             onClick={() => copyItemText(item, idx)}
-                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold transition inline-flex items-center gap-1 border border-slate-700"
+                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-semibold transition inline-flex items-center gap-1 border border-slate-300 dark:border-slate-700 shadow-xs"
                           >
                             {copiedItemIndex === idx ? (
                               <>
-                                <Check className="h-3 w-3 text-emerald-400" /> Copied
+                                <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> Copied
                               </>
                             ) : (
                               <>
@@ -786,7 +786,7 @@ function TaxPlanningContent() {
               </table>
             </div>
           ) : (
-            <div className="p-8 rounded-2xl bg-slate-950/40 border border-slate-800 text-center text-xs text-slate-400">
+            <div className="p-8 rounded-2xl bg-white dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400 shadow-sm">
               No holdings found matching the selected asset class filter.
             </div>
           )}
@@ -798,21 +798,21 @@ function TaxPlanningContent() {
       {/* ========================================================================= */}
       {activeTab === "regime" && (
         <div className="space-y-6">
-          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-6">
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Scale className="h-5 w-5 text-emerald-400" />
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Scale className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                   Old vs New Regime Liability Simulator
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Detailed comparison between Section 115BAC and Old Regime with full Chapter VI-A deductions.
                 </p>
               </div>
 
               <button
                 onClick={() => setShowDeductionTuning(!showDeductionTuning)}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition flex items-center gap-1.5 border border-slate-700 self-start sm:self-auto"
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition flex items-center gap-1.5 border border-slate-300 dark:border-slate-700 self-start sm:self-auto shadow-xs"
               >
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 {showDeductionTuning ? "Hide Deduction Controls" : "Tune Old Regime Deductions"}
@@ -820,13 +820,13 @@ function TaxPlanningContent() {
             </div>
 
             {/* Gross Income Input */}
-            <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
-              <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex justify-between mb-2">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80">
+              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex justify-between mb-2">
                 <span>Annual Gross Salary / Business Income</span>
-                <span className="text-emerald-400 font-mono text-sm">{formatINR(grossIncome)}</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-mono text-sm">{formatINR(grossIncome)}</span>
               </label>
               <div className="flex items-center gap-3">
-                <span className="text-lg font-bold text-emerald-400 font-mono">₹</span>
+                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono">₹</span>
                 <input
                   type="number"
                   step="50000"
@@ -836,18 +836,18 @@ function TaxPlanningContent() {
                     setGrossIncome(val);
                     runSimulatorRecalc(val, sim80C, sim80D, sim80CCD, sim24b, simHRA, simOther);
                   }}
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-emerald-500 font-mono"
+                  className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 font-mono"
                 />
               </div>
             </div>
 
             {/* Collapsible Deduction Controls */}
             {showDeductionTuning && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex justify-between">
                     <span>Section 80C (EPF/PPF/ELSS, max 1.5L)</span>
-                    <span className="text-slate-400 font-mono">{formatINR(sim80C)}</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-mono">{formatINR(sim80C)}</span>
                   </label>
                   <input
                     type="number"
@@ -859,14 +859,14 @@ function TaxPlanningContent() {
                       setSim80C(val);
                       runSimulatorRecalc(grossIncome, val, sim80D, sim80CCD, sim24b, simHRA, simOther);
                     }}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex justify-between">
                     <span>Section 80D (Health Insurance, max 1L)</span>
-                    <span className="text-slate-400 font-mono">{formatINR(sim80D)}</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-mono">{formatINR(sim80D)}</span>
                   </label>
                   <input
                     type="number"
@@ -878,14 +878,14 @@ function TaxPlanningContent() {
                       setSim80D(val);
                       runSimulatorRecalc(grossIncome, sim80C, val, sim80CCD, sim24b, simHRA, simOther);
                     }}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex justify-between">
                     <span>Section 80CCD(1B) (NPS, max 50k)</span>
-                    <span className="text-slate-400 font-mono">{formatINR(sim80CCD)}</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-mono">{formatINR(sim80CCD)}</span>
                   </label>
                   <input
                     type="number"
@@ -897,14 +897,14 @@ function TaxPlanningContent() {
                       setSim80CCD(val);
                       runSimulatorRecalc(grossIncome, sim80C, sim80D, val, sim24b, simHRA, simOther);
                     }}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex justify-between">
                     <span>Section 24b (Home Loan Interest, max 2L)</span>
-                    <span className="text-slate-400 font-mono">{formatINR(sim24b)}</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-mono">{formatINR(sim24b)}</span>
                   </label>
                   <input
                     type="number"
@@ -916,14 +916,14 @@ function TaxPlanningContent() {
                       setSim24b(val);
                       runSimulatorRecalc(grossIncome, sim80C, sim80D, sim80CCD, val, simHRA, simOther);
                     }}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300 flex justify-between">
+                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex justify-between">
                     <span>Section 10(13A) (HRA Exemption)</span>
-                    <span className="text-slate-400 font-mono">{formatINR(simHRA)}</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-mono">{formatINR(simHRA)}</span>
                   </label>
                   <input
                     type="number"
@@ -934,7 +934,7 @@ function TaxPlanningContent() {
                       setSimHRA(val);
                       runSimulatorRecalc(grossIncome, sim80C, sim80D, sim80CCD, sim24b, val, simOther);
                     }}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
@@ -947,56 +947,56 @@ function TaxPlanningContent() {
                 <div
                   className={`p-6 rounded-3xl border transition relative ${
                     isNewOptimal
-                      ? "bg-slate-900/90 border-emerald-500/60 shadow-xl shadow-emerald-950/30 ring-1 ring-emerald-500/30"
-                      : "bg-slate-900/40 border-slate-800"
+                      ? "bg-emerald-50/40 dark:bg-slate-900/90 border-emerald-400 dark:border-emerald-500/60 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-400/30"
+                      : "bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800"
                   }`}
                 >
-                  <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-0.5">
+                  <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-0.5">
                     Section 115BAC
                   </div>
-                  <h4 className="text-xl font-black text-white">New Tax Regime</h4>
-                  <p className="text-xs text-slate-400">
+                  <h4 className="text-xl font-black text-slate-900 dark:text-white">New Tax Regime</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Flat ₹75,000 standard deduction with streamlined slabs
                   </p>
 
-                  <div className="my-4 py-3 border-y border-slate-800 space-y-1">
-                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                  <div className="my-4 py-3 border-y border-slate-200 dark:border-slate-800 space-y-1">
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
                       Total Applicable Tax Due
                     </div>
-                    <div className="text-3xl font-black text-white font-mono">
+                    <div className="text-3xl font-black text-slate-900 dark:text-white font-mono">
                       {formatINR(comp.newRegime.totalTax)}
                     </div>
-                    <div className="text-xs text-emerald-400 font-semibold">
+                    <div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
                       Effective Rate: {comp.newRegime.effectiveTaxRatePct}%
                     </div>
                   </div>
 
                   <div className="space-y-2 text-xs">
-                    <div className="flex justify-between text-slate-400">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Gross Income:</span>
-                      <span className="text-white font-mono">{formatINR(comp.newRegime.grossIncome)}</span>
+                      <span className="text-slate-900 dark:text-white font-mono">{formatINR(comp.newRegime.grossIncome)}</span>
                     </div>
-                    <div className="flex justify-between text-slate-400">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Standard Deduction:</span>
-                      <span className="text-emerald-400 font-mono">-{formatINR(comp.newRegime.standardDeduction)}</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-mono font-medium">-{formatINR(comp.newRegime.standardDeduction)}</span>
                     </div>
-                    <div className="flex justify-between text-slate-400">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Taxable Income:</span>
-                      <span className="text-white font-mono font-bold">{formatINR(comp.newRegime.taxableIncome)}</span>
+                      <span className="text-slate-900 dark:text-white font-mono font-bold">{formatINR(comp.newRegime.taxableIncome)}</span>
                     </div>
-                    <div className="flex justify-between text-slate-400">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Slab Tax:</span>
-                      <span className="text-white font-mono">{formatINR(comp.newRegime.slabTax)}</span>
+                      <span className="text-slate-900 dark:text-white font-mono">{formatINR(comp.newRegime.slabTax)}</span>
                     </div>
                     {comp.newRegime.surcharge > 0 && (
-                      <div className="flex justify-between text-slate-400">
+                      <div className="flex justify-between text-slate-600 dark:text-slate-400">
                         <span>Surcharge:</span>
-                        <span className="text-white font-mono">{formatINR(comp.newRegime.surcharge)}</span>
+                        <span className="text-slate-900 dark:text-white font-mono">{formatINR(comp.newRegime.surcharge)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-slate-400">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Health &amp; Education Cess (4%):</span>
-                      <span className="text-white font-mono">{formatINR(comp.newRegime.cess)}</span>
+                      <span className="text-slate-900 dark:text-white font-mono">{formatINR(comp.newRegime.cess)}</span>
                     </div>
                   </div>
                 </div>
@@ -1005,60 +1005,60 @@ function TaxPlanningContent() {
                 <div
                   className={`p-6 rounded-3xl border transition relative ${
                     !isNewOptimal
-                      ? "bg-slate-900/90 border-indigo-500/60 shadow-xl shadow-indigo-950/30 ring-1 ring-indigo-500/30"
-                      : "bg-slate-900/40 border-slate-800"
+                      ? "bg-indigo-50/40 dark:bg-slate-900/90 border-indigo-400 dark:border-indigo-500/60 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-400/30"
+                      : "bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800"
                   }`}
                 >
-                  <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-0.5">
+                  <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-0.5">
                     Conventional Slabs
                   </div>
-                  <h4 className="text-xl font-black text-white">Old Tax Regime</h4>
-                  <p className="text-xs text-slate-400">
+                  <h4 className="text-xl font-black text-slate-900 dark:text-white">Old Tax Regime</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Utilizes 80C, 80D, 80CCD, Section 24(b) &amp; HRA deductions
                   </p>
 
-                  <div className="my-4 py-3 border-y border-slate-800 space-y-1">
-                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                  <div className="my-4 py-3 border-y border-slate-200 dark:border-slate-800 space-y-1">
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
                       Total Applicable Tax Due
                     </div>
-                    <div className="text-3xl font-black text-white font-mono">
+                    <div className="text-3xl font-black text-slate-900 dark:text-white font-mono">
                       {formatINR(comp.oldRegime.totalTax)}
                     </div>
-                    <div className="text-xs text-indigo-400 font-semibold">
+                    <div className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold">
                       Effective Rate: {comp.oldRegime.effectiveTaxRatePct}%
                     </div>
                   </div>
 
                   <div className="space-y-2 text-xs">
-                    <div className="flex justify-between text-slate-400">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Gross Income:</span>
-                      <span className="text-white font-mono">{formatINR(comp.oldRegime.grossIncome)}</span>
+                      <span className="text-slate-900 dark:text-white font-mono">{formatINR(comp.oldRegime.grossIncome)}</span>
                     </div>
-                    <div className="flex justify-between text-slate-400">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Standard Deduction:</span>
-                      <span className="text-emerald-400 font-mono">-{formatINR(comp.oldRegime.standardDeduction)}</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-mono font-medium">-{formatINR(comp.oldRegime.standardDeduction)}</span>
                     </div>
-                    <div className="flex justify-between text-slate-400">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Total Chapter VI-A Deductions:</span>
-                      <span className="text-emerald-400 font-mono">-{formatINR(comp.oldRegime.totalDeductions)}</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-mono font-medium">-{formatINR(comp.oldRegime.totalDeductions)}</span>
                     </div>
-                    <div className="flex justify-between text-slate-400">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Taxable Income:</span>
-                      <span className="text-white font-mono font-bold">{formatINR(comp.oldRegime.taxableIncome)}</span>
+                      <span className="text-slate-900 dark:text-white font-mono font-bold">{formatINR(comp.oldRegime.taxableIncome)}</span>
                     </div>
-                    <div className="flex justify-between text-slate-400">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Slab Tax:</span>
-                      <span className="text-white font-mono">{formatINR(comp.oldRegime.slabTax)}</span>
+                      <span className="text-slate-900 dark:text-white font-mono">{formatINR(comp.oldRegime.slabTax)}</span>
                     </div>
                     {comp.oldRegime.surcharge > 0 && (
-                      <div className="flex justify-between text-slate-400">
+                      <div className="flex justify-between text-slate-600 dark:text-slate-400">
                         <span>Surcharge:</span>
-                        <span className="text-white font-mono">{formatINR(comp.oldRegime.surcharge)}</span>
+                        <span className="text-slate-900 dark:text-white font-mono">{formatINR(comp.oldRegime.surcharge)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-slate-400">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
                       <span>Health &amp; Education Cess (4%):</span>
-                      <span className="text-white font-mono">{formatINR(comp.oldRegime.cess)}</span>
+                      <span className="text-slate-900 dark:text-white font-mono">{formatINR(comp.oldRegime.cess)}</span>
                     </div>
                   </div>
                 </div>
@@ -1073,14 +1073,14 @@ function TaxPlanningContent() {
       {/* ========================================================================= */}
       {activeTab === "schedule-cg" && (
         <div className="space-y-6">
-          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-6">
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-emerald-400" />
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                   Capital Gains Statement &bull; Schedule CG (ITR-2 / ITR-3)
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Tax assessment for {client?.fullName || "Client"} (PAN: {client?.pan || "ABCDE1234F"}) for {fiscalYear}.
                 </p>
               </div>
@@ -1088,7 +1088,7 @@ function TaxPlanningContent() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition flex items-center gap-1.5 border border-slate-700"
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition flex items-center gap-1.5 border border-slate-300 dark:border-slate-700 shadow-xs"
                 >
                   <Printer className="h-3.5 w-3.5" /> Print Statement
                 </button>
@@ -1097,57 +1097,57 @@ function TaxPlanningContent() {
 
             {/* Schedule CG Summary Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
-                <div className="text-[11px] text-slate-400">Total Realized STCG</div>
-                <div className="text-xl font-bold text-white mt-0.5">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">Total Realized STCG</div>
+                <div className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">
                   {formatINR(scheduleCG?.totalRealizedSTCG || 0)}
                 </div>
-                <div className="text-[10px] text-amber-400 mt-1">Tax: {formatINR(scheduleCG?.taxOnSTCG || 0)} (@ 20%)</div>
+                <div className="text-[10px] text-amber-700 dark:text-amber-400 mt-1">Tax: {formatINR(scheduleCG?.taxOnSTCG || 0)} (@ 20%)</div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
-                <div className="text-[11px] text-slate-400">Total Realized LTCG</div>
-                <div className="text-xl font-bold text-white mt-0.5">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">Total Realized LTCG</div>
+                <div className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">
                   {formatINR(scheduleCG?.totalRealizedLTCG || 0)}
                 </div>
-                <div className="text-[10px] text-emerald-400 mt-1">Tax: {formatINR(scheduleCG?.taxOnLTCG || 0)} (@ 12.5%)</div>
+                <div className="text-[10px] text-emerald-700 dark:text-emerald-400 mt-1">Tax: {formatINR(scheduleCG?.taxOnLTCG || 0)} (@ 12.5%)</div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
-                <div className="text-[11px] text-slate-400">Total Realized Gains</div>
-                <div className="text-xl font-bold text-white mt-0.5">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">Total Realized Gains</div>
+                <div className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">
                   {formatINR(scheduleCG?.totalRealizedGains || 0)}
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1">Across all holdings</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Across all holdings</div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-emerald-950/30 border border-emerald-500/30">
-                <div className="text-[11px] text-slate-300 font-medium">Total Capital Gains Tax Due</div>
-                <div className="text-2xl font-black text-emerald-300 mt-0.5">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-white dark:from-slate-900 dark:to-emerald-950/30 border border-emerald-300 dark:border-emerald-500/30 shadow-xs">
+                <div className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">Total Capital Gains Tax Due</div>
+                <div className="text-2xl font-black text-emerald-700 dark:text-emerald-300 mt-0.5">
                   {formatINR(scheduleCG?.totalCapitalGainsTax || 0)}
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1">Payable in advance tax installments</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Payable in advance tax installments</div>
               </div>
             </div>
 
             {/* Advance Tax Schedule Calendar */}
-            <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+            <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-white flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-emerald-400" />
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   Statutory Advance Tax Calendar &bull; Section 208/211
                 </h4>
-                <span className="text-[10px] text-slate-400">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">
                   Total Tax: {formatINR(scheduleCG?.totalCapitalGainsTax || 0)}
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
                 {scheduleCG?.advanceTaxSchedule?.map((adv: any, idx: number) => (
-                  <div key={idx} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                    <div className="text-[11px] font-bold text-white">{adv.installment}</div>
-                    <div className="text-[10px] text-emerald-400">Due: {adv.dueDate}</div>
-                    <div className="text-base font-black text-white font-mono mt-1">
+                  <div key={idx} className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1 shadow-xs">
+                    <div className="text-[11px] font-bold text-slate-900 dark:text-white">{adv.installment}</div>
+                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Due: {adv.dueDate}</div>
+                    <div className="text-base font-black text-slate-900 dark:text-white font-mono mt-1">
                       {formatINR(adv.amountDue)}
                     </div>
                   </div>
@@ -1157,9 +1157,9 @@ function TaxPlanningContent() {
 
             {/* Holdings Schedule CG Detailed Table */}
             {scheduleCG?.items && scheduleCG.items.length > 0 && (
-              <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/50">
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/50 shadow-sm">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-900/80 text-slate-400 font-semibold border-b border-slate-800">
+                  <thead className="bg-slate-50 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
                     <tr>
                       <th className="py-3 px-4">Scheme / Asset</th>
                       <th className="py-3 px-4">Asset Type</th>
@@ -1171,31 +1171,31 @@ function TaxPlanningContent() {
                       <th className="py-3 px-4 text-right">Estimated Tax</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
                     {scheduleCG.items.map((item: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-slate-900/40 transition">
-                        <td className="py-3 px-4 font-semibold text-white">{item.schemeName}</td>
+                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
+                        <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">{item.schemeName}</td>
                         <td className="py-3 px-4">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                             {item.assetType}
                           </span>
                         </td>
-                        <td className="py-3 px-4 font-mono font-medium text-emerald-400">
+                        <td className="py-3 px-4 font-mono font-medium text-emerald-600 dark:text-emerald-400">
                           Sec {item.section}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono text-white">
+                        <td className="py-3 px-4 text-right font-mono text-slate-900 dark:text-white">
                           {formatINR(item.saleValue)}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono text-slate-400">
+                        <td className="py-3 px-4 text-right font-mono text-slate-500 dark:text-slate-400">
                           {formatINR(item.costValue)}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-emerald-300">
+                        <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-300">
                           +{formatINR(item.gainOrLoss)}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono text-slate-300">
+                        <td className="py-3 px-4 text-right font-mono text-slate-600 dark:text-slate-300">
                           {item.applicableTaxRate}%
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-white">
+                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">
                           {formatINR(item.estimatedTax)}
                         </td>
                       </tr>
@@ -1213,18 +1213,18 @@ function TaxPlanningContent() {
       {/* ========================================================================= */}
       {activeTab === "ai-advisory" && (
         <div className="space-y-6">
-          <div className="p-6 rounded-3xl bg-slate-900/60 border border-purple-500/20 space-y-6">
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-purple-200 dark:border-purple-500/20 space-y-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center gap-1">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/30 flex items-center gap-1">
                     <Sparkles className="h-3 w-3" /> Google Gemini AI
                   </span>
-                  <h3 className="text-lg font-bold text-white">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                     Institutional Tax Planning &amp; Harvesting Strategy Memo
                   </h3>
                 </div>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Automated CA-grade advisory analyzing post-tax alpha, sequence of redemptions, and Section 112A/111A execution steps.
                 </p>
               </div>
@@ -1233,7 +1233,7 @@ function TaxPlanningContent() {
                 <button
                   onClick={() => handleGenerateAiTaxAdvisory(false)}
                   disabled={isGeneratingAi}
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-xs transition shadow-lg shadow-purple-600/30 flex items-center gap-2"
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-xs transition shadow-md shadow-purple-600/20 flex items-center gap-2"
                 >
                   {isGeneratingAi ? (
                     <>
@@ -1250,7 +1250,7 @@ function TaxPlanningContent() {
                   <button
                     onClick={() => handleGenerateAiTaxAdvisory(true)}
                     disabled={isSavingSuggestion}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs transition shadow-lg shadow-emerald-600/30 flex items-center gap-2"
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center gap-2"
                   >
                     {isSavingSuggestion ? (
                       <>
@@ -1271,9 +1271,9 @@ function TaxPlanningContent() {
             </div>
 
             {/* Custom Advisor Instructions Input */}
-            <div className="space-y-1.5 p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
-              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <Sliders className="h-3.5 w-3.5 text-purple-400" />
+            <div className="space-y-1.5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Sliders className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                 Special Instructions for Gemini AI (Optional):
               </label>
               <div className="flex gap-2">
@@ -1282,11 +1282,11 @@ function TaxPlanningContent() {
                   placeholder="e.g. Focus on maximizing year-end Section 112A LTCG step-up while keeping exit loads strictly at zero..."
                   value={customAiPrompt}
                   onChange={(e) => setCustomAiPrompt(e.target.value)}
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                  className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
                 />
                 <button
                   onClick={() => handleGenerateAiTaxAdvisory(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition"
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white rounded-xl text-xs font-semibold transition shadow-xs"
                 >
                   Apply
                 </button>
@@ -1296,35 +1296,35 @@ function TaxPlanningContent() {
             {/* AI Generated Memo Output */}
             {aiAdvisory ? (
               <div className="space-y-6">
-                <div className="flex items-center justify-between text-xs text-slate-400 pb-2 border-b border-slate-800">
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pb-2 border-b border-slate-200 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-white">Engine:</span>
-                    <span className="text-purple-300 font-mono">{aiAdvisory.aiModelUsed}</span>
+                    <span className="font-semibold text-slate-800 dark:text-white">Engine:</span>
+                    <span className="text-purple-700 dark:text-purple-300 font-mono">{aiAdvisory.aiModelUsed}</span>
                   </div>
                   <div className="text-[11px] text-slate-500">
                     Generated: {new Date(aiAdvisory.analysisTimestamp).toLocaleString("en-IN")}
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-purple-950/20 border border-purple-500/30 space-y-2">
-                  <div className="text-xs font-bold uppercase tracking-wider text-purple-400">
+                <div className="p-5 rounded-2xl bg-purple-50/50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-purple-950/20 border border-purple-200 dark:border-purple-500/30 space-y-2">
+                  <div className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">
                     Executive Strategy &bull; Post-Tax Alpha Optimization
                   </div>
-                  <p className="text-xs text-slate-200 leading-relaxed font-sans">
+                  <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed font-sans">
                     {aiAdvisory.executiveSummary}
                   </p>
                 </div>
 
                 {aiAdvisory.regimeStrategy && (
-                  <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
                       Regime Selection Strategy: {aiAdvisory.regimeStrategy.recommendedRegime === "NEW" ? "New Tax Regime (Section 115BAC)" : "Old Tax Regime"}
                     </h4>
-                    <p className="text-xs text-slate-300 leading-relaxed">
+                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                       {aiAdvisory.regimeStrategy.rationale}
                     </p>
-                    <div className="p-3 rounded-xl bg-slate-900 border border-slate-800/80 text-xs text-slate-400">
-                      <span className="font-semibold text-white">Deduction Guidance: </span>
+                    <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-400 shadow-xs">
+                      <span className="font-semibold text-slate-900 dark:text-white">Deduction Guidance: </span>
                       {aiAdvisory.regimeStrategy.actionableDeductionGuidance}
                     </div>
                   </div>
@@ -1332,7 +1332,7 @@ function TaxPlanningContent() {
 
                 {aiAdvisory.harvestingRoadmap && aiAdvisory.harvestingRoadmap.length > 0 && (
                   <div className="space-y-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                       Step-by-Step Execution Roadmap
                     </h4>
 
@@ -1340,29 +1340,29 @@ function TaxPlanningContent() {
                       {aiAdvisory.harvestingRoadmap.map((step: any, idx: number) => (
                         <div
                           key={idx}
-                          className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col md:flex-row md:items-start justify-between gap-4"
+                          className="p-4 rounded-2xl bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-start justify-between gap-4 shadow-sm"
                         >
                           <div className="space-y-1.5 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="h-5 w-5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center text-[10px] font-bold">
+                              <span className="h-5 w-5 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 flex items-center justify-center text-[10px] font-bold">
                                 {step.stepNumber || idx + 1}
                               </span>
-                              <span className="font-bold text-white text-xs">{step.schemeOrAsset}</span>
-                              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              <span className="font-bold text-slate-900 dark:text-white text-xs">{step.schemeOrAsset}</span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                                 {step.statutorySection}
                               </span>
                             </div>
-                            <p className="text-xs text-slate-300 leading-relaxed">
+                            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                               {step.instructions}
                             </p>
-                            <div className="text-[11px] text-emerald-400 font-medium">
+                            <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
                               Impact: {step.taxImpact}
                             </div>
                           </div>
 
                           <div className="text-right shrink-0">
                             <div className="text-[10px] text-slate-500">Target Amount</div>
-                            <div className="text-sm font-black text-white font-mono">
+                            <div className="text-sm font-black text-slate-900 dark:text-white font-mono">
                               {formatINR(step.amount)}
                             </div>
                           </div>
@@ -1373,29 +1373,29 @@ function TaxPlanningContent() {
                 )}
 
                 {aiAdvisory.itrFilingGuidance && (
-                  <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-800 text-xs space-y-2">
-                    <div className="font-bold text-white flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-emerald-400" />
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-xs space-y-2">
+                    <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                       ITR Compliance: Recommended Form {aiAdvisory.itrFilingGuidance.recommendedItrForm}
                     </div>
-                    <p className="text-slate-400 text-[11px] leading-relaxed">
+                    <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
                       {aiAdvisory.itrFilingGuidance.scheduleCGNotes}
                     </p>
-                    <p className="text-slate-400 text-[11px]">
+                    <p className="text-slate-600 dark:text-slate-400 text-[11px]">
                       {aiAdvisory.itrFilingGuidance.advanceTaxReminder}
                     </p>
                   </div>
                 )}
 
-                <div className="text-[10px] text-slate-500 border-t border-slate-800/60 pt-3">
+                <div className="text-[10px] text-slate-500 border-t border-slate-200 dark:border-slate-800/60 pt-3">
                   {aiAdvisory.advisorDisclaimers}
                 </div>
               </div>
             ) : (
-              <div className="p-8 rounded-2xl bg-slate-950/40 border border-slate-800/60 text-center space-y-3">
-                <Sparkles className="h-8 w-8 text-purple-400 mx-auto" />
-                <h4 className="text-sm font-bold text-white">Generate Gemini AI Strategy Memo</h4>
-                <p className="text-xs text-slate-400 max-w-md mx-auto">
+              <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/60 text-center space-y-3">
+                <Sparkles className="h-8 w-8 text-purple-600 dark:text-purple-400 mx-auto" />
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">Generate Gemini AI Strategy Memo</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
                   Click the button above to have Google Gemini synthesize a CA-grade tax optimization advisory based on {client?.fullName}&apos;s holdings and tax regime.
                 </p>
               </div>

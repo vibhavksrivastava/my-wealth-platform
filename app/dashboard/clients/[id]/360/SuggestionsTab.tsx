@@ -230,17 +230,17 @@ export default function SuggestionsTab({
   return (
     <div className="space-y-8 pb-12">
       {/* 1. Header & Actions Bar */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900 to-sky-950/40 border border-purple-900/30 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-50 via-white to-sky-50 dark:from-purple-950/40 dark:via-slate-900 dark:to-sky-950/40 border border-purple-200 dark:border-purple-900/30 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+            <div className="h-8 w-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
               <Sparkles className="h-4 w-4" />
             </div>
-            <h2 className="text-xl font-bold text-white tracking-tight">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
               Future Suggestions & Action Plan
             </h2>
           </div>
-          <p className="mt-1 text-xs text-slate-400 max-w-2xl">
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 max-w-2xl">
             Automated diagnostic findings and tailored advisory action plans bridging advisor recommendations with client execution tracking.
           </p>
         </div>
@@ -249,17 +249,17 @@ export default function SuggestionsTab({
           <button
             onClick={handleRecalculateDiagnostic}
             disabled={isRefreshingDiagnostic}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 shadow-sm transition"
             title="Recalculate metrics against latest incomes, expenses, assets, liabilities, and goals"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingDiagnostic ? "animate-spin text-sky-400" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingDiagnostic ? "animate-spin text-sky-500" : ""}`} />
             <span>{isRefreshingDiagnostic ? "Analyzing..." : "Re-Run Diagnostic"}</span>
           </button>
 
           <button
             onClick={() => handleSavePlan("DRAFT")}
             disabled={isSubmitting}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 shadow-sm transition"
           >
             <FileText className="h-3.5 w-3.5 text-slate-400" />
             <span>Save Draft</span>
@@ -284,28 +284,28 @@ export default function SuggestionsTab({
       {findings && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-              <Layers className="h-4 w-4 text-sky-400" />
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              <Layers className="h-4 w-4 text-sky-500" />
               Automated Diagnostic Findings
             </h3>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               Analysis generated: {new Date(findings.calculatedAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
             </span>
           </div>
 
           {/* Health Score & Key Highlights Banner */}
-          <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-            <div className="md:border-r md:border-slate-800 pr-4">
-              <span className="text-[11px] font-semibold uppercase text-slate-400">Financial Health Score</span>
+          <div className="p-5 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4 items-center shadow-sm">
+            <div className="md:border-r md:border-slate-200 dark:md:border-slate-800 pr-4">
+              <span className="text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Financial Health Score</span>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className={`text-3xl font-black ${
-                  findings.overallHealthScore >= 80 ? "text-emerald-400" : findings.overallHealthScore >= 60 ? "text-amber-400" : "text-rose-400"
+                  findings.overallHealthScore >= 80 ? "text-emerald-600 dark:text-emerald-400" : findings.overallHealthScore >= 60 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
                 }`}>
                   {findings.overallHealthScore}
                 </span>
-                <span className="text-xs text-slate-500 font-bold">/ 100</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500 font-bold">/ 100</span>
               </div>
-              <div className="mt-2 w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
+              <div className="mt-2 w-full bg-slate-100 dark:bg-slate-950 h-1.5 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-700 ${
                     findings.overallHealthScore >= 80 ? "bg-emerald-500" : findings.overallHealthScore >= 60 ? "bg-amber-500" : "bg-rose-500"
@@ -313,23 +313,23 @@ export default function SuggestionsTab({
                   style={{ width: `${findings.overallHealthScore}%` }}
                 />
               </div>
-              <div className="mt-2 text-[11px] text-slate-400">
-                Risk Profile: <span className="font-semibold text-white">{findings.riskProfile}</span>
+              <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                Risk Profile: <span className="font-semibold text-slate-900 dark:text-white">{findings.riskProfile}</span>
               </div>
             </div>
 
             <div className="md:col-span-3 space-y-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-purple-300">Diagnostic Highlights</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">Diagnostic Highlights</span>
               <div className="space-y-1">
                 {findings.summaryHighlights && findings.summaryHighlights.length > 0 ? (
                   findings.summaryHighlights.map((hl: string, idx: number) => (
-                    <div key={idx} className="flex items-start gap-2 text-xs text-slate-300">
-                      <div className="h-1.5 w-1.5 rounded-full bg-purple-400 mt-1.5 flex-shrink-0" />
+                    <div key={idx} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
+                      <div className="h-1.5 w-1.5 rounded-full bg-purple-500 mt-1.5 flex-shrink-0" />
                       <span>{hl}</span>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-slate-400">Comprehensive diagnostics generated from client profile metrics.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Comprehensive diagnostics generated from client profile metrics.</p>
                 )}
               </div>
             </div>
@@ -338,34 +338,34 @@ export default function SuggestionsTab({
           {/* 3 Detailed Cards: Cash Flow, Net Worth & Solvency, Goals Feasibility */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Card A: Cash Flow Health */}
-            <div className="p-5 rounded-xl bg-slate-900/50 border border-slate-800 flex flex-col justify-between">
+            <div className="p-5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 flex flex-col justify-between shadow-sm">
               <div>
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-3">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/80 mb-3">
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-emerald-400" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">Cash Flow Health</span>
+                    <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Cash Flow Health</span>
                   </div>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
                     findings.cashFlow.status === "HEALTHY"
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
                       : findings.cashFlow.status === "MODERATE"
-                      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                      : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                      ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+                      : "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20"
                   }`}>
                     {findings.cashFlow.status}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/60">
-                    <span className="text-[10px] text-slate-400 uppercase">Monthly Surplus</span>
-                    <div className={`font-bold text-sm ${findings.cashFlow.netMonthlySurplus >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                  <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/60">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase">Monthly Surplus</span>
+                    <div className={`font-bold text-sm ${findings.cashFlow.netMonthlySurplus >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                       {formatINR(findings.cashFlow.netMonthlySurplus)}/mo
                     </div>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/60">
-                    <span className="text-[10px] text-slate-400 uppercase">Savings Rate</span>
-                    <div className="font-bold text-sm text-white">
+                  <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/60">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase">Savings Rate</span>
+                    <div className="font-bold text-sm text-slate-900 dark:text-white">
                       {findings.cashFlow.savingsRate.toFixed(1)}%
                     </div>
                   </div>
@@ -373,49 +373,49 @@ export default function SuggestionsTab({
 
                 <div className="space-y-1.5">
                   {findings.cashFlow.findings.map((f: string, i: number) => (
-                    <div key={i} className="flex items-start gap-1.5 text-[11px] text-slate-300">
-                      <span className="text-emerald-400 font-bold">&bull;</span>
+                    <div key={i} className="flex items-start gap-1.5 text-[11px] text-slate-700 dark:text-slate-300">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">&bull;</span>
                       <span>{f}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                <span>EMI-to-Income: <span className="font-semibold text-slate-200">{findings.cashFlow.emiToIncomeRatio.toFixed(1)}%</span></span>
-                <span>Outflows: <span className="font-semibold text-slate-200">{formatINR(findings.cashFlow.totalOutflows)}</span></span>
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                <span>EMI-to-Income: <span className="font-semibold text-slate-800 dark:text-slate-200">{findings.cashFlow.emiToIncomeRatio.toFixed(1)}%</span></span>
+                <span>Outflows: <span className="font-semibold text-slate-800 dark:text-slate-200">{formatINR(findings.cashFlow.totalOutflows)}</span></span>
               </div>
             </div>
 
             {/* Card B: Net Worth & Solvency Breakdown */}
-            <div className="p-5 rounded-xl bg-slate-900/50 border border-slate-800 flex flex-col justify-between">
+            <div className="p-5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 flex flex-col justify-between shadow-sm">
               <div>
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-3">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/80 mb-3">
                   <div className="flex items-center gap-2">
-                    <Wallet className="h-4 w-4 text-sky-400" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">Net Worth & Solvency</span>
+                    <Wallet className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+                    <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Net Worth & Solvency</span>
                   </div>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
                     findings.netWorth.emergencyFundStatus === "SUFFICIENT"
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
                       : findings.netWorth.emergencyFundStatus === "PARTIAL"
-                      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                      : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                      ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+                      : "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20"
                   }`}>
                     {findings.netWorth.emergencyFundStatus === "SUFFICIENT" ? "Liquid Buffer Safe" : "Buffer Needs Attention"}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/60">
-                    <span className="text-[10px] text-slate-400 uppercase">Net Worth</span>
-                    <div className="font-bold text-sm text-sky-400">
+                  <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/60">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase">Net Worth</span>
+                    <div className="font-bold text-sm text-sky-600 dark:text-sky-400">
                       {formatINR(findings.netWorth.netWorth)}
                     </div>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/60">
-                    <span className="text-[10px] text-slate-400 uppercase">Emergency Coverage</span>
-                    <div className="font-bold text-sm text-white">
+                  <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/60">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase">Emergency Coverage</span>
+                    <div className="font-bold text-sm text-slate-900 dark:text-white">
                       {findings.netWorth.emergencyFundAdequacyMonths} mos
                     </div>
                   </div>
@@ -423,52 +423,52 @@ export default function SuggestionsTab({
 
                 <div className="space-y-1.5">
                   {findings.netWorth.findings.map((f: string, i: number) => (
-                    <div key={i} className="flex items-start gap-1.5 text-[11px] text-slate-300">
-                      <span className="text-sky-400 font-bold">&bull;</span>
+                    <div key={i} className="flex items-start gap-1.5 text-[11px] text-slate-700 dark:text-slate-300">
+                      <span className="text-sky-600 dark:text-sky-400 font-bold">&bull;</span>
                       <span>{f}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                <span>Debt-to-Asset: <span className="font-semibold text-slate-200">{findings.netWorth.debtToAssetRatio.toFixed(1)}%</span></span>
-                <span>Liquidity Ratio: <span className="font-semibold text-slate-200">{findings.netWorth.liquidityRatio.toFixed(1)}%</span></span>
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                <span>Debt-to-Asset: <span className="font-semibold text-slate-800 dark:text-slate-200">{findings.netWorth.debtToAssetRatio.toFixed(1)}%</span></span>
+                <span>Liquidity Ratio: <span className="font-semibold text-slate-800 dark:text-slate-200">{findings.netWorth.liquidityRatio.toFixed(1)}%</span></span>
               </div>
             </div>
 
             {/* Card C: Goal Feasibility & Gap Analysis */}
-            <div className="p-5 rounded-xl bg-slate-900/50 border border-slate-800 flex flex-col justify-between">
+            <div className="p-5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 flex flex-col justify-between shadow-sm">
               <div>
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-3">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/80 mb-3">
                   <div className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-purple-400" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">Goal Feasibility</span>
+                    <Target className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Goal Feasibility</span>
                   </div>
-                  <span className="text-[11px] font-semibold text-purple-300">
+                  <span className="text-[11px] font-semibold text-purple-700 dark:text-purple-300">
                     {findings.goals.onTrackCount} on-track / {findings.goals.totalGoalsCount} total
                   </span>
                 </div>
 
                 {findings.goals.monthlyCapacityGap && findings.goals.monthlyCapacityGap > 0 ? (
-                  <div className="mb-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-300 flex items-center justify-between">
+                  <div className="mb-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-700 dark:text-amber-300 flex items-center justify-between">
                     <span>Cash Flow Capacity Deficit:</span>
-                    <span className="font-bold text-amber-400 font-mono">
+                    <span className="font-bold text-amber-700 dark:text-amber-400 font-mono">
                       -{formatINR(findings.goals.monthlyCapacityGap)}/mo
                     </span>
                   </div>
                 ) : null}
 
                 <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/60">
-                    <span className="text-[10px] text-slate-400 uppercase">Goal Health Score</span>
-                    <div className="font-bold text-sm text-purple-400">
+                  <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/60">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase">Goal Health Score</span>
+                    <div className="font-bold text-sm text-purple-600 dark:text-purple-400">
                       {findings.goals.overallScore}%
                     </div>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/60">
-                    <span className="text-[10px] text-slate-400 uppercase">Total Shortfall</span>
-                    <div className={`font-bold text-sm ${findings.goals.totalShortfall > 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                  <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/60">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase">Total Shortfall</span>
+                    <div className={`font-bold text-sm ${findings.goals.totalShortfall > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                       {findings.goals.totalShortfall > 0 ? formatINR(findings.goals.totalShortfall) : "Zero Gap"}
                     </div>
                   </div>
@@ -482,48 +482,48 @@ export default function SuggestionsTab({
                     const isFullyCovered = g.fundedPercentage >= 100 || g.shortfall <= 0;
 
                     return (
-                      <div key={g.goalId} className="p-2.5 rounded-lg bg-slate-950/40 border border-slate-800/40 text-[11px]">
+                      <div key={g.goalId} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800/40 text-[11px]">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-white truncate max-w-[140px]">{g.goalName}</span>
+                          <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[140px]">{g.goalName}</span>
                           <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
                             isFullyCovered
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
                               : g.feasibilityStatus === "ON_TRACK"
-                              ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                              ? "bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20"
                               : g.feasibilityStatus === "MODERATE_GAP"
-                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                              : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                              ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
+                              : "bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20"
                           }`}>
                             {g.fundedPercentage}% Funded
                           </span>
                         </div>
                         {!isFullyCovered ? (
                           <div className="mt-1.5 space-y-1 text-[10px]">
-                            <div className="text-slate-400 flex items-center justify-between">
+                            <div className="text-slate-500 dark:text-slate-400 flex items-center justify-between">
                               <span>
-                                Achieved: <span className="text-emerald-400 font-semibold">{formatINR(g.achievedToday || 0)}</span> ({g.achievedPercentage || 0}%)
+                                Achieved: <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{formatINR(g.achievedToday || 0)}</span> ({g.achievedPercentage || 0}%)
                               </span>
                               <span>
-                                Projected: <span className="text-sky-300 font-semibold">{formatINR(g.projectedCorpus || 0)}</span>
+                                Projected: <span className="text-sky-600 dark:text-sky-300 font-semibold">{formatINR(g.projectedCorpus || 0)}</span>
                               </span>
                             </div>
-                            <div className="text-slate-400 flex items-center justify-between">
+                            <div className="text-slate-500 dark:text-slate-400 flex items-center justify-between">
                               <span>
-                                Gap: <span className="text-rose-300 font-semibold">{formatINR(g.shortfall)}</span>
+                                Gap: <span className="text-rose-600 dark:text-rose-300 font-semibold">{formatINR(g.shortfall)}</span>
                               </span>
                               {g.feasibilityStatus === "ON_TRACK" && (
-                                <span className="text-emerald-400 font-medium text-[9px]">
+                                <span className="text-emerald-600 dark:text-emerald-400 font-medium text-[9px]">
                                   Surplus Covers Req. SIP
                                 </span>
                               )}
                             </div>
-                            <div className="text-purple-300 font-medium flex items-center justify-between pt-1 border-t border-slate-800/60">
-                              <span>Req. SIP: <strong className="text-purple-200">+{formatINR(reqSip)}/mo</strong></span>
-                              <span>Req. Lumpsum: <strong className="text-amber-300 font-semibold">{formatINR(reqLumpsum)}</strong></span>
+                            <div className="text-purple-700 dark:text-purple-300 font-medium flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-800/60">
+                              <span>Req. SIP: <strong className="text-purple-800 dark:text-purple-200">+{formatINR(reqSip)}/mo</strong></span>
+                              <span>Req. Lumpsum: <strong className="text-amber-700 dark:text-amber-300 font-semibold">{formatINR(reqLumpsum)}</strong></span>
                             </div>
                           </div>
                         ) : (
-                          <div className="mt-1 text-[10px] text-emerald-400">
+                          <div className="mt-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
                             Achieved: {formatINR(g.achievedToday || 0)} ({g.achievedPercentage || 0}%) &bull; Fully funded to target year {g.targetYear}
                           </div>
                         )}
@@ -533,7 +533,7 @@ export default function SuggestionsTab({
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400">
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400">
                 {findings.goals.findings[0] || "All life goals evaluated with inflation adjustments."}
               </div>
             </div>
@@ -545,15 +545,15 @@ export default function SuggestionsTab({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-400" />
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               Recommended Investment Shifts & Action Items
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Specific, rule-matched recommendations tailored to client risk profile ({client?.risk_profile || "Moderate"})
             </p>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20">
             {recommendations.length} Action Items
           </span>
         </div>
@@ -563,10 +563,10 @@ export default function SuggestionsTab({
             {recommendations.map((rec: any) => {
               const priorityColor =
                 rec.priority === "HIGH"
-                  ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                  ? "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20"
                   : rec.priority === "MEDIUM"
-                  ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                  : "bg-sky-500/10 text-sky-400 border-sky-500/20";
+                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+                  : "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20";
 
               const categoryBadge =
                 rec.category === "GOAL_REALIGNMENT"
@@ -584,11 +584,11 @@ export default function SuggestionsTab({
               return (
                 <div
                   key={rec.id}
-                  className="p-5 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition"
+                  className="p-5 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition shadow-sm"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 uppercase">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 uppercase">
                         {categoryBadge}
                       </span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${priorityColor} uppercase`}>
@@ -597,64 +597,64 @@ export default function SuggestionsTab({
                     </div>
 
                     <div>
-                      <h4 className="text-sm font-bold text-white">{rec.title}</h4>
-                      <p className="mt-1 text-xs text-slate-400 leading-relaxed">{rec.rationale}</p>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">{rec.title}</h4>
+                      <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{rec.rationale}</p>
                     </div>
 
-                    <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-800/80 space-y-1.5 text-xs">
-                      <div className="font-semibold text-sky-400 flex items-center gap-1.5">
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 space-y-1.5 text-xs">
+                      <div className="font-semibold text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
                         <ArrowRight className="h-3 w-3" />
                         <span>Action: {rec.suggestedAction}</span>
                       </div>
                       {rec.actionDetails?.targetInstrument && (
-                        <div className="text-slate-400 text-[11px]">
-                          Target: <span className="text-slate-200">{rec.actionDetails.targetInstrument}</span>
+                        <div className="text-slate-500 dark:text-slate-400 text-[11px]">
+                          Target: <span className="text-slate-800 dark:text-slate-200">{rec.actionDetails.targetInstrument}</span>
                         </div>
                       )}
                       {rec.actionDetails?.potentialBenefit && (
-                        <div className="text-slate-400 text-[11px]">
-                          Benefit: <span className="text-emerald-400">{rec.actionDetails.potentialBenefit}</span>
+                        <div className="text-slate-500 dark:text-slate-400 text-[11px]">
+                          Benefit: <span className="text-emerald-600 dark:text-emerald-400">{rec.actionDetails.potentialBenefit}</span>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
-                    <span className="text-slate-400">Expected Outcome:</span>
-                    <span className="font-semibold text-emerald-400 text-right">{rec.expectedImpact}</span>
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px]">
+                    <span className="text-slate-500 dark:text-slate-400">Expected Outcome:</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-right">{rec.expectedImpact}</span>
                   </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          <div className="p-6 rounded-xl bg-slate-900/30 border border-slate-800 text-center text-xs text-slate-400">
+          <div className="p-6 rounded-xl bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400 shadow-sm">
             No active gaps identified. Client portfolio is in balance with stated life goals.
           </div>
         )}
       </div>
 
       {/* 4. Advisor Notes & Execution Plan Editor */}
-      <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+      <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
-              <FileText className="h-4 w-4 text-sky-400" />
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+              <FileText className="h-4 w-4 text-sky-600 dark:text-sky-400" />
               {terms.advisorLabel} Custom Remarks &amp; Review Notes
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Refine your personalized observations, agreed timelines, and asset allocation advice before submitting to client.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400">Current Plan Status:</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">Current Plan Status:</span>
             <span className={`px-2.5 py-0.5 rounded text-xs font-bold border ${
               latestSuggestion?.status === "SUBMITTED_TO_CLIENT"
-                ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                ? "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20"
                 : latestSuggestion?.status === "IN_PROGRESS"
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                : "bg-slate-800 text-slate-300 border-slate-700"
+                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
             }`}>
               {latestSuggestion?.status || "NEW DRAFT"}
             </span>
@@ -666,14 +666,14 @@ export default function SuggestionsTab({
           value={advisorNotes}
           onChange={(e) => setAdvisorNotes(e.target.value)}
           placeholder="e.g. During our Q4 portfolio review with Vibhav, we agreed to prioritize increasing the retirement SIP by ₹12,500/month once the annual bonus is credited. We also recommend prepaying ₹1.5 Lakhs towards the car loan using idle savings balance..."
-          className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition placeholder:text-slate-600 resize-y"
+          className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200 text-xs focus:outline-none focus:border-sky-500 transition placeholder:text-slate-400 dark:placeholder:text-slate-600 resize-y"
         />
 
         <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
           <button
             onClick={() => handleSavePlan("DRAFT")}
             disabled={isSubmitting}
-            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
+            className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition shadow-xs"
           >
             Save as Draft
           </button>
@@ -695,17 +695,17 @@ export default function SuggestionsTab({
       {/* 5. Suggestion History Feed & Interactive Execution Tracking Log */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-            <History className="h-4 w-4 text-purple-400" />
+          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+            <History className="h-4 w-4 text-purple-600 dark:text-purple-400" />
             Suggestion History & Execution Tracking Feed
           </h3>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-slate-500 dark:text-slate-400">
             {suggestions.length} Versioned Plan(s) Recorded
           </span>
         </div>
 
         {suggestions.length === 0 ? (
-          <div className="p-8 rounded-xl bg-slate-900/30 border border-slate-800 text-center text-xs text-slate-400">
+          <div className="p-8 rounded-xl bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400 shadow-sm">
             No suggestion history recorded yet. Click &quot;Submit to Client&quot; above to create the initial action plan.
           </div>
         ) : (
@@ -720,22 +720,22 @@ export default function SuggestionsTab({
               return (
                 <div
                   key={s.id}
-                  className="rounded-xl bg-slate-900/50 border border-slate-800 overflow-hidden transition"
+                  className="rounded-xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 overflow-hidden transition shadow-sm"
                 >
                   {/* Suggestion Card Header */}
-                  <div className="p-5 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2.5">
-                        <span className="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase border bg-purple-500/10 text-purple-400 border-purple-500/20">
+                        <span className="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase border bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20">
                           {s.status}
                         </span>
-                        <span className="text-xs font-semibold text-white">
+                        <span className="text-xs font-semibold text-slate-900 dark:text-white">
                           Plan Version #{suggestions.length - index}
                         </span>
-                        <span className="text-xs text-slate-400">&bull; {dateFormatted}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">&bull; {dateFormatted}</span>
                       </div>
                       {s.advisor_notes && (
-                        <p className="text-xs text-slate-300 mt-1 italic max-w-3xl">
+                        <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 italic max-w-3xl">
                           &ldquo;{s.advisor_notes}&rdquo;
                         </p>
                       )}
@@ -744,7 +744,7 @@ export default function SuggestionsTab({
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setExpandedSuggestionId(isExpanded ? null : s.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700 transition shadow-xs"
                       >
                         <span>{isExpanded ? "Hide Details" : "View Recommendations"}</span>
                         {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -754,19 +754,19 @@ export default function SuggestionsTab({
 
                   {/* Expanded Recommendations Snapshot */}
                   {isExpanded && s.recommended_investments && s.recommended_investments.length > 0 && (
-                    <div className="p-5 bg-slate-950/60 border-b border-slate-800/80 space-y-3">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="p-5 bg-slate-50 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800/80 space-y-3">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         Prescribed Action Items in this Plan:
                       </span>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {s.recommended_investments.map((rec: any, idx: number) => (
-                          <div key={idx} className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1">
+                          <div key={idx} className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs space-y-1 shadow-xs">
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-white">{rec.title}</span>
-                              <span className="text-[10px] text-purple-400 font-semibold">{rec.priority}</span>
+                              <span className="font-bold text-slate-900 dark:text-white">{rec.title}</span>
+                              <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">{rec.priority}</span>
                             </div>
-                            <p className="text-[11px] text-slate-400">{rec.suggestedAction}</p>
-                            <p className="text-[11px] text-emerald-400 font-medium">Impact: {rec.expectedImpact}</p>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400">{rec.suggestedAction}</p>
+                            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Impact: {rec.expectedImpact}</p>
                           </div>
                         ))}
                       </div>
@@ -774,24 +774,24 @@ export default function SuggestionsTab({
                   )}
 
                   {/* Interactive Execution Tracking Log ("What was done") */}
-                  <div className="p-5 bg-slate-950/40 space-y-3">
+                  <div className="p-5 bg-slate-50/50 dark:bg-slate-950/40 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-white flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                      <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         Execution Action Log (&ldquo;What Was Done&rdquo;)
                       </span>
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-[11px] text-slate-400 dark:text-slate-500">
                         Permanent audit log of client & advisor implementation
                       </span>
                     </div>
 
                     {/* Previous Execution Logs Display */}
                     {s.client_action_notes ? (
-                      <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed space-y-2">
+                      <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 font-mono whitespace-pre-wrap leading-relaxed space-y-2 shadow-xs">
                         {s.client_action_notes}
                       </div>
                     ) : (
-                      <div className="p-3 rounded-lg bg-slate-900/30 border border-slate-800/50 text-[11px] text-slate-500 italic">
+                      <div className="p-3 rounded-lg bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 text-[11px] text-slate-400 dark:text-slate-500 italic">
                         No actions logged yet for this recommendation plan. Use the input below to record implementation updates.
                       </div>
                     )}
@@ -814,7 +814,7 @@ export default function SuggestionsTab({
                           }
                         }}
                         placeholder="Add a discussion comment for upcoming strategy review, or record an action completed..."
-                        className="flex-1 px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-purple-500 transition"
+                        className="flex-1 px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-purple-500 transition shadow-xs"
                       />
                       <div className="flex items-center gap-2">
                         <button

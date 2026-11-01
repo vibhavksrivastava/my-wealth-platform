@@ -109,15 +109,15 @@ export default function CommunicationsDashboardPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-900 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-900 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">Communications &amp; Alerts Engine</h1>
-            <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Communications &amp; Alerts Engine</h1>
+            <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               Multi-Channel Live
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Configure WhatsApp Business API, Transactional Email, and DLT SMS gateways to notify clients and advisors.
           </p>
         </div>
@@ -139,58 +139,58 @@ export default function CommunicationsDashboardPage() {
       {/* 3 Gateway Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* WhatsApp Card */}
-        <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-3">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">WhatsApp Business</span>
-            <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">WhatsApp Business</span>
+            <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <MessageSquare className="h-4 w-4" />
             </span>
           </div>
           <div>
-            <div className="text-base font-bold text-white">Meta Cloud API / Gupshup</div>
-            <div className="text-xs text-emerald-400 mt-0.5 font-medium flex items-center gap-1">
+            <div className="text-base font-bold text-slate-900 dark:text-white">Meta Cloud API / Gupshup</div>
+            <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5 font-medium flex items-center gap-1">
               <CheckCircle2 className="h-3.5 w-3.5" /> Active &amp; Ready
             </div>
           </div>
-          <p className="text-[11px] text-slate-400 leading-relaxed border-t border-slate-800/80 pt-2">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed border-t border-slate-100 dark:border-slate-800/80 pt-2">
             Supports rich interactive templates, portfolio PDF delivery, and direct 1-click <code>wa.me</code> messaging.
           </p>
         </div>
 
         {/* Email Card */}
-        <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-3">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Transactional Email</span>
-            <span className="p-2 rounded-lg bg-sky-500/10 text-sky-400">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Transactional Email</span>
+            <span className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400">
               <Mail className="h-4 w-4" />
             </span>
           </div>
           <div>
-            <div className="text-base font-bold text-white">Resend / SendGrid / SES</div>
-            <div className="text-xs text-sky-400 mt-0.5 font-medium flex items-center gap-1">
+            <div className="text-base font-bold text-slate-900 dark:text-white">Resend / SendGrid / SES</div>
+            <div className="text-xs text-sky-600 dark:text-sky-400 mt-0.5 font-medium flex items-center gap-1">
               <CheckCircle2 className="h-3.5 w-3.5" /> HTML Dispatcher Ready
             </div>
           </div>
-          <p className="text-[11px] text-slate-400 leading-relaxed border-t border-slate-800/80 pt-2">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed border-t border-slate-100 dark:border-slate-800/80 pt-2">
             Password reset tokens, consolidated CAS sync notifications, and meeting ICS calendar invites.
           </p>
         </div>
 
         {/* SMS Card */}
-        <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-3">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">DLT SMS Gateway</span>
-            <span className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">DLT SMS Gateway</span>
+            <span className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
               <Smartphone className="h-4 w-4" />
             </span>
           </div>
           <div>
-            <div className="text-base font-bold text-white">Twilio / MSG91 / Kaleyra</div>
-            <div className="text-xs text-amber-400 mt-0.5 font-medium flex items-center gap-1">
+            <div className="text-base font-bold text-slate-900 dark:text-white">Twilio / MSG91 / Kaleyra</div>
+            <div className="text-xs text-amber-600 dark:text-amber-400 mt-0.5 font-medium flex items-center gap-1">
               <CheckCircle2 className="h-3.5 w-3.5" /> TRAI DLT Compliant
             </div>
           </div>
-          <p className="text-[11px] text-slate-400 leading-relaxed border-t border-slate-800/80 pt-2">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed border-t border-slate-100 dark:border-slate-800/80 pt-2">
             Instant 2FA security OTPs, BSE StAR MF authorization alerts, and urgent 24h subscription reminders.
           </p>
         </div>
@@ -199,19 +199,19 @@ export default function CommunicationsDashboardPage() {
       {/* Interactive Testing & Dispatch Playground */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form Panel */}
-        <div className="lg:col-span-2 bg-slate-900/40 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <Send className="h-4 w-4 text-emerald-400" />
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm dark:shadow-xl space-y-5">
+          <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <Send className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               Live Notification Dispatcher &amp; Simulator
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Select a channel and template to trigger live dispatch or preview the rendered notification payload.
             </p>
           </div>
 
           {error && (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -220,7 +220,7 @@ export default function CommunicationsDashboardPage() {
           <form onSubmit={handleSendNotification} className="space-y-4">
             {/* Channel Tabs */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">
                 Delivery Channel *
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -229,8 +229,8 @@ export default function CommunicationsDashboardPage() {
                   onClick={() => setSelectedChannel("WHATSAPP")}
                   className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 ${
                     selectedChannel === "WHATSAPP"
-                      ? "bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow"
-                      : "bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white"
+                      ? "bg-emerald-500/20 border-emerald-500 text-emerald-700 dark:text-emerald-300 shadow-sm"
+                      : "bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   <MessageSquare className="h-3.5 w-3.5" />
@@ -242,8 +242,8 @@ export default function CommunicationsDashboardPage() {
                   onClick={() => setSelectedChannel("EMAIL")}
                   className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 ${
                     selectedChannel === "EMAIL"
-                      ? "bg-sky-500/20 border-sky-500 text-sky-300 shadow"
-                      : "bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white"
+                      ? "bg-sky-500/20 border-sky-500 text-sky-700 dark:text-sky-300 shadow-sm"
+                      : "bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   <Mail className="h-3.5 w-3.5" />
@@ -255,8 +255,8 @@ export default function CommunicationsDashboardPage() {
                   onClick={() => setSelectedChannel("SMS")}
                   className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 ${
                     selectedChannel === "SMS"
-                      ? "bg-amber-500/20 border-amber-500 text-amber-300 shadow"
-                      : "bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white"
+                      ? "bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 shadow-sm"
+                      : "bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   <Smartphone className="h-3.5 w-3.5" />
@@ -267,7 +267,7 @@ export default function CommunicationsDashboardPage() {
 
             {/* Recipient Input */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                 {selectedChannel === "EMAIL" ? "Recipient Email Address *" : "Recipient Mobile Number (with country code) *"}
               </label>
               <input
@@ -276,14 +276,14 @@ export default function CommunicationsDashboardPage() {
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 placeholder={selectedChannel === "EMAIL" ? "client@example.com" : "+91 98765 43210"}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition"
               />
             </div>
 
             {/* Subject (for Email) */}
             {selectedChannel === "EMAIL" && (
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                   Email Subject Line *
                 </label>
                 <input
@@ -291,14 +291,14 @@ export default function CommunicationsDashboardPage() {
                   required
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-sky-500"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 transition"
                 />
               </div>
             )}
 
             {/* Template Presets */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
                 Quick Wealth Templates
               </label>
               <div className="flex flex-wrap gap-2">
@@ -314,8 +314,8 @@ export default function CommunicationsDashboardPage() {
                     onClick={() => handleTemplateChange(t.id)}
                     className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition ${
                       selectedTemplate === t.id
-                        ? "bg-slate-800 text-white border-slate-600"
-                        : "bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white"
+                        ? "bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-600"
+                        : "bg-slate-50 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white"
                     }`}
                   >
                     {t.label}
@@ -326,7 +326,7 @@ export default function CommunicationsDashboardPage() {
 
             {/* Message Body */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
                 Notification Message Body
               </label>
               <textarea
@@ -334,15 +334,15 @@ export default function CommunicationsDashboardPage() {
                 required
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-500 leading-relaxed font-sans"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 leading-relaxed font-sans transition"
               />
-              <div className="text-[10px] text-slate-500 mt-1 flex justify-between">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 flex justify-between">
                 <span>Variables like [ClientName] and [PortalLink] are automatically resolved.</span>
                 <span>{customMessage.length} characters</span>
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-between border-t border-slate-800">
+            <div className="pt-2 flex items-center justify-between border-t border-slate-200 dark:border-slate-800">
               <span className="text-[11px] text-slate-500">
                 Safe dispatch: automatically logs to console if API keys are unconfigured.
               </span>
@@ -371,38 +371,38 @@ export default function CommunicationsDashboardPage() {
         {/* Live Preview & Result Panel */}
         <div className="space-y-4">
           {/* Live Mobile Device Preview */}
-          <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+          <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3 shadow-sm dark:shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+              <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                 Live Client Screen Preview
               </h3>
-              <span className="text-[10px] font-mono text-slate-400">{selectedChannel}</span>
+              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{selectedChannel}</span>
             </div>
 
             {/* Mock Chat Bubble */}
-            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-900">
-                <div className="h-6 w-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">
+            <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-900">
+                <div className="h-6 w-6 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-[10px]">
                   W
                 </div>
-                <div className="text-[11px] font-bold text-white">Zenith Wealth Advisory</div>
+                <div className="text-[11px] font-bold text-slate-900 dark:text-white">Zenith Wealth Advisory</div>
               </div>
 
               {selectedChannel === "WHATSAPP" ? (
-                <div className="bg-emerald-950/40 border border-emerald-900/40 rounded-xl p-3 text-xs text-slate-200 space-y-1.5 leading-relaxed font-sans shadow-sm">
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/40 rounded-xl p-3 text-xs text-slate-800 dark:text-slate-200 space-y-1.5 leading-relaxed font-sans shadow-xs">
                   <div className="whitespace-pre-line">{customMessage}</div>
-                  <div className="text-[9px] text-emerald-400 text-right pt-1 font-mono">15:42 ✓✓</div>
+                  <div className="text-[9px] text-emerald-600 dark:text-emerald-400 text-right pt-1 font-mono">15:42 ✓✓</div>
                 </div>
               ) : selectedChannel === "SMS" ? (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 font-mono space-y-1 leading-relaxed">
-                  <div className="text-[10px] text-amber-400 font-bold">VK-WLTHOS</div>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-800 dark:text-slate-200 font-mono space-y-1 leading-relaxed shadow-xs">
+                  <div className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">VK-WLTHOS</div>
                   <div className="whitespace-pre-line text-[11px]">{customMessage}</div>
                 </div>
               ) : (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 space-y-2 leading-relaxed">
-                  <div className="text-[11px] font-bold text-white border-b border-slate-800 pb-1">{subject}</div>
-                  <div className="whitespace-pre-line text-[11px] text-slate-300">{customMessage}</div>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-800 dark:text-slate-200 space-y-2 leading-relaxed shadow-xs">
+                  <div className="text-[11px] font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-1">{subject}</div>
+                  <div className="whitespace-pre-line text-[11px] text-slate-600 dark:text-slate-300">{customMessage}</div>
                   <div className="text-[9px] text-slate-500 pt-1">From: notifications@zenith9186.wealthos.com</div>
                 </div>
               )}
@@ -417,7 +417,7 @@ export default function CommunicationsDashboardPage() {
                       setCopiedLink(true);
                       setTimeout(() => setCopiedLink(false), 2000);
                     }}
-                    className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-[11px] font-semibold text-emerald-400 transition"
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 transition shadow-xs"
                   >
                     {copiedLink ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                     <span>{copiedLink ? "Link Copied!" : "Copy WhatsApp Click Link"}</span>
@@ -433,32 +433,32 @@ export default function CommunicationsDashboardPage() {
               className={`p-4 rounded-xl space-y-2 border ${
                 lastResult.success
                   ? lastResult.simulated
-                    ? "bg-amber-950/30 border-amber-500/30 text-amber-200"
-                    : "bg-emerald-950/30 border-emerald-500/30 text-emerald-200"
-                  : "bg-red-950/30 border-red-500/30 text-red-200"
+                    ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-500/30 text-amber-900 dark:text-amber-200"
+                    : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-500/30 text-emerald-900 dark:text-emerald-200"
+                  : "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-500/30 text-red-900 dark:text-red-200"
               }`}
             >
               <div className="flex items-center gap-2 text-xs font-bold">
                 {lastResult.success ? (
                   lastResult.simulated ? (
                     <>
-                      <AlertCircle className="h-4 w-4 text-amber-400" />
-                      <span className="text-amber-400">Message Simulated (No live gateway credentials configured)</span>
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <span className="text-amber-700 dark:text-amber-400">Message Simulated (No live gateway credentials configured)</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                      <span className="text-emerald-400">Live Gateway Dispatched Successfully</span>
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-emerald-700 dark:text-emerald-400">Live Gateway Dispatched Successfully</span>
                     </>
                   )
                 ) : (
                   <>
-                    <AlertCircle className="h-4 w-4 text-red-400" />
-                    <span className="text-red-400">Gateway Dispatch Failed</span>
+                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    <span className="text-red-700 dark:text-red-400">Gateway Dispatch Failed</span>
                   </>
                 )}
               </div>
-              <div className="text-[11px] text-slate-300 font-mono space-y-1 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+              <div className="text-[11px] text-slate-700 dark:text-slate-300 font-mono space-y-1 bg-white dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
                 <div>Channel: {String(lastResult.channel || selectedChannel)}</div>
                 <div>Recipient: {String(lastResult.recipient || recipient)}</div>
                 {lastResult.messageId && <div>Message ID: {String(lastResult.messageId)}</div>}
@@ -471,12 +471,12 @@ export default function CommunicationsDashboardPage() {
                     : "Failed"}
                 </div>
                 {lastResult.error && (
-                  <div className="text-red-400 pt-1 border-t border-slate-800 font-sans text-xs">
+                  <div className="text-red-600 dark:text-red-400 pt-1 border-t border-slate-200 dark:border-slate-800 font-sans text-xs">
                     Error: {String(lastResult.error)}
                   </div>
                 )}
                 {(lastResult.details as Record<string, any>)?.note && (
-                  <div className="text-amber-300 pt-1 border-t border-slate-800 font-sans text-xs">
+                  <div className="text-amber-700 dark:text-amber-300 pt-1 border-t border-slate-200 dark:border-slate-800 font-sans text-xs">
                     Note: {String((lastResult.details as Record<string, any>).note)}
                   </div>
                 )}
