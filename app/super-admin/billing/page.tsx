@@ -20,6 +20,7 @@ import {
   Shield,
   Zap,
   Users,
+  Layers,
   ExternalLink,
   ChevronRight,
   FileText,
@@ -93,6 +94,7 @@ export default function SuperAdminBillingPage() {
   const [editingTenant, setEditingTenant] = useState<TenantBillingInfo | null>(null);
   const [selectedPlanSlug, setSelectedPlanSlug] = useState<string>("growth");
   const [isChangingPlan, setIsChangingPlan] = useState(false);
+  const [availablePlansList, setAvailablePlansList] = useState<any[]>([]);
 
   const fetchBillingData = async () => {
     setIsLoading(true);
@@ -111,6 +113,7 @@ export default function SuperAdminBillingPage() {
       setMetrics(data.metrics);
       setTenants(data.tenants || []);
       setInvoices(data.invoices || []);
+      setAvailablePlansList(Array.isArray(data.plans) ? data.plans : Object.values(data.plans || {}));
     } catch (err: any) {
       setError(err.message || "Failed to load billing overview.");
     } finally {
@@ -282,6 +285,14 @@ export default function SuperAdminBillingPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
+          <Link
+            href="/super-admin/plans"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-sky-400 hover:text-white transition"
+          >
+            <Layers className="h-3.5 w-3.5" />
+            <span>Configure Plans</span>
+          </Link>
+
           <button
             onClick={() => {
               setInvoiceForm({
@@ -793,40 +804,55 @@ export default function SuperAdminBillingPage() {
               </button>
             </div>
 
-            <div className="space-y-3">
-              {[
-                { slug: "basic", name: "Starter / Solo IFA", price: "₹999 / mo", seats: "1 Seat", whiteLabel: false },
-                { slug: "growth", name: "Growth Practice", price: "₹2,499 / mo", seats: "Up to 3 Seats", whiteLabel: true },
-                { slug: "enterprise", name: "Enterprise Wealth Firm", price: "₹5,999 / mo", seats: "Up to 20 Seats", whiteLabel: true, customDomain: true },
-                { slug: "arn_partnership", name: "Zero-Fee ARN Partnership", price: "₹0 / mo (80/20 Revenue Split)", seats: "Up to 3 Seats", whiteLabel: true },
-              ].map((p) => (
-                <div
-                  key={p.slug}
-                  onClick={() => setSelectedPlanSlug(p.slug)}
-                  className={`p-3.5 rounded-xl border cursor-pointer transition flex items-center justify-between ${
-                    selectedPlanSlug === p.slug
-                      ? "bg-amber-500/15 border-amber-500 text-white shadow-md ring-1 ring-amber-500/40"
-                      : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <div>
-                    <div className="text-xs font-bold text-white flex items-center gap-2">
-                      <span>{p.name}</span>
-                      {editingTenant.plan.slug === p.slug && (
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300">
-                          Current
-                        </span>
-                      )}
+            <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+              {(availablePlansList.length > 0
+                ? availablePlansList
+                : [
+                    { slug: "basic", name: "Starter / Solo IFA", price_monthly: 999, max_seats: 1, features: { white_label: false } },
+                    { slug: "growth", name: "Growth Practice", price_monthly: 2499, max_seats: 3, features: { white_label: true } },
+                    { slug: "enterprise", name: "Enterprise Wealth Firm", price_monthly: 5999, max_seats: 20, features: { white_label: true, custom_domain: true } },
+                    { slug: "arn_partnership", name: "Zero-Fee ARN Partnership", price_monthly: 0, max_seats: 3, features: { white_label: true, commission_sharing: true } },
+                  ]
+              ).map((p: any) => {
+                const isArn = p.slug === "arn_partnership" || p.features?.commission_sharing;
+                const priceLabel = isArn ? "₹0 / mo (80/20 Split)" : `${formatCurrency(p.price_monthly || 0)} / mo`;
+                const seatsLabel = `${p.max_seats || 1} Seat${(p.max_seats || 1) > 1 ? "s" : ""}`;
+                const whiteLabelText = p.features?.white_label ? "White-Labeling Unlocked" : "Standard Branding";
+
+                return (
+                  <div
+                    key={p.slug}
+                    onClick={() => setSelectedPlanSlug(p.slug)}
+                    className={`p-3.5 rounded-xl border cursor-pointer transition flex items-center justify-between ${
+                      selectedPlanSlug === p.slug
+                        ? "bg-amber-500/15 border-amber-500 text-white shadow-md ring-1 ring-amber-500/40"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xs font-bold text-white flex items-center gap-2">
+                        <span>{p.name}</span>
+                        {editingTenant.plan.slug === p.slug && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300">
+                            Current
+                          </span>
+                        )}
+                        {p.features?.custom_domain && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                            Custom Domain
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        {priceLabel} &bull; {seatsLabel} &bull; {whiteLabelText}
+                      </div>
                     </div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
-                      {p.price} &bull; {p.seats} &bull; {p.whiteLabel ? "White-Labeling Unlocked" : "Standard Branding"}
+                    <div className="h-4 w-4 rounded-full border border-slate-700 flex items-center justify-center">
+                      {selectedPlanSlug === p.slug && <div className="h-2 w-2 rounded-full bg-amber-400" />}
                     </div>
                   </div>
-                  <div className="h-4 w-4 rounded-full border border-slate-700 flex items-center justify-center">
-                    {selectedPlanSlug === p.slug && <div className="h-2 w-2 rounded-full bg-amber-400" />}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800">

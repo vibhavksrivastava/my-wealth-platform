@@ -51,9 +51,7 @@ export async function GET(req: Request) {
         totalMRR += plan.price_monthly || 0;
       }
 
-      if (plan.slug in planCounts) {
-        planCounts[plan.slug]++;
-      }
+      planCounts[plan.slug] = (planCounts[plan.slug] || 0) + 1;
 
       enrichedTenants.push({
         id: t.id,
@@ -175,7 +173,7 @@ export async function GET(req: Request) {
       },
       tenants: enrichedTenants,
       invoices: allInvoices,
-      plans: DEFAULT_PLANS,
+      plans: dbPlans && dbPlans.length > 0 ? dbPlans : Object.values(DEFAULT_PLANS),
     });
   } catch (err: any) {
     console.error("Super Admin Billing GET Error:", err);

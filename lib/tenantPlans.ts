@@ -245,3 +245,36 @@ export async function checkTenantSeatCapacity(tenantId: string): Promise<{
   };
 }
 
+/**
+ * Fetches all active plans from the database, falling back to DEFAULT_PLANS.
+ */
+export async function getAllPlans(): Promise<PlanRecord[]> {
+  try {
+    const supabase = getAdminClient();
+    const { data: dbPlans, error } = await supabase
+      .from("plans")
+      .select("id, name, slug, price_monthly, max_seats, features")
+      .order("price_monthly", { ascending: true });
+
+    if (!error && dbPlans && dbPlans.length > 0) {
+      return dbPlans.map((p) => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        price_monthly: Number(p.price_monthly || 0),
+        max_seats: Number(p.max_seats || 1),
+        features: {
+          ...DEFAULT_PLANS[p.slug]?.features,
+          ...(p.features || {}),
+          bse_star_mf: true,
+        },
+      }));
+    }
+  } catch (err) {
+    console.warn("Could not fetch plans from database, using defaults:", err);
+  }
+
+  return Object.values(DEFAULT_PLANS);
+}
+
+

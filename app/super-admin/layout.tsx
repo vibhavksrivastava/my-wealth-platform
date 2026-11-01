@@ -83,6 +83,12 @@ export default function SuperAdminLayout({
       exact: false,
     },
     {
+      label: "Plans & Licensing",
+      href: "/super-admin/plans",
+      icon: Layers,
+      exact: false,
+    },
+    {
       label: "Onboard New Firm",
       href: "/super-admin/tenants/new",
       icon: UserPlus,

@@ -1,7 +1,7 @@
 import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
-import { getTenantPlan, checkTenantSeatCapacity, DEFAULT_PLANS } from "@/lib/tenantPlans";
+import { getTenantPlan, checkTenantSeatCapacity, getAllPlans, DEFAULT_PLANS } from "@/lib/tenantPlans";
 import { clearTenantConfigCache } from "@/lib/tenant-config/server";
 
 
@@ -205,9 +205,12 @@ export async function GET(req: Request) {
       isExpiringSoon = daysUntilExpiry <= 15 && daysUntilExpiry > 0 && !tenant.commission_sharing_active;
     }
 
+    const availablePlans = await getAllPlans();
+
     return NextResponse.json({
       plan,
       planFeatures: plan.features,
+      availablePlans,
       tenant,
       seatCapacity,
       invoices,
@@ -258,8 +261,8 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     const { planSlug, billingCycle = "monthly" } = body;
 
-    if (!planSlug || !["basic", "growth", "enterprise", "arn_partnership"].includes(planSlug)) {
-      return NextResponse.json({ error: "Valid planSlug is required (basic, growth, enterprise, arn_partnership)." }, { status: 400 });
+    if (!planSlug || typeof planSlug !== "string") {
+      return NextResponse.json({ error: "Valid planSlug is required." }, { status: 400 });
     }
 
     // 1. Fetch Plan record from database or fallback
@@ -269,8 +272,12 @@ export async function PATCH(req: Request) {
       .eq("slug", planSlug)
       .maybeSingle();
 
+    if (!planRecord && !DEFAULT_PLANS[planSlug]) {
+      return NextResponse.json({ error: `Selected plan "${planSlug}" was not found.` }, { status: 400 });
+    }
+
     const planId = planRecord?.id || DEFAULT_PLANS[planSlug]?.id;
-    const isArn = planSlug === "arn_partnership";
+    const isArn = planSlug === "arn_partnership" || Boolean(planRecord?.features?.commission_sharing);
 
     // 2. Update tenant plan in database
     const now = new Date();

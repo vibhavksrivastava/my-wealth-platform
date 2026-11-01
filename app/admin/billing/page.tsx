@@ -58,6 +58,14 @@ interface BillingData {
     planName: string;
     planSlug: string;
   };
+  availablePlans?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    price_monthly: number;
+    max_seats: number;
+    features: Record<string, any>;
+  }>;
   invoices: Array<{
     id: string;
     invoice_number: string;
@@ -747,114 +755,84 @@ export default function TenantAdminBillingPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Starter */}
-              <div
-                onClick={() => setSelectedPlanUpgrade("basic")}
-                className={`p-4 rounded-xl border cursor-pointer transition flex flex-col justify-between ${
-                  selectedPlanUpgrade === "basic" || data?.plan?.slug === "basic"
-                    ? "bg-slate-800/80 border-sky-500 shadow-md ring-1 ring-sky-500"
-                    : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
-                }`}
-              >
-                <div className="space-y-3">
-                  <div className="text-xs font-bold uppercase text-slate-400">Starter / Solo IFA</div>
-                  <div className="text-xl font-black text-white">₹999 <span className="text-xs font-normal text-slate-400">/mo</span></div>
-                  <ul className="text-xs text-slate-300 space-y-2">
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" /> 1 Advisor Seat</li>
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" /> BSE StAR MF Engine</li>
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" /> CAS Import Engine</li>
-                    <li className="flex items-center gap-1.5 text-slate-500">✕ Custom White-Label</li>
-                    <li className="flex items-center gap-1.5 text-slate-500">✕ Rebalancing Engine</li>
-                  </ul>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-800 text-center">
-                  <span className={`text-[11px] font-bold ${data?.plan?.slug === "basic" ? "text-sky-400" : "text-slate-400"}`}>
-                    {data?.plan?.slug === "basic" ? "✓ Current Active Plan" : "Select Starter"}
-                  </span>
-                </div>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {(data?.availablePlans && data.availablePlans.length > 0
+                ? data.availablePlans
+                : [
+                    { slug: "basic", name: "Starter / Solo IFA", price_monthly: 999, max_seats: 1, features: { bse_star_mf: true, cas_import: true, white_label: false, advanced_reports: false } },
+                    { slug: "growth", name: "Growth Practice", price_monthly: 2499, max_seats: 3, features: { bse_star_mf: true, cas_import: true, white_label: true, advanced_reports: true } },
+                    { slug: "enterprise", name: "Enterprise Wealth Firm", price_monthly: 5999, max_seats: 20, features: { bse_star_mf: true, cas_import: true, white_label: true, custom_domain: true, advanced_reports: true } },
+                    { slug: "arn_partnership", name: "Zero-Fee ARN Partnership", price_monthly: 0, max_seats: 3, features: { bse_star_mf: true, cas_import: true, white_label: true, commission_sharing: true, advanced_reports: true } },
+                  ]
+              ).map((p: any) => {
+                const isSelected = selectedPlanUpgrade === p.slug || data?.plan?.slug === p.slug;
+                const isCurrent = data?.plan?.slug === p.slug;
+                const isArn = p.slug === "arn_partnership" || p.features?.commission_sharing;
 
-              {/* Growth */}
-              <div
-                onClick={() => setSelectedPlanUpgrade("growth")}
-                className={`p-4 rounded-xl border cursor-pointer transition flex flex-col justify-between relative ${
-                  selectedPlanUpgrade === "growth" || data?.plan?.slug === "growth"
-                    ? "bg-amber-500/10 border-amber-500 shadow-md ring-1 ring-amber-500"
-                    : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
-                }`}
-              >
-                <span className="absolute -top-2.5 right-4 px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-500 text-slate-950">
-                  Most Popular
-                </span>
-                <div className="space-y-3">
-                  <div className="text-xs font-bold uppercase text-amber-400">Growth Practice</div>
-                  <div className="text-xl font-black text-white">₹2,499 <span className="text-xs font-normal text-slate-400">/mo</span></div>
-                  <ul className="text-xs text-slate-300 space-y-2">
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" /> Up to 3 Advisor Seats</li>
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" /> Full White-Label Portal &amp; Logo</li>
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" /> Rebalancing &amp; Diagnostics</li>
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" /> BSE StAR MF Trading</li>
-                  </ul>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-800 text-center">
-                  <span className={`text-[11px] font-bold ${data?.plan?.slug === "growth" ? "text-amber-400" : "text-slate-400"}`}>
-                    {data?.plan?.slug === "growth" ? "✓ Current Active Plan" : "Select Growth"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Enterprise */}
-              <div
-                onClick={() => setSelectedPlanUpgrade("enterprise")}
-                className={`p-4 rounded-xl border cursor-pointer transition flex flex-col justify-between ${
-                  selectedPlanUpgrade === "enterprise" || data?.plan?.slug === "enterprise"
-                    ? "bg-slate-800/80 border-sky-500 shadow-md ring-1 ring-sky-500"
-                    : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
-                }`}
-              >
-                <div className="space-y-3">
-                  <div className="text-xs font-bold uppercase text-sky-400">Enterprise Firm</div>
-                  <div className="text-xl font-black text-white">₹5,999 <span className="text-xs font-normal text-slate-400">/mo</span></div>
-                  <ul className="text-xs text-slate-300 space-y-2">
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-sky-400 flex-shrink-0" /> Up to 20 Advisor Seats</li>
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-sky-400 flex-shrink-0" /> Custom Domain (portal.firm.com)</li>
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-sky-400 flex-shrink-0" /> Rebalancing &amp; Diagnostics</li>
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-sky-400 flex-shrink-0" /> Institutional API Access</li>
-                  </ul>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-800 text-center">
-                  <span className={`text-[11px] font-bold ${data?.plan?.slug === "enterprise" ? "text-sky-400" : "text-slate-400"}`}>
-                    {data?.plan?.slug === "enterprise" ? "✓ Current Active Plan" : "Select Enterprise"}
-                  </span>
-                </div>
-              </div>
-
-              {/* ARN Partnership */}
-              <div
-                onClick={() => setSelectedPlanUpgrade("arn_partnership")}
-                className={`p-4 rounded-xl border cursor-pointer transition flex flex-col justify-between ${
-                  selectedPlanUpgrade === "arn_partnership" || data?.plan?.slug === "arn_partnership"
-                    ? "bg-emerald-500/10 border-emerald-500 shadow-md ring-1 ring-emerald-500"
-                    : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
-                }`}
-              >
-                <div className="space-y-3">
-                  <div className="text-xs font-bold uppercase text-emerald-400">Zero-Fee ARN Partner</div>
-                  <div className="text-xl font-black text-white">₹0 <span className="text-xs font-normal text-slate-400">/mo (80/20)</span></div>
-                  <ul className="text-xs text-slate-300 space-y-2">
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" /> 80% Distributor Trail Split</li>
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" /> 3 Sub-Advisor Seats</li>
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" /> White-Label Portal &amp; Logo</li>
-                    <li className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" /> BSE StAR MF Trading</li>
-                  </ul>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-800 text-center">
-                  <span className={`text-[11px] font-bold ${data?.plan?.slug === "arn_partnership" ? "text-emerald-400" : "text-slate-400"}`}>
-                    {data?.plan?.slug === "arn_partnership" ? "✓ Current Active Plan" : "Select ARN Split"}
-                  </span>
-                </div>
-              </div>
+                return (
+                  <div
+                    key={p.slug}
+                    onClick={() => setSelectedPlanUpgrade(p.slug)}
+                    className={`p-4 rounded-xl border cursor-pointer transition flex flex-col justify-between ${
+                      isSelected
+                        ? "bg-slate-800/80 border-sky-500 shadow-md ring-1 ring-sky-500"
+                        : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      <div className="text-xs font-bold uppercase text-slate-400">{p.name}</div>
+                      <div className="text-xl font-black text-white">
+                        {isArn ? (
+                          <span>₹0 <span className="text-xs font-normal text-slate-400">/mo (80/20)</span></span>
+                        ) : (
+                          <span>{formatCurrency(p.price_monthly || 0)} <span className="text-xs font-normal text-slate-400">/mo</span></span>
+                        )}
+                      </div>
+                      <ul className="text-xs text-slate-300 space-y-1.5">
+                        <li className="flex items-center gap-1.5">
+                          <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                          <span>{p.max_seats || 1} Advisor Seat{(p.max_seats || 1) > 1 ? "s" : ""}</span>
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                          <span>BSE StAR MF Execution</span>
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          {p.features?.white_label ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                          ) : (
+                            <span className="text-slate-500">✕</span>
+                          )}
+                          <span className={p.features?.white_label ? "text-slate-200" : "text-slate-500"}>
+                            White-Label Portal
+                          </span>
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          {p.features?.advanced_reports ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                          ) : (
+                            <span className="text-slate-500">✕</span>
+                          )}
+                          <span className={p.features?.advanced_reports ? "text-slate-200" : "text-slate-500"}>
+                            Rebalancing Engine
+                          </span>
+                        </li>
+                        {p.features?.custom_domain && (
+                          <li className="flex items-center gap-1.5">
+                            <Check className="h-3.5 w-3.5 text-sky-400 flex-shrink-0" />
+                            <span className="text-sky-300">Custom Domain CNAME</span>
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-slate-800 text-center">
+                      <span className={`text-[11px] font-bold ${isCurrent ? "text-sky-400" : "text-slate-400"}`}>
+                        {isCurrent ? "✓ Current Active Plan" : `Select ${p.name}`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex justify-end gap-3 pt-2 border-t border-slate-800">
