@@ -2,6 +2,7 @@ import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
 import { MASTER_FEATURE_CATALOG, DEFAULT_ROLE_PERMISSIONS } from "@/lib/featureFlags";
+import { getTenantPlan } from "@/lib/tenantPlans";
 
 export async function GET(req: Request) {
   await connection();
@@ -28,7 +29,9 @@ export async function GET(req: Request) {
       if (target) targetTenantId = target.id;
     }
 
-    // 1. Fetch Super Admin Master Features for this tenant
+    // 1. Fetch Tenant and Plan details
+    const { plan } = await getTenantPlan(targetTenantId);
+
     const { data: tenant } = await supabaseAdmin
       .from("tenants")
       .select("id, subdomain, firm_brand_name, enabled_features")
@@ -40,12 +43,25 @@ export async function GET(req: Request) {
       defaultFeatures[f.key] = f.defaultEnabled;
     });
 
-    const tenantMasterFeatures = {
+    const tenantMasterFeatures: Record<string, boolean> = {
       ...defaultFeatures,
       ...(tenant?.enabled_features || {}),
     };
 
-    // 2. Fetch Tenant Admin Role Permissions
+    // 2. Enforce Plan-Tier Feature Capabilities
+    // Starter (basic) plan does NOT include advanced_reports (rebalancing & diagnostics)
+    if (!plan.features.advanced_reports) {
+      tenantMasterFeatures["rebalancing"] = false;
+      tenantMasterFeatures["run_diagnostic"] = false;
+    }
+    if (!plan.features.cas_import) {
+      tenantMasterFeatures["cas_import"] = false;
+    }
+    if (!plan.features.client_portal) {
+      tenantMasterFeatures["client_portal"] = false;
+    }
+
+    // 3. Fetch Tenant Admin Role Permissions
     let rolePermissions = { ...DEFAULT_ROLE_PERMISSIONS };
     try {
       const { data: tSettings } = await supabaseAdmin
@@ -69,6 +85,12 @@ export async function GET(req: Request) {
     return NextResponse.json({
       success: true,
       tenantId: targetTenantId,
+      plan: {
+        id: plan.id,
+        name: plan.name,
+        slug: plan.slug,
+        features: plan.features,
+      },
       tenantMasterFeatures,
       rolePermissions,
       catalog: MASTER_FEATURE_CATALOG,
@@ -111,14 +133,28 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Valid rolePermissions map is required." }, { status: 400 });
     }
 
-    // 1. Fetch Super Admin Master Features for Strict Veto Enforcement
+    // 1. Fetch Plan details and Super Admin Master Features for Strict Veto Enforcement
+    const { plan } = await getTenantPlan(targetTenantId);
+
     const { data: tenant } = await supabaseAdmin
       .from("tenants")
       .select("enabled_features")
       .eq("id", targetTenantId)
       .maybeSingle();
 
-    const masterFeatures = tenant?.enabled_features || {};
+    const masterFeatures = { ...(tenant?.enabled_features || {}) };
+
+    // Enforce Plan Gates
+    if (!plan.features.advanced_reports) {
+      masterFeatures["rebalancing"] = false;
+      masterFeatures["run_diagnostic"] = false;
+    }
+    if (!plan.features.cas_import) {
+      masterFeatures["cas_import"] = false;
+    }
+    if (!plan.features.client_portal) {
+      masterFeatures["client_portal"] = false;
+    }
 
     // 2. Clean & sanitize role permissions: Super Admin disabled features CANNOT be turned on by Tenant Admin!
     const sanitizedPermissions: any = {};

@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Activity,
   Layers,
+  Receipt,
 } from "lucide-react";
 
 interface UserProfile {
@@ -73,6 +74,12 @@ export default function SuperAdminLayout({
       label: "Tenants Directory",
       href: "/super-admin/tenants",
       icon: Building2,
+      exact: false,
+    },
+    {
+      label: "Billing & Invoices",
+      href: "/super-admin/billing",
+      icon: Receipt,
       exact: false,
     },
     {

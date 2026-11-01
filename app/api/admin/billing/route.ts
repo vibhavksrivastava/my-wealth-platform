@@ -1,7 +1,8 @@
 import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
-import { getTenantPlan, checkTenantSeatCapacity } from "@/lib/tenantPlans";
+import { getTenantPlan, checkTenantSeatCapacity, DEFAULT_PLANS } from "@/lib/tenantPlans";
+import { clearTenantConfigCache } from "@/lib/tenant-config/server";
 
 
 export async function GET(req: Request) {
@@ -27,20 +28,34 @@ export async function GET(req: Request) {
     const { plan, tenant } = await getTenantPlan(tenantId);
     const seatCapacity = await checkTenantSeatCapacity(tenantId);
 
-    // 2. Fetch Invoices from Supabase
+    // 2. Fetch Invoices: check tenant_settings persistent invoices first, then fallback
     let invoices: Array<Record<string, unknown>> = [];
     try {
-      const { data: dbInvoices, error: invError } = await supabaseAdmin
-        .from("invoices")
-        .select("*")
+      const { data: tSettings } = await supabaseAdmin
+        .from("tenant_settings")
+        .select("branding")
         .eq("tenant_id", tenantId)
-        .order("billing_date", { ascending: false });
+        .maybeSingle();
 
-      if (!invError && dbInvoices && dbInvoices.length > 0) {
-        invoices = dbInvoices;
+      if (tSettings?.branding?.subscription_invoices && Array.isArray(tSettings.branding.subscription_invoices) && tSettings.branding.subscription_invoices.length > 0) {
+        invoices = tSettings.branding.subscription_invoices;
       }
-    } catch {
-      // Table may not yet be queried, fallback will generate representative records
+    } catch {}
+
+    if (invoices.length === 0) {
+      try {
+        const { data: dbInvoices, error: invError } = await supabaseAdmin
+          .from("invoices")
+          .select("*")
+          .eq("tenant_id", tenantId)
+          .order("billing_date", { ascending: false });
+
+        if (!invError && dbInvoices && dbInvoices.length > 0) {
+          invoices = dbInvoices;
+        }
+      } catch {
+        // Table may not yet be queried, fallback will generate representative records
+      }
     }
 
     // If no invoices exist in table yet, provide realistic tenant-specific billing statements
@@ -192,6 +207,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       plan,
+      planFeatures: plan.features,
       tenant,
       seatCapacity,
       invoices,
@@ -207,6 +223,160 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error("Tenant Admin Billing GET Error:", error);
     return NextResponse.json({ error: "Failed to load billing history." }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  await connection();
+  try {
+    const session = verifyAuthHeader(req.headers.get("authorization"));
+    if (!session || !["TENANT_ADMIN", "SUPER_ADMIN"].includes(session.role)) {
+      return NextResponse.json({ error: "Access denied. Firm Administrator privileges required." }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const requestedTenant = searchParams.get("tenant") || searchParams.get("tenantId");
+
+    let targetTenantId = session.tenantId;
+    if (session.role === "SUPER_ADMIN" && requestedTenant) {
+      const cleanReq = requestedTenant.toLowerCase().trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanReq);
+      let query = supabaseAdmin.from("tenants").select("id");
+      if (isUuid) {
+        query = query.or(`id.eq.${cleanReq},subdomain.eq.${cleanReq}`);
+      } else {
+        query = query.eq("subdomain", cleanReq);
+      }
+      const { data: target } = await query.maybeSingle();
+      if (target) targetTenantId = target.id;
+    }
+
+    if (!targetTenantId) {
+      return NextResponse.json({ error: "Tenant ID required." }, { status: 400 });
+    }
+
+    const body = await req.json();
+    const { planSlug, billingCycle = "monthly" } = body;
+
+    if (!planSlug || !["basic", "growth", "enterprise", "arn_partnership"].includes(planSlug)) {
+      return NextResponse.json({ error: "Valid planSlug is required (basic, growth, enterprise, arn_partnership)." }, { status: 400 });
+    }
+
+    // 1. Fetch Plan record from database or fallback
+    const { data: planRecord } = await supabaseAdmin
+      .from("plans")
+      .select("id, name, slug, price_monthly, max_seats, features")
+      .eq("slug", planSlug)
+      .maybeSingle();
+
+    const planId = planRecord?.id || DEFAULT_PLANS[planSlug]?.id;
+    const isArn = planSlug === "arn_partnership";
+
+    // 2. Update tenant plan in database
+    const now = new Date();
+    const expiryDate = new Date(now.getTime() + (isArn ? 365 : 30) * 24 * 60 * 60 * 1000);
+
+    const updates: Record<string, any> = {
+      plan_id: planId,
+      commission_sharing_active: isArn,
+      billing_cycle: billingCycle,
+      subscription_expires_at: expiryDate.toISOString(),
+      updated_at: now.toISOString(),
+    };
+
+    const { data: updatedTenant, error: updateError } = await supabaseAdmin
+      .from("tenants")
+      .update(updates)
+      .eq("id", targetTenantId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error("Failed to update tenant plan in database:", updateError);
+    }
+
+    // 3. Generate a plan subscription invoice for this upgrade/renewal
+    const { plan: resolvedPlan } = await getTenantPlan(targetTenantId);
+    const baseAmount = resolvedPlan.price_monthly || 0;
+    const gstRate = baseAmount > 0 ? "18% GST (9% CGST + 9% SGST)" : "0%";
+    const gstAmount = baseAmount > 0 ? Math.round(baseAmount * 0.18 * 100) / 100 : 0;
+    const totalAmount = Math.round((baseAmount + gstAmount) * 100) / 100;
+
+    const subName = (updatedTenant?.subdomain || "FIRM").toUpperCase().slice(0, 4);
+    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const invoiceNumber = `INV-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${subName}-${randomSuffix}`;
+
+    const newInvoice = {
+      id: `inv-${Date.now()}-${randomSuffix.toLowerCase()}`,
+      tenant_id: targetTenantId,
+      tenant_subdomain: updatedTenant?.subdomain,
+      tenant_name: updatedTenant?.firm_brand_name,
+      invoice_number: invoiceNumber,
+      billing_date: now.toISOString(),
+      due_date: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      base_amount: baseAmount,
+      gst_rate: gstRate,
+      gst_amount: gstAmount,
+      amount: totalAmount,
+      currency: "INR",
+      status: "paid",
+      invoice_type: isArn ? "commission_statement" : "subscription_fee",
+      description: isArn
+        ? "Zero-Fee ARN Partnership Activation (80/20 Commission Split)"
+        : `${resolvedPlan.name} Subscription (${resolvedPlan.max_seats} Seats Included)`,
+      plan_slug: resolvedPlan.slug,
+      plan_name: resolvedPlan.name,
+      seats: resolvedPlan.max_seats,
+      metadata: {
+        plan_slug: resolvedPlan.slug,
+        seats: resolvedPlan.max_seats,
+        hsn_sac: "998314",
+        payment_method: "Auto-Debit (UPI/NACH)",
+      },
+      created_at: now.toISOString(),
+    };
+
+    // Store in tenant_settings
+    try {
+      const { data: tSettings } = await supabaseAdmin
+        .from("tenant_settings")
+        .select("branding")
+        .eq("tenant_id", targetTenantId)
+        .maybeSingle();
+
+      const existingBranding = tSettings?.branding || {};
+      const existingInvoices = Array.isArray(existingBranding.subscription_invoices)
+        ? existingBranding.subscription_invoices
+        : [];
+
+      await supabaseAdmin
+        .from("tenant_settings")
+        .upsert(
+          {
+            tenant_id: targetTenantId,
+            branding: {
+              ...existingBranding,
+              subscription_invoices: [newInvoice, ...existingInvoices],
+            },
+            updated_at: now.toISOString(),
+          },
+          { onConflict: "tenant_id" }
+        );
+    } catch (saveErr) {
+      console.warn("Could not save invoice in tenant_settings:", saveErr);
+    }
+
+    clearTenantConfigCache(targetTenantId);
+
+    return NextResponse.json({
+      success: true,
+      message: `Practice plan successfully upgraded to ${resolvedPlan.name}.`,
+      plan: resolvedPlan,
+      newInvoice,
+    });
+  } catch (error: any) {
+    console.error("Billing PATCH Error:", error);
+    return NextResponse.json({ error: error.message || "Failed to update subscription plan." }, { status: 500 });
   }
 }
 
