@@ -21,6 +21,7 @@ import {
   Sparkles,
   Loader2
 } from "lucide-react";
+import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 import type { 
   CompleteFactFindPayload,
   ClientPersonalDetails, 
@@ -103,6 +104,7 @@ const ASSET_CLASSES = [
 
 export default function NewClientFactFindPage() {
   const router = useRouter();
+  const { terms } = useFirmBranding();
   const [currentStep, setCurrentStep] = useState(1);
   const [households, setHouseholds] = useState<HouseholdOption[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -431,7 +433,7 @@ export default function NewClientFactFindPage() {
         <div>
           <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
             <Link href="/dashboard/advisor" className="hover:text-white transition">
-              Advisor Console
+              {terms.advisorLabel} Console
             </Link>
             <span>/</span>
             <span className="text-sky-400 font-medium">New Client Fact-Find</span>
@@ -1514,7 +1516,7 @@ export default function NewClientFactFindPage() {
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
-              Planning Disclosures & Advisor Notes
+              Planning Disclosures &amp; {terms.advisorLabel} Notes
             </label>
             <textarea
               rows={3}

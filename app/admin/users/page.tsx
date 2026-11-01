@@ -20,6 +20,7 @@ import {
   Shield,
   Briefcase,
 } from "lucide-react";
+import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 
 interface TeamUser {
   id: string;
@@ -43,6 +44,7 @@ interface SeatCapacity {
 }
 
 export default function TenantAdminUsersPage() {
+  const { terms } = useFirmBranding();
   const [users, setUsers] = useState<TeamUser[]>([]);
   const [seatCapacity, setSeatCapacity] = useState<SeatCapacity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -469,7 +471,7 @@ export default function TenantAdminUsersPage() {
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
                 <UserPlus className="h-4 w-4 text-amber-400" />
-                Add Advisor / Staff Member
+                Add {terms.advisorLabel} / Staff Member
               </h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}

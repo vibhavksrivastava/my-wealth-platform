@@ -32,6 +32,8 @@ export interface TenantBranding {
   ria_number?: string | null;
   is_active?: boolean;
   theme_mode?: "light" | "dark" | string | null;
+  firm_type?: "MFD" | "RIA" | "BOTH" | string | null;
+  tenant_type?: "MFD" | "RIA" | "BOTH" | string | null;
 }
 
 interface TenantLoginFormProps {
@@ -56,6 +58,10 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
   const brandColor = tenant?.primary_color || "#0284c7"; // Default sky-600
   const isCustomTenant = Boolean(tenant && tenant.subdomain && tenant.subdomain !== "platform");
   const currentKey = (subdomain || tenant?.subdomain || "").toLowerCase().trim();
+
+  const firmType = ((tenant?.firm_type || tenant?.tenant_type || (isCustomTenant ? "MFD" : "BOTH")) as string).toUpperCase();
+  const isMfd = firmType === "MFD";
+  const advisorLabel = isMfd ? "Distributor" : "Advisor";
 
   const demoUsers = {
     zenith9186: {
@@ -92,15 +98,23 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
     CLIENT: {
       title: isCustomTenant ? `${brandName} • Client Portal` : "Client & Investor Portal",
       subtitle: isCustomTenant 
-        ? `Access your consolidated portfolio, net-worth tracking, and advisory reports managed by ${brandName}.`
-        : "View your consolidated net worth, portfolio performance, and book advisor appointments.",
+        ? (isMfd 
+            ? `Access your consolidated portfolio, net-worth tracking, and portfolio statements serviced by ${brandName}.` 
+            : `Access your consolidated portfolio, net-worth tracking, and advisory reports managed by ${brandName}.`)
+        : (isMfd
+            ? "View your consolidated net worth, portfolio performance, and connect with your distributor."
+            : "View your consolidated net worth, portfolio performance, and book advisor appointments."),
       badge: isCustomTenant ? `${brandName} Investor Access` : "Investor Access",
       defaultPath: "/dashboard/client",
     },
     ADVISOR: {
-      title: isCustomTenant ? `${brandName} • Advisor Console` : "Advisor & MFD Console",
-      subtitle: "Manage client portfolios, review meetings, log notes, and oversee execution.",
-      badge: "MFD / RIA Access",
+      title: isCustomTenant 
+        ? `${brandName} • ${isMfd ? "Distributor Console" : "Advisor Console"}` 
+        : "Advisor & Distributor Console",
+      subtitle: isMfd 
+        ? "Manage client mutual fund folios, execute orders, log notes, and oversee distribution." 
+        : "Manage client portfolios, review meetings, log notes, and oversee fiduciary planning.",
+      badge: isMfd ? "Distributor Access (AMFI / ARN)" : "Advisor Access (SEBI RIA)",
       defaultPath: "/dashboard/advisor",
     },
     ADMIN: {
@@ -281,7 +295,7 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
               }`}
             >
               <Briefcase className="h-3.5 w-3.5 shrink-0" />
-              <span>Advisor<span className="hidden xs:inline"> / MFD</span></span>
+              <span>{isCustomTenant ? advisorLabel : <span>Advisor<span className="hidden xs:inline"> / Distributor</span></span>}</span>
             </button>
             {!isCustomTenant && (
               <button

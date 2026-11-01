@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 import {
   Calculator,
   TrendingDown,
@@ -64,6 +65,7 @@ export default function TaxPlanningPage() {
 }
 
 function TaxPlanningContent() {
+  const { terms } = useFirmBranding();
   const searchParams = useSearchParams();
   const queryClientId = searchParams?.get("clientId") || "";
 
@@ -302,7 +304,7 @@ function TaxPlanningContent() {
         <div>
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <Link href={isAdvisor ? "/dashboard/advisor" : "/dashboard/client"} className="hover:text-white transition">
-              {isAdvisor ? "Advisor Dashboard" : "My Dashboard"}
+              {isAdvisor ? `${terms.advisorLabel} Dashboard` : "My Dashboard"}
             </Link>
             <ChevronRight className="h-3 w-3" />
             <Link href="/dashboard/planning" className="hover:text-white transition">Planning</Link>
@@ -319,7 +321,7 @@ function TaxPlanningContent() {
                   <>
                     Tax Planning &amp; Mutual Fund Withdrawal Strategy
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      Advisor View
+                      {terms.advisorLabel} View
                     </span>
                   </>
                 ) : (
@@ -567,7 +569,7 @@ function TaxPlanningContent() {
           }`}
         >
           <Sparkles className="h-4 w-4 text-purple-400" />
-          Gemini AI Wealth Tax Advisory Memo
+          Gemini AI Wealth Tax {terms.advisoryLabel === "Distribution" ? "Optimization" : "Advisory"} Memo
         </button>
       </div>
 

@@ -51,6 +51,7 @@ import {
   isRetirementAsset,
   isMarketAsset,
 } from "@/lib/goalAssetAlignment";
+import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 
 interface Client360Data {
   client: any;
@@ -118,6 +119,7 @@ export default function Client360Page({
 }) {
   const resolvedParams = use(params);
   const clientId = resolvedParams.id;
+  const { terms } = useFirmBranding();
 
   const [data, setData] = useState<Client360Data | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -348,7 +350,7 @@ export default function Client360Page({
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition font-medium"
             >
               <ArrowLeft className="h-3.5 w-3.5 text-emerald-400" />
-              <span>{currentUserRole === "CLIENT" ? "Back to Client Dashboard" : "Back to Advisor Dashboard"}</span>
+              <span>{currentUserRole === "CLIENT" ? "Back to Client Dashboard" : `Back to ${terms.advisorLabel} Dashboard`}</span>
             </Link>
             <span>&bull;</span>
             <span className="font-mono text-slate-300">{client.uwp_client_code || "UWP-CLIENT"}</span>
@@ -704,7 +706,7 @@ export default function Client360Page({
               )}
               {client.advisor_name && (
                 <div>
-                  <span className="text-slate-500">Assigned Advisor</span>
+                  <span className="text-slate-500">{terms.assignedAdvisorLabel}</span>
                   <p className="font-semibold text-white mt-0.5">{client.advisor_name}</p>
                 </div>
               )}
@@ -2832,6 +2834,7 @@ function GoalModalForm({
   onSuccess: () => void;
   showToast: (msg: string, type?: "success" | "error") => void;
 }) {
+  const { terms } = useFirmBranding();
   const [goalName, setGoalName] = useState(modalItem?.goal_name || "");
   const [targetYear, setTargetYear] = useState<number>(Number(modalItem?.target_year) || new Date().getFullYear() + 10);
   const [priority, setPriority] = useState(modalItem?.priority || "High");
@@ -3261,7 +3264,7 @@ function GoalModalForm({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Advisory Notes / Strategy</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">{terms.notesLabel} / Strategy</label>
                 <input
                   type="text"
                   value={notes}

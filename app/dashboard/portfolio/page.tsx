@@ -576,7 +576,7 @@ function MutualFundPortfolioContent() {
             </div>
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Advisor Oversight &bull; Mutual Fund Console
+                {terms.advisorLabel} Oversight &bull; Mutual Fund Console
               </div>
               <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                 {isBookView ? (
@@ -2247,7 +2247,7 @@ function MutualFundPortfolioContent() {
                       type="text"
                       value={advisorDirectives}
                       onChange={(e) => setAdvisorDirectives(e.target.value)}
-                      placeholder="Add custom advisor directives (e.g. 'Reduce small-cap allocation to 10%', 'Harvest ₹1.25L LTCG tax exemption', 'Prepare for retirement in 6 years')..."
+                      placeholder={`Add custom ${terms.advisorLabel.toLowerCase()} directives (e.g. 'Reduce small-cap allocation to 10%', 'Harvest ₹1.25L LTCG tax exemption', 'Prepare for retirement in 6 years')...`}
                       className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                     <button

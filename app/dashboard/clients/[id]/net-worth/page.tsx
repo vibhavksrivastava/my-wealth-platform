@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   DollarSign
 } from "lucide-react";
+import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 
 function formatINR(val: number) {
   if (isNaN(val)) return "₹0";
@@ -39,6 +40,7 @@ export default function ClientNetWorthPage({
 }) {
   const resolvedParams = use(params);
   const clientId = resolvedParams.id;
+  const { terms } = useFirmBranding();
 
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,7 +82,7 @@ export default function ClientNetWorthPage({
           href="/dashboard/advisor"
           className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-semibold text-white"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Return to Advisor Console
+          <ArrowLeft className="h-3.5 w-3.5" /> Return to {terms.advisorLabel} Console
         </Link>
       </div>
     );
@@ -100,7 +102,7 @@ export default function ClientNetWorthPage({
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition font-medium"
             >
               <ArrowLeft className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Back to Advisor Dashboard</span>
+              <span>Back to {terms.advisorLabel} Dashboard</span>
             </Link>
             <span>&bull;</span>
             <span className="text-slate-400">Clients</span>
@@ -121,7 +123,7 @@ export default function ClientNetWorthPage({
           <div className="flex items-center gap-4 text-xs text-slate-400 mt-1">
             <span>Household: <strong className="text-white">{household?.household_name || "Primary Household"}</strong></span>
             <span>&bull;</span>
-            <span>Advisor: <strong className="text-white">{client.advisor_name || "Designated RIA"}</strong></span>
+            <span>{terms.advisorLabel}: <strong className="text-white">{client.advisor_name || (terms.advisorLabel === "Distributor" ? "Designated MFD" : "Designated RIA")}</strong></span>
             <span>&bull;</span>
             <span>Review: <strong className="text-white">{client.review_frequency}</strong></span>
           </div>
@@ -548,7 +550,7 @@ export default function ClientNetWorthPage({
       {client.planning_disclosures_notes && (
         <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/30 text-xs">
           <span className="font-bold text-slate-300 uppercase tracking-wider block mb-1">
-            Advisor Fact-Find Notes & Strategy
+            {terms.advisorLabel} Fact-Find Notes &amp; Strategy
           </span>
           <p className="text-slate-400 leading-relaxed">{client.planning_disclosures_notes}</p>
         </div>

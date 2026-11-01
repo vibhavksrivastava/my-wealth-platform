@@ -389,7 +389,7 @@ function CalendarContent() {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-500/20 text-sky-400 border border-sky-500/30 uppercase tracking-wider flex items-center gap-1">
               <CalendarCheck className="h-3 w-3" />
-              <span>Advisory Review Calendar</span>
+              <span>{terms.advisoryLabel} Review Calendar</span>
             </span>
             <span className="text-xs text-slate-400">
               {appointments.length} Total Meetings Scheduled &bull; {next7DaysCount} in Next 7 Days
@@ -415,7 +415,7 @@ function CalendarContent() {
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-lg shadow-sky-600/20 transition whitespace-nowrap"
           >
             <Plus className="h-4 w-4" />
-            <span>{isAdvisor ? "+ Schedule Client Review" : "+ Request Advisor Call"}</span>
+            <span>{isAdvisor ? "+ Schedule Client Review" : `+ Request ${terms.advisorLabel} Call`}</span>
           </button>
         </div>
       </div>
@@ -804,7 +804,7 @@ function CalendarContent() {
                       <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between">
                         <span className="flex items-center gap-1.5 text-sky-600 dark:text-sky-400">
                           <FileText className="h-3.5 w-3.5" />
-                          <span>Advisory Notes &amp; Action Minutes:</span>
+                          <span>{terms.notesLabel} &amp; Action Minutes:</span>
                         </span>
                       </div>
                       <p className="mt-1 text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
@@ -856,12 +856,12 @@ function CalendarContent() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                  {isAdvisor ? "Schedule Client Review Call" : "Request Advisor Strategy Call"}
+                  {isAdvisor ? "Schedule Client Review Call" : `Request ${terms.advisorLabel} Review Call`}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   {isAdvisor
                     ? "Lock in meeting slot, link Google Meet or Zoom, and set initial review agenda."
-                    : "Request a review slot with your wealth advisor. You'll receive meeting link once confirmed."}
+                    : `Request a review slot with your ${terms.advisorLabel.toLowerCase()}. You'll receive meeting link once confirmed.`}
                 </p>
               </div>
             </div>

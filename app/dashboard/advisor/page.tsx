@@ -36,7 +36,7 @@ function formatINR(val: number) {
 
 export default function AdvisorDashboard() {
   const { terms, isRia, setFirmType } = useFirmBranding();
-  const [userName, setUserName] = useState("Advisor");
+  const [userName, setUserName] = useState(terms.advisorLabel);
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [tenantError, setTenantError] = useState<{
@@ -93,7 +93,7 @@ export default function AdvisorDashboard() {
     if (profile) {
       try {
         const u = JSON.parse(profile);
-        setUserName(u.firstName || "Advisor");
+        setUserName(u.firstName || terms.advisorLabel);
       } catch {
         // fallback
       }

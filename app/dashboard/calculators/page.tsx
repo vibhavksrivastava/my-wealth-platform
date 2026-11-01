@@ -43,7 +43,7 @@ function CalculatorsContent() {
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase tracking-wider flex items-center gap-1.5">
               <Calculator className="h-3 w-3" />
-              Wealth &amp; Advisory Toolkit
+              Wealth &amp; {terms.advisoryLabel} Toolkit
             </span>
             <span className="text-xs text-slate-400">
               9 Specialized Financial Calculators

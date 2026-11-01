@@ -89,13 +89,14 @@ export function FirmBrandingProvider({
   }, [firmType, userRole]);
 
   const value = useMemo(() => {
-    const activeShort = terms.shortTitle;
+    const isMfd = firmType === "MFD" || terms.advisorLabel === "Distributor";
+    const isRia = firmType === "RIA" || terms.advisorLabel === "Advisor";
     return {
       firmType,
       userRole,
       terms,
-      isMfd: activeShort === "MFD",
-      isRia: activeShort === "RIA",
+      isMfd,
+      isRia,
       isHybrid: firmType === "BOTH",
       setFirmType,
       setUserRole,

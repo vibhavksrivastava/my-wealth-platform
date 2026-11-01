@@ -31,7 +31,7 @@ async function LoginContent({ searchParams }: LoginPageProps) {
   if (resolvedSubdomain && resolvedSubdomain !== "www") {
     const { data, error } = await supabaseAdmin
       .from("tenants")
-      .select("id, subdomain, firm_brand_name, firm_legal_name, logo_url, primary_color, secondary_color, disclaimer_text, arn_number, ria_number, is_active, theme_mode")
+      .select("id, subdomain, firm_brand_name, firm_legal_name, logo_url, primary_color, secondary_color, disclaimer_text, arn_number, ria_number, is_active, theme_mode, tenant_type, firm_type")
       .eq("subdomain", resolvedSubdomain)
       .maybeSingle();
 

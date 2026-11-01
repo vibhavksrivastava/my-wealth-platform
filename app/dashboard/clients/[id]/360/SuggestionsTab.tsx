@@ -25,6 +25,7 @@ import {
   History,
   MessageSquare,
 } from "lucide-react";
+import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 
 interface SuggestionsTabProps {
   clientId: string;
@@ -39,6 +40,7 @@ export default function SuggestionsTab({
   showToast,
   formatINR,
 }: SuggestionsTabProps) {
+  const { terms } = useFirmBranding();
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [currentDiagnostic, setCurrentDiagnostic] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -638,7 +640,7 @@ export default function SuggestionsTab({
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
               <FileText className="h-4 w-4 text-sky-400" />
-              Advisor Custom Remarks & Review Notes
+              {terms.advisorLabel} Custom Remarks &amp; Review Notes
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
               Refine your personalized observations, agreed timelines, and asset allocation advice before submitting to client.

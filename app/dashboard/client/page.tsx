@@ -30,6 +30,7 @@ import Link from "next/link";
 import AppointmentsManager from "@/components/AppointmentsManager";
 import FileUploader from "@/components/FileUploader";
 import CasUploadModal from "@/components/CasUploadModal";
+import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 
 function formatINR(val: number) {
   if (val >= 10000000) {
@@ -42,6 +43,7 @@ function formatINR(val: number) {
 }
 
 export default function ClientDashboard() {
+  const { terms } = useFirmBranding();
   const [userName, setUserName] = useState("Investor");
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -234,7 +236,7 @@ export default function ClientDashboard() {
             </h1>
             <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
               Consolidated family net worth &amp; financial planning scorecard
-              {advisor?.full_name ? ` • Advisor: ${advisor.full_name}` : ""}
+              {advisor?.full_name ? ` • ${terms.advisorLabel}: ${advisor.full_name}` : ""}
             </p>
           </div>
         </div>
@@ -332,7 +334,7 @@ export default function ClientDashboard() {
 
         <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
           <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Assigned Advisor</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">{terms.assignedAdvisorLabel}</span>
             <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColor}15` }}>
               <Calendar className="h-4 w-4" style={{ color: brandColor }} />
             </div>
@@ -453,10 +455,10 @@ export default function ClientDashboard() {
               </div>
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
-                  Advisor Action Plan &amp; Recommendations
+                  {terms.actionPlanLabel}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Custom advisory guidance and agreed portfolio execution steps.
+                  Custom {terms.advisoryLabel.toLowerCase()} guidance and agreed portfolio execution steps.
                 </p>
               </div>
             </div>
@@ -522,7 +524,7 @@ export default function ClientDashboard() {
                     <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-white">
                       <span className="flex items-center gap-1.5">
                         <MessageSquare className="h-3.5 w-3.5" style={{ color: brandColor }} />
-                        Comments &amp; Execution Log (Visible to Your Advisor)
+                        Comments &amp; Execution Log (Visible to Your {terms.advisorLabel})
                       </span>
                       <span className="text-[10px] text-slate-500 font-normal">
                         Add questions to discuss in meetings or record what you did
@@ -626,8 +628,8 @@ export default function ClientDashboard() {
       <AppointmentsManager
         clientId={data?.clientRecord?.client_id}
         userRole="CLIENT"
-        title="Upcoming Advisor Calls (Next 7 Days)"
-        subtitle="Scheduled reviews with your advisor in the next 7 days, ordered chronologically."
+        title={`Upcoming ${terms.advisorLabel} Calls (Next 7 Days)`}
+        subtitle={`Scheduled reviews with your ${terms.advisorLabel.toLowerCase()} in the next 7 days, ordered chronologically.`}
         brandColor={brandColor}
         nextSevenDaysOnly={true}
       />

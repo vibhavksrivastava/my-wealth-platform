@@ -97,7 +97,7 @@ export default function AdminDashboard() {
           </div>
           <div className="text-2xl font-bold text-white">{usersList.length} Accounts</div>
           <div className="mt-2 text-xs text-slate-400">
-            Clients, Advisors & Admins
+            Clients, {terms.advisorLabel}s &amp; Admins
           </div>
         </div>
 

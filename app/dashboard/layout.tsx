@@ -36,19 +36,19 @@ interface UserProfile {
 
 const roleLabels: Record<string, { label: string; icon: typeof User; color: string }> = {
   CLIENT: { label: "Client / Investor", icon: User, color: "bg-sky-500/10 text-sky-400 border-sky-500/20" },
-  ADVISOR: { label: "Advisor / MFD", icon: Briefcase, color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+  ADVISOR: { label: "Advisor / Distributor", icon: Briefcase, color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
   STAFF: { label: "Staff", icon: Briefcase, color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
   TENANT_ADMIN: { label: "Firm Administrator", icon: ShieldCheck, color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
   SUPER_ADMIN: { label: "Super Admin", icon: ShieldCheck, color: "bg-rose-500/10 text-rose-400 border-rose-500/20" },
 };
 
 function DynamicUserRoleBadge({ role }: { role: string }) {
-  const { terms, isRia, isMfd } = useFirmBranding();
+  const { terms } = useFirmBranding();
   if (role === "ADVISOR" || role === "STAFF") {
     return (
       <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/20 whitespace-nowrap">
         <Briefcase className="h-3 sm:h-3.5 w-3 sm:w-3.5 shrink-0" />
-        <span>{isRia ? "RIA Advisor" : isMfd ? "MFD" : "Advisor"}</span>
+        <span>{terms.advisorLabel}</span>
       </span>
     );
   }
