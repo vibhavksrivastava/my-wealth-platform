@@ -1,3 +1,5 @@
+export type LoginPortalStyle = "UNIVERSAL" | "INVESTOR_PORTAL" | "MULTI_TAB";
+
 export interface TenantBranding {
   logoUrl: string | null;
   primaryColor: string;
@@ -5,6 +7,7 @@ export interface TenantBranding {
   themeMode: "light" | "dark";
   disclaimerText: string | null;
   firmBrandName: string;
+  loginPortalStyle?: LoginPortalStyle;
 }
 
 export interface TenantPublicConfig {

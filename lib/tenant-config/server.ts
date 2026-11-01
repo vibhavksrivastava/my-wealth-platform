@@ -151,6 +151,7 @@ export async function getTenantConfig(
       secondaryColor: brandingSettings.secondary_color || tenant.secondary_color || "#0f172a",
       themeMode: (brandingSettings.theme_mode || tenant.theme_mode || "light") === "dark" ? "dark" : "light",
       disclaimerText: brandingSettings.disclaimer_text ?? tenant.disclaimer_text ?? null,
+      loginPortalStyle: (brandingSettings.login_portal_style || (tenant as any).login_portal_style || "UNIVERSAL") as "UNIVERSAL" | "INVESTOR_PORTAL" | "MULTI_TAB",
     };
 
     // 4. Merge feature flags (tenant specific overrides over default SaaS features)
@@ -265,9 +266,11 @@ export async function updateTenantConfig(
     }
 
     if (params.branding) {
+      const b = params.branding as any;
       payload.branding = {
         ...(existingSettings?.branding || {}),
         ...params.branding,
+        ...(b.loginPortalStyle ? { login_portal_style: b.loginPortalStyle } : {}),
       };
     }
 

@@ -2,6 +2,7 @@ import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
 import { getTenantPlan, checkTenantFeature } from "@/lib/tenantPlans";
+import { clearTenantConfigCache } from "@/lib/tenant-config/server";
 
 
 export async function GET(req: Request) {
@@ -58,10 +59,25 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Tenant settings not found." }, { status: 404 });
     }
 
-    // Normalize firm_type with tenant_type fallback
+    // Retrieve tenant_settings branding row for additional configurations
+    let loginPortalStyle = (tenant as any).login_portal_style;
+    try {
+      const { data: tsRow } = await supabaseAdmin
+        .from("tenant_settings")
+        .select("branding")
+        .eq("tenant_id", targetTenantId)
+        .maybeSingle();
+
+      if (tsRow?.branding?.login_portal_style) {
+        loginPortalStyle = tsRow.branding.login_portal_style;
+      }
+    } catch {}
+
+    // Normalize firm_type with tenant_type fallback and login_portal_style
     const resolvedTenant = {
       ...tenant,
       firm_type: (tenant as any).firm_type || (tenant as any).tenant_type || "MFD",
+      login_portal_style: loginPortalStyle || "UNIVERSAL",
     };
 
     // Resolve tenant plan details & feature flags
@@ -121,6 +137,7 @@ export async function PATCH(req: Request) {
       themeMode,
       customDomain,
       disclaimerText,
+      loginPortalStyle,
     } = body;
 
     // Check plan permission for white-labeling features
@@ -180,6 +197,46 @@ export async function PATCH(req: Request) {
 
     if (disclaimerText !== undefined) updates.disclaimer_text = disclaimerText ? disclaimerText.trim() : null;
 
+    if (loginPortalStyle && ["UNIVERSAL", "INVESTOR_PORTAL", "MULTI_TAB"].includes(loginPortalStyle)) {
+      updates.login_portal_style = loginPortalStyle;
+    }
+
+    // Also update tenant_settings JSONB branding for resilient persistence
+    try {
+      const { data: currentSettings } = await supabaseAdmin
+        .from("tenant_settings")
+        .select("branding")
+        .eq("tenant_id", targetTenantId)
+        .maybeSingle();
+
+      const existingBranding = currentSettings?.branding || {};
+      const newBranding = {
+        ...existingBranding,
+        ...(firmBrandName ? { firm_brand_name: firmBrandName.trim() } : {}),
+        ...(logoUrl !== undefined ? { logo_url: logoUrl ? logoUrl.trim() : null } : {}),
+        ...(primaryColor ? { primary_color: primaryColor.trim() } : {}),
+        ...(secondaryColor ? { secondary_color: secondaryColor.trim() } : {}),
+        ...(themeMode ? { theme_mode: themeMode === "dark" ? "dark" : "light" } : {}),
+        ...(disclaimerText !== undefined ? { disclaimer_text: disclaimerText ? disclaimerText.trim() : null } : {}),
+        ...(loginPortalStyle && ["UNIVERSAL", "INVESTOR_PORTAL", "MULTI_TAB"].includes(loginPortalStyle) 
+            ? { login_portal_style: loginPortalStyle } 
+            : {}),
+      };
+
+      await supabaseAdmin
+        .from("tenant_settings")
+        .upsert(
+          {
+            tenant_id: targetTenantId,
+            branding: newBranding,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "tenant_id" }
+        );
+    } catch (tsErr) {
+      console.warn("Could not upsert tenant_settings branding:", tsErr);
+    }
+
     let { data: updatedTenant, error } = await supabaseAdmin
       .from("tenants")
       .update(updates)
@@ -187,9 +244,14 @@ export async function PATCH(req: Request) {
       .select()
       .single();
 
-    // If firm_type column does not exist yet in PostgreSQL schema, retry without it
-    if (error && (error.message?.includes("firm_type") || (error as any).code === "42703")) {
-      delete updates.firm_type;
+    // If firm_type or login_portal_style column does not exist yet in PostgreSQL schema, retry gracefully
+    if (error && ((error as any).code === "42703" || error.message?.includes("column"))) {
+      if (error.message?.includes("login_portal_style") || (updates.login_portal_style && (error as any).code === "42703")) {
+        delete updates.login_portal_style;
+      }
+      if (error.message?.includes("firm_type")) {
+        delete updates.firm_type;
+      }
       const retry = await supabaseAdmin
         .from("tenants")
         .update(updates)
@@ -204,9 +266,12 @@ export async function PATCH(req: Request) {
       throw error || new Error("Failed to update tenant settings.");
     }
 
+    clearTenantConfigCache(targetTenantId);
+
     const resolvedUpdatedTenant = {
       ...updatedTenant,
       firm_type: (updatedTenant as any).firm_type || (updatedTenant as any).tenant_type || "MFD",
+      login_portal_style: loginPortalStyle || (updatedTenant as any).login_portal_style || "UNIVERSAL",
     };
 
     const { plan } = await getTenantPlan(targetTenantId);

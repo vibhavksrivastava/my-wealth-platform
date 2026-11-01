@@ -93,17 +93,20 @@ export async function POST(req: Request) {
       );
     }
 
-    // Role vs Tab Validation (SUPER_ADMIN can authenticate from any portal tab)
-    if (user.role !== ROLES.SUPER_ADMIN) {
+    // Role vs Tab Validation
+    // When using UNIVERSAL auto-detect or INVESTOR_PORTAL, no tab mismatch errors are thrown.
+    // Instead, user credentials are authenticated and they are dynamically routed to their designated workspace.
+    const isMultiTabEnforced = portalType === "CLIENT" || portalType === "ADVISOR" || portalType === "ADMIN";
+    if (user.role !== ROLES.SUPER_ADMIN && isMultiTabEnforced) {
       if (portalType === "CLIENT" && user.role !== ROLES.CLIENT) {
         return NextResponse.json(
           { error: "Please use the Advisor or Admin tab to log into your account." },
           { status: 403 }
         );
       }
-      if (portalType === "ADVISOR" && ![ROLES.ADVISOR, ROLES.STAFF].includes(user.role)) {
+      if (portalType === "ADVISOR" && ![ROLES.ADVISOR, ROLES.STAFF, ROLES.TENANT_ADMIN].includes(user.role)) {
         return NextResponse.json(
-          { error: "This tab is reserved for Advisors and Distributors." },
+          { error: "This tab is reserved for Advisors, Distributors, and Practice Staff." },
           { status: 403 }
         );
       }

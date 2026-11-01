@@ -44,7 +44,42 @@ async function LoginContent({ searchParams }: LoginPageProps) {
       notFound();
     }
 
-    tenant = data;
+    // Fetch login_portal_style from tenant_settings branding or tenants column
+    let loginPortalStyle = (data as any).login_portal_style;
+    if (!loginPortalStyle) {
+      try {
+        const { data: tsData } = await supabaseAdmin
+          .from("tenant_settings")
+          .select("branding")
+          .eq("tenant_id", data.id)
+          .maybeSingle();
+
+        if (tsData?.branding?.login_portal_style) {
+          loginPortalStyle = tsData.branding.login_portal_style;
+        }
+      } catch {}
+    }
+
+    tenant = {
+      ...data,
+      login_portal_style: loginPortalStyle || "UNIVERSAL",
+    };
+  } else {
+    // Platform HQ default lookup for root portal
+    try {
+      const { data: tsData } = await supabaseAdmin
+        .from("tenant_settings")
+        .select("branding")
+        .eq("tenant_id", "00000000-0000-0000-0000-000000000000")
+        .maybeSingle();
+
+      if (tsData?.branding?.login_portal_style) {
+        tenant = {
+          firm_brand_name: "WealthOS Platform",
+          login_portal_style: tsData.branding.login_portal_style,
+        };
+      }
+    } catch {}
   }
 
   // 4. Render the custom-branded or platform login form

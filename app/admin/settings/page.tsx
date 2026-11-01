@@ -30,10 +30,12 @@ import {
   Sliders,
   Users,
   UserCheck,
+  LogIn,
 } from "lucide-react";
 import FileUploader from "@/components/FileUploader";
 import { useFirmBranding, type FirmType } from "@/lib/context/FirmBrandingContext";
 import { MASTER_FEATURE_CATALOG, DEFAULT_ROLE_PERMISSIONS, type RolePermissionsMap } from "@/lib/featureFlags";
+import type { LoginPortalStyle } from "@/components/TenantLoginForm";
 
 interface PlanInfo {
   id: string;
@@ -70,6 +72,7 @@ export default function TenantAdminSettingsPage() {
     customDomain: "",
     disclaimerText: "",
     subdomain: "",
+    loginPortalStyle: "UNIVERSAL" as LoginPortalStyle,
   });
 
   const [envVars, setEnvVars] = useState({
@@ -230,6 +233,7 @@ export default function TenantAdminSettingsPage() {
           customDomain: t.custom_domain || "",
           disclaimerText: t.disclaimer_text || "",
           subdomain: t.subdomain || "",
+          loginPortalStyle: (t.login_portal_style || "UNIVERSAL") as LoginPortalStyle,
         });
       }
 
@@ -306,18 +310,19 @@ export default function TenantAdminSettingsPage() {
               secondaryColor: formData.secondaryColor,
               themeMode: formData.themeMode,
               disclaimerText: formData.disclaimerText,
+              loginPortalStyle: formData.loginPortalStyle,
             },
             envVars,
           }),
         });
       }
 
-      setSuccessMessage("Firm practice model, white-label branding, and dedicated API integrations updated successfully.");
+      setSuccessMessage("Firm practice model, login portal style, white-label branding, and dedicated API integrations updated successfully.");
       if (data.plan) {
         setPlan(data.plan);
       }
 
-      // Propagate the updated practice model to global React Context & persistent storage
+      // Propagate the updated practice model and login portal style to global React Context & persistent storage
       if (formData.firmType) {
         setGlobalFirmType(formData.firmType);
         try {
@@ -331,6 +336,7 @@ export default function TenantAdminSettingsPage() {
             parsed.primary_color = formData.primaryColor;
             parsed.secondary_color = formData.secondaryColor;
             parsed.theme_mode = formData.themeMode;
+            parsed.login_portal_style = formData.loginPortalStyle;
             localStorage.setItem("tenant_branding", JSON.stringify(parsed));
           }
           window.dispatchEvent(new Event("tenant_branding_updated"));
@@ -613,6 +619,140 @@ export default function TenantAdminSettingsPage() {
                     </div>
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* Login Experience & Access Portal Style Selection */}
+            <div className="border-b border-slate-800 pb-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <LogIn className="h-4 w-4 text-amber-400" />
+                    Login Portal Experience &amp; Access Style
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Select how clients, distributors, and firm staff sign into your white-labeled portal.
+                  </p>
+                </div>
+                <span className="text-[10px] px-2.5 py-0.5 rounded font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 whitespace-nowrap self-start sm:self-auto">
+                  Active: {formData.loginPortalStyle === "UNIVERSAL" ? "Option 1: Universal Auto-Detect" : formData.loginPortalStyle === "INVESTOR_PORTAL" ? "Option 2: Dedicated Investor Portal" : "Option 3: Classic Multi-Tab"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
+                {/* Option 1: Universal Auto-Detect */}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, loginPortalStyle: "UNIVERSAL" })}
+                  className={`p-4 rounded-xl border text-left transition flex flex-col justify-between relative group ${
+                    formData.loginPortalStyle === "UNIVERSAL"
+                      ? "bg-amber-500/15 border-amber-500 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/40"
+                      : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Option 1 • Recommended
+                      </span>
+                      <Sparkles className="h-4 w-4 text-emerald-400" />
+                    </div>
+                    <h4 className="text-xs font-bold text-white mb-1 flex items-center justify-between">
+                      <span>Universal Auto-Detect</span>
+                      <span className="text-[9px] font-mono text-emerald-400 font-bold">Zero Tabs</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Single unified login form. The platform automatically determines whether the user is a Client, Advisor, Staff, or Admin and instantly routes them to their portal.
+                    </p>
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[10px] text-emerald-400 font-medium space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                      <span>Zero tab confusion &bull; No wrong-tab errors</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-600"></span>
+                      <span>Modern SaaS UX (Stripe, Google style)</span>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Option 2: Dedicated Investor Portal */}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, loginPortalStyle: "INVESTOR_PORTAL" })}
+                  className={`p-4 rounded-xl border text-left transition flex flex-col justify-between relative group ${
+                    formData.loginPortalStyle === "INVESTOR_PORTAL"
+                      ? "bg-sky-500/15 border-sky-500 text-white shadow-lg shadow-sky-500/10 ring-1 ring-sky-500/40"
+                      : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                        Option 2 • Client First
+                      </span>
+                      <UserCheck className="h-4 w-4 text-sky-400" />
+                    </div>
+                    <h4 className="text-xs font-bold text-white mb-1 flex items-center justify-between">
+                      <span>Dedicated Investor Portal</span>
+                      <span className="text-[9px] font-mono text-sky-400 font-bold">Subtle Staff Link</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      100% investor-focused presentation. Internal distributor/staff tools are hidden from clients, with a discreet footer link to toggle the staff console.
+                    </p>
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[10px] text-sky-400 font-medium space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-400"></span>
+                      <span>High-trust client portal branding</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-600"></span>
+                      <span>Subtle switcher for firm staff</span>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Option 3: Classic Multi-Tab */}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, loginPortalStyle: "MULTI_TAB" })}
+                  className={`p-4 rounded-xl border text-left transition flex flex-col justify-between relative group ${
+                    formData.loginPortalStyle === "MULTI_TAB"
+                      ? "bg-purple-500/15 border-purple-500 text-white shadow-lg shadow-purple-500/10 ring-1 ring-purple-500/40"
+                      : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        Option 3 • Multi-Tab
+                      </span>
+                      <Sliders className="h-4 w-4 text-purple-400" />
+                    </div>
+                    <h4 className="text-xs font-bold text-white mb-1 flex items-center justify-between">
+                      <span>Classic Multi-Tab Selector</span>
+                      <span className="text-[9px] font-mono text-purple-400 font-bold">Explicit Tabs</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Traditional multi-tab layout with visible &ldquo;Client&rdquo;, &ldquo;Advisor / Distributor&rdquo;, and &ldquo;Admin&rdquo; tabs across the top of the login card.
+                    </p>
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[10px] text-purple-400 font-medium space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-purple-400"></span>
+                      <span>Role segregation explicitly visible</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-600"></span>
+                      <span>Familiar multi-portal experience</span>
+                    </div>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -1266,6 +1406,55 @@ export default function TenantAdminSettingsPage() {
             {/* Mock Disclaimer */}
             <div className="text-[9px] text-slate-500 leading-tight pt-1 border-t border-slate-900">
               {formData.disclaimerText || "Compliance disclaimer will appear here in investor reports."}
+            </div>
+
+            {/* Mock Login Page Preview */}
+            <div className="pt-3 border-t border-slate-900 space-y-2">
+              <div className="text-[10px] text-slate-400 uppercase font-semibold flex items-center justify-between">
+                <span>Login Page Preview</span>
+                <span className="text-[9px] font-mono text-amber-400 font-bold">
+                  {formData.loginPortalStyle === "UNIVERSAL"
+                    ? "Universal"
+                    : formData.loginPortalStyle === "INVESTOR_PORTAL"
+                    ? "Investor-First"
+                    : "Multi-Tab"}
+                </span>
+              </div>
+              <div className="p-3 rounded-lg bg-slate-900/90 border border-slate-800 space-y-2 text-left">
+                {formData.loginPortalStyle === "MULTI_TAB" ? (
+                  <div className="flex gap-1 bg-slate-950 p-1 rounded-md text-[9px] font-semibold text-center">
+                    <span className="flex-1 py-1 rounded bg-amber-500/20 text-amber-300">Client</span>
+                    <span className="flex-1 py-1 text-slate-400">{formData.firmType === "MFD" ? "Distributor" : "Advisor"}</span>
+                  </div>
+                ) : formData.loginPortalStyle === "INVESTOR_PORTAL" ? (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold">Investor Portal</span>
+                    <span className="text-[9px] text-slate-500">Staff link below &rarr;</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">Smart Auto-Detect</span>
+                    <span className="text-[9px] text-emerald-400 font-mono">Zero Tabs</span>
+                  </div>
+                )}
+                <div className="text-xs font-bold text-white truncate">
+                  {formData.firmBrandName || "Firm Brand"}
+                </div>
+                <div className="h-6 bg-slate-950 rounded border border-slate-800 text-[10px] text-slate-500 flex items-center px-2">
+                  {formData.loginPortalStyle === "UNIVERSAL" ? "name@example.com" : "investor@example.com"}
+                </div>
+                <div 
+                  className="h-6 rounded text-white text-[10px] font-bold flex items-center justify-center shadow-sm"
+                  style={{ backgroundColor: hasWhiteLabel ? formData.primaryColor : "#0284c7" }}
+                >
+                  {formData.loginPortalStyle === "INVESTOR_PORTAL" ? "Sign In to Investor Portfolio" : "Sign In to Portal"} &rarr;
+                </div>
+                {formData.loginPortalStyle === "INVESTOR_PORTAL" && (
+                  <div className="text-[9px] text-sky-400 text-center pt-0.5">
+                    Sign in to {formData.firmType === "MFD" ? "Distributor" : "Advisor"} Console &rarr;
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

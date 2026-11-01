@@ -19,6 +19,8 @@ import {
   ExternalLink
 } from "lucide-react";
 
+export type LoginPortalStyle = "UNIVERSAL" | "INVESTOR_PORTAL" | "MULTI_TAB";
+
 export interface TenantBranding {
   id?: string;
   subdomain?: string;
@@ -34,18 +36,22 @@ export interface TenantBranding {
   theme_mode?: "light" | "dark" | string | null;
   firm_type?: "MFD" | "RIA" | "BOTH" | string | null;
   tenant_type?: "MFD" | "RIA" | "BOTH" | string | null;
+  login_portal_style?: LoginPortalStyle | null;
 }
 
 interface TenantLoginFormProps {
   tenant: TenantBranding | null;
   subdomain?: string | null;
+  initialPortalStyle?: LoginPortalStyle;
 }
 
 type RoleTab = "CLIENT" | "ADVISOR" | "ADMIN";
 
-export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormProps) {
+export default function TenantLoginForm({ tenant, subdomain, initialPortalStyle }: TenantLoginFormProps) {
   const router = useRouter();
+  const loginStyle: LoginPortalStyle = initialPortalStyle || tenant?.login_portal_style || "UNIVERSAL";
   const [activeTab, setActiveTab] = useState<RoleTab>("CLIENT");
+  const [isStaffMode, setIsStaffMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -103,6 +109,13 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
     setErrorMessage(null);
     setSubscriptionExpired(false);
 
+    const submittedPortalType = 
+      loginStyle === "UNIVERSAL" 
+        ? "UNIVERSAL" 
+        : loginStyle === "INVESTOR_PORTAL" 
+        ? (isStaffMode ? "ADVISOR" : "INVESTOR_PORTAL") 
+        : activeTab;
+
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -110,7 +123,7 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
         body: JSON.stringify({
           email,
           password,
-          portalType: activeTab,
+          portalType: submittedPortalType,
           tenantSubdomain: tenant?.subdomain,
         }),
       });
@@ -152,6 +165,38 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
       setIsLoading(false);
     }
   };
+
+  const isUniversal = loginStyle === "UNIVERSAL";
+  const isInvestorPortal = loginStyle === "INVESTOR_PORTAL";
+  const isMultiTab = loginStyle === "MULTI_TAB";
+
+  let displayBadge = roleMeta[activeTab].badge;
+  let displayTitle = roleMeta[activeTab].title;
+  let displaySubtitle = roleMeta[activeTab].subtitle;
+  let submitButtonText = activeTab === "CLIENT" ? "Sign In to Portfolio" : "Sign In to Console";
+
+  if (isUniversal) {
+    displayBadge = isCustomTenant ? `${brandName} Verified Access` : "Unified Wealth Access";
+    displayTitle = isCustomTenant ? `${brandName} Portal Sign In` : "Sign In to WealthOS";
+    displaySubtitle = "Enter your credentials to access your secure portal. Your role and permissions are automatically verified.";
+    submitButtonText = "Sign In to Portal";
+  } else if (isInvestorPortal) {
+    if (isStaffMode) {
+      displayBadge = `${advisorLabel} & Staff Console`;
+      displayTitle = `${brandName} • ${advisorLabel} Console`;
+      displaySubtitle = isMfd
+        ? "Access your distributor execution console, mutual fund folios, and brokerage logs."
+        : "Access your fiduciary advisory console, client portfolios, and planning records.";
+      submitButtonText = `Sign In to ${advisorLabel} Console`;
+    } else {
+      displayBadge = isCustomTenant ? `${brandName} Investor Access` : "Investor Access";
+      displayTitle = isCustomTenant ? `${brandName} • Client Portal` : "Client & Investor Portal";
+      displaySubtitle = isMfd
+        ? `Access your consolidated mutual fund portfolio, statements, and wealth tracking serviced by ${brandName}.`
+        : `Access your consolidated portfolio, advisory reports, and net-worth tracking managed by ${brandName}.`;
+      submitButtonText = "Sign In to Investor Portfolio";
+    }
+  }
 
   const isDark = tenant?.theme_mode === "dark";
 
@@ -232,56 +277,62 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
               {isCustomTenant ? `${brandName}` : "Sign In to WealthOS"}
             </h1>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-              {isCustomTenant 
-                ? `Authorized Client & Advisor Access Portal`
-                : "Multi-tenant unified wealth management console"}
+              {isInvestorPortal && !isStaffMode
+                ? `Dedicated Client & Investor Portal`
+                : isInvestorPortal && isStaffMode
+                ? `Authorized ${advisorLabel} & Back-Office Console`
+                : isUniversal
+                ? (isCustomTenant ? `Smart Unified Access Portal` : "Multi-tenant unified wealth management console")
+                : (isCustomTenant ? `Authorized Client & Advisor Access Portal` : "Multi-tenant unified wealth management console")}
             </p>
           </div>
 
-          {/* Role Selection Tabs */}
-          <div className="flex bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-1 rounded-xl mb-4 shadow-inner">
-            <button
-              type="button"
-              onClick={() => { setActiveTab("CLIENT"); setErrorMessage(null); }}
-              style={activeTab === "CLIENT" ? { backgroundColor: brandColor } : {}}
-              className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 rounded-lg text-[11px] sm:text-xs font-semibold transition ${
-                activeTab === "CLIENT"
-                  ? "text-white shadow-sm"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-              }`}
-            >
-              <User className="h-3.5 w-3.5 shrink-0" />
-              <span>Client</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setActiveTab("ADVISOR"); setErrorMessage(null); }}
-              style={activeTab === "ADVISOR" ? { backgroundColor: brandColor } : {}}
-              className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 rounded-lg text-[11px] sm:text-xs font-semibold transition ${
-                activeTab === "ADVISOR"
-                  ? "text-white shadow-sm"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-              }`}
-            >
-              <Briefcase className="h-3.5 w-3.5 shrink-0" />
-              <span>{isCustomTenant ? advisorLabel : <span>Advisor<span className="hidden xs:inline"> / Distributor</span></span>}</span>
-            </button>
-            {!isCustomTenant && (
+          {/* Role Selection Tabs (Rendered for Classic Multi-Tab style) */}
+          {isMultiTab && (
+            <div className="flex bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-1 rounded-xl mb-4 shadow-inner">
               <button
                 type="button"
-                onClick={() => { setActiveTab("ADMIN"); setErrorMessage(null); }}
-                style={activeTab === "ADMIN" ? { backgroundColor: brandColor } : {}}
+                onClick={() => { setActiveTab("CLIENT"); setErrorMessage(null); }}
+                style={activeTab === "CLIENT" ? { backgroundColor: brandColor } : {}}
                 className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 rounded-lg text-[11px] sm:text-xs font-semibold transition ${
-                  activeTab === "ADMIN"
+                  activeTab === "CLIENT"
                     ? "text-white shadow-sm"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 }`}
               >
-                <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                <span>Admin</span>
+                <User className="h-3.5 w-3.5 shrink-0" />
+                <span>Client</span>
               </button>
-            )}
-          </div>
+              <button
+                type="button"
+                onClick={() => { setActiveTab("ADVISOR"); setErrorMessage(null); }}
+                style={activeTab === "ADVISOR" ? { backgroundColor: brandColor } : {}}
+                className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 rounded-lg text-[11px] sm:text-xs font-semibold transition ${
+                  activeTab === "ADVISOR"
+                    ? "text-white shadow-sm"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                }`}
+              >
+                <Briefcase className="h-3.5 w-3.5 shrink-0" />
+                <span>{isCustomTenant ? advisorLabel : <span>Advisor<span className="hidden xs:inline"> / Distributor</span></span>}</span>
+              </button>
+              {!isCustomTenant && (
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab("ADMIN"); setErrorMessage(null); }}
+                  style={activeTab === "ADMIN" ? { backgroundColor: brandColor } : {}}
+                  className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 rounded-lg text-[11px] sm:text-xs font-semibold transition ${
+                    activeTab === "ADMIN"
+                      ? "text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                  <span>Admin</span>
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Form Card */}
           <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-8 shadow-xl dark:shadow-2xl backdrop-blur-sm">
@@ -290,13 +341,13 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
                 style={{ color: brandColor, borderColor: `${brandColor}40`, backgroundColor: `${brandColor}15` }}
                 className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border mb-2"
               >
-                {roleMeta[activeTab].badge}
+                {displayBadge}
               </span>
               <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-                {roleMeta[activeTab].title}
+                {displayTitle}
               </h2>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                {roleMeta[activeTab].subtitle}
+                {displaySubtitle}
               </p>
             </div>
 
@@ -333,7 +384,13 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={
-                      activeTab === "CLIENT"
+                      isInvestorPortal && !isStaffMode
+                        ? "investor@example.com"
+                        : isInvestorPortal && isStaffMode
+                        ? "advisor@firm.com"
+                        : isUniversal
+                        ? "name@example.com"
+                        : activeTab === "CLIENT"
                         ? "investor@example.com"
                         : "advisor@firm.com"
                     }
@@ -388,31 +445,70 @@ export default function TenantLoginForm({ tenant, subdomain }: TenantLoginFormPr
                   </>
                 ) : (
                   <>
-                    <span>Sign In to {activeTab === "CLIENT" ? "Portfolio" : "Console"}</span>
+                    <span>{submitButtonText}</span>
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
               </button>
             </form>
 
-            {/* Quick Helper Links */}
-            <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
-              {activeTab === "CLIENT" ? (
-                <p>
-                  First time accessing your portfolio?{" "}
-                  <span className="text-slate-700 dark:text-slate-300 font-medium">
-                    Contact {brandName} for onboarding credentials.
-                  </span>
-                </p>
-              ) : (
-                <p>
-                  Need advisor or agency onboarding?{" "}
-                  <Link href="/#demo" className="text-sky-600 dark:text-sky-400 hover:underline">
-                    Contact platform administrator
-                  </Link>
-                </p>
-              )}
-            </div>
+            {/* Option 2: Investor Portal Staff Switcher */}
+            {isInvestorPortal && (
+              <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
+                {!isStaffMode ? (
+                  <p>
+                    Are you a firm {advisorLabel.toLowerCase()} or staff member?{" "}
+                    <button
+                      type="button"
+                      onClick={() => { setIsStaffMode(true); setErrorMessage(null); }}
+                      className="font-semibold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1 ml-1"
+                    >
+                      <span>Sign in to {advisorLabel} Console &rarr;</span>
+                    </button>
+                  </p>
+                ) : (
+                  <p>
+                    Need investor access?{" "}
+                    <button
+                      type="button"
+                      onClick={() => { setIsStaffMode(false); setErrorMessage(null); }}
+                      className="font-semibold text-slate-700 dark:text-slate-300 hover:underline inline-flex items-center gap-1 ml-1"
+                    >
+                      <span>&larr; Return to Investor Portal</span>
+                    </button>
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Option 1: Universal Auto-Routing Helper */}
+            {isUniversal && (
+              <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                <span>Smart Auto-Detection &bull; Clients, {advisorLabel}s &amp; Staff</span>
+              </div>
+            )}
+
+            {/* Option 3: Classic Multi-Tab Helpers */}
+            {isMultiTab && (
+              <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
+                {activeTab === "CLIENT" ? (
+                  <p>
+                    First time accessing your portfolio?{" "}
+                    <span className="text-slate-700 dark:text-slate-300 font-medium">
+                      Contact {brandName} for onboarding credentials.
+                    </span>
+                  </p>
+                ) : (
+                  <p>
+                    Need {advisorLabel.toLowerCase()} or agency onboarding?{" "}
+                    <Link href="/#demo" className="text-sky-600 dark:text-sky-400 hover:underline">
+                      Contact platform administrator
+                    </Link>
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>
