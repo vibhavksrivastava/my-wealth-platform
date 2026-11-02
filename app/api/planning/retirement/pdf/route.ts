@@ -27,6 +27,8 @@ export async function POST(req: Request) {
       diagnosticResult: passedDiagnostic,
       inputOverrides,
       aiAdvisory,
+      scope,
+      activeMemberId,
       options,
     } = body;
 
@@ -118,6 +120,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Client record not found." }, { status: 404 });
     }
 
+    // Switch to active member if scope is INDIVIDUAL
+    if (scope === "INDIVIDUAL" && activeMemberId && targetClient.client_id !== activeMemberId) {
+      const { data: memberRecord } = await supabaseAdmin
+        .from("clients")
+        .select("*")
+        .eq("client_id", activeMemberId)
+        .maybeSingle();
+      if (memberRecord) targetClient = memberRecord;
+    }
+
     // Resolve Diagnostic Result (use passed diagnostic or calculate fresh)
     let diagnostic: RetirementDiagnosticResult = passedDiagnostic;
     if (!diagnostic || diagnostic.currentAge === undefined) {
@@ -193,8 +205,13 @@ export async function POST(req: Request) {
       advisorName,
     };
 
+    const displayName =
+      scope === "HOUSEHOLD"
+        ? `${targetClient.full_name || "Family"} (Joint Household Plan)`
+        : (targetClient.full_name || "Valued Client");
+
     const client: RetirementPdfClient = {
-      fullName: targetClient.full_name || targetClient.name || "Valued Client",
+      fullName: displayName,
       panNumber: targetClient.pan_number || targetClient.pan || undefined,
       dateOfBirth: targetClient.date_of_birth || undefined,
       currentAge: diagnostic.currentAge || 38,
@@ -216,8 +233,11 @@ export async function POST(req: Request) {
       },
     });
 
-    const safeClientName = (client.fullName || "Client").replace(/[^a-zA-Z0-9_-]/g, "_");
-    const filename = `Retirement_Plan_${safeClientName}.pdf`;
+    const safeClientName = (targetClient.full_name || "Client").replace(/[^a-zA-Z0-9_-]/g, "_");
+    const filename =
+      scope === "HOUSEHOLD"
+        ? `Retirement_Plan_Household_${safeClientName}.pdf`
+        : `Retirement_Plan_${safeClientName}.pdf`;
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,

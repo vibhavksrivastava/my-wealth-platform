@@ -39,6 +39,7 @@ import {
   X,
   Eye,
   EyeOff,
+  Users,
 } from "lucide-react";
 
 function formatINR(val: number) {
@@ -82,6 +83,14 @@ function RetirementPlanningContent() {
   const [clients, setClients] = useState<any[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>(queryClientId);
   const [selectedClient, setSelectedClient] = useState<any>(null);
+
+  // Household & Multi-Member Planning State
+  const [householdMembers, setHouseholdMembers] = useState<any[]>([]);
+  const [memberBreakdown, setMemberBreakdown] = useState<any[]>([]);
+  const [hasMultipleMembers, setHasMultipleMembers] = useState(false);
+  const [planningScope, setPlanningScope] = useState<"HOUSEHOLD" | "INDIVIDUAL">("HOUSEHOLD");
+  const [activeMemberId, setActiveMemberId] = useState<string>("");
+  const [totalHouseholdSip, setTotalHouseholdSip] = useState<number>(0);
 
   // Interactive Engine Inputs
   const [currentAge, setCurrentAge] = useState<number>(38);
@@ -190,6 +199,8 @@ function RetirementPlanningContent() {
         password: finalPassword,
         diagnosticResult,
         aiAdvisory,
+        scope: planningScope,
+        activeMemberId,
         options: {
           includeAiMemo: pdfIncludeAi && !!aiAdvisory,
           includeHoldingsTable: pdfIncludeHoldings,
@@ -216,7 +227,8 @@ function RetirementPlanningContent() {
       const a = document.createElement("a");
       a.href = url;
       const clientName = (selectedClient?.fullName || "Client").replace(/[^a-zA-Z0-9_-]/g, "_");
-      a.download = `Retirement_Plan_${clientName}.pdf`;
+      const scopeSuffix = planningScope === "HOUSEHOLD" ? "_Household" : `_${clientName}`;
+      a.download = `Retirement_Plan${scopeSuffix}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -233,13 +245,15 @@ function RetirementPlanningContent() {
   };
 
   // Fetch initial data
-  const fetchData = async (clientId?: string) => {
+  const fetchData = async (clientId?: string, scope?: "HOUSEHOLD" | "INDIVIDUAL", memberId?: string) => {
     setIsLoading(true);
     setError(null);
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") || localStorage.getItem("token") : null;
       const url = new URL("/api/planning/retirement", window.location.origin);
       if (clientId) url.searchParams.set("clientId", clientId);
+      if (scope) url.searchParams.set("scope", scope);
+      if (memberId) url.searchParams.set("memberId", memberId);
 
       const res = await fetch(url.toString(), {
         headers: { Authorization: token ? `Bearer ${token}` : "" },
@@ -257,6 +271,12 @@ function RetirementPlanningContent() {
       if (resData.selectedClient?.clientId) {
         setSelectedClientId(resData.selectedClient.clientId);
       }
+      setHouseholdMembers(resData.householdMembers || []);
+      setMemberBreakdown(resData.memberBreakdown || []);
+      setHasMultipleMembers(resData.hasMultipleMembers || false);
+      setPlanningScope(resData.planningScope || "HOUSEHOLD");
+      setActiveMemberId(resData.activeMemberId || resData.selectedClient?.clientId || "");
+      setTotalHouseholdSip(resData.totalHouseholdSip || 0);
 
       const input = resData.engineInput;
       if (input) {
@@ -287,6 +307,10 @@ function RetirementPlanningContent() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSwitchScope = (newScope: "HOUSEHOLD" | "INDIVIDUAL", memberId?: string) => {
+    fetchData(selectedClientId, newScope, memberId);
   };
 
   useEffect(() => {
@@ -567,6 +591,68 @@ function RetirementPlanningContent() {
         )}
       </div>
 
+      {/* Household Multi-Member / Clubbed Plan Selector */}
+      {hasMultipleMembers && householdMembers.length > 1 && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50/50 to-white dark:from-purple-950/40 dark:via-slate-900 dark:to-slate-900 border border-purple-200 dark:border-purple-800/60 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Users className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                Household Planning Scope
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                  {householdMembers.length} Family Members
+                </span>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                  Joint SIP: {formatINR(totalHouseholdSip)}/mo
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Toggle between a unified Common Household Plan (clubbing all family wealth) or individual member retirement blueprints.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-2xs">
+            {/* Clubbed Household Option */}
+            <button
+              onClick={() => handleSwitchScope("HOUSEHOLD")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                planningScope === "HOUSEHOLD"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              <Users className="h-3.5 w-3.5" />
+              <span>Common Household Plan (Clubbed)</span>
+            </button>
+
+            {/* Individual Member Options */}
+            {householdMembers.map((m) => {
+              const breakdown = memberBreakdown.find((b) => b.clientId === m.clientId);
+              const isSelected = planningScope === "INDIVIDUAL" && activeMemberId === m.clientId;
+              return (
+                <button
+                  key={m.clientId}
+                  onClick={() => handleSwitchScope("INDIVIDUAL", m.clientId)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                    isSelected
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <User className="h-3.5 w-3.5" />
+                  <span>
+                    {m.fullName} ({m.currentAge} yrs{breakdown?.monthlySip ? ` • ${formatINR(breakdown.monthlySip)}/mo` : ""})
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Hero Banner: Smart Retirement Diagnostic & Action Plan */}
       <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-purple-900/10 via-white to-slate-50 dark:from-purple-950/40 dark:via-slate-900 dark:to-slate-950 border border-purple-200 dark:border-purple-800/60 shadow-lg relative overflow-hidden">
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-purple-500/10 dark:bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -576,10 +662,15 @@ function RetirementPlanningContent() {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700 flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                Smart Retirement Diagnostic &amp; Action Plan
+                {planningScope === "HOUSEHOLD" ? "Clubbed Household Retirement Diagnostic" : "Individual Member Diagnostic"}
               </span>
 
-              {isRetired ? (
+              {planningScope === "HOUSEHOLD" ? (
+                <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5" />
+                  Combined Family Portfolio ({householdMembers.length} Members)
+                </span>
+              ) : isRetired ? (
                 <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700 flex items-center gap-1.5">
                   <Coins className="h-3.5 w-3.5" />
                   Active Decumulation Phase (Age {currentAge})
@@ -587,19 +678,23 @@ function RetirementPlanningContent() {
               ) : (
                 <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-700 flex items-center gap-1.5">
                   <TrendingUp className="h-3.5 w-3.5" />
-                  Accumulation Horizon (Age {currentAge} &rarr; {retirementAge} • {diagnosticResult.yearsToRetirement} yrs left)
+                  Accumulation Horizon (Age {currentAge} &rarr; {retirementAge} • {diagnosticResult?.yearsToRetirement} yrs left)
                 </span>
               )}
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              {selectedClient.fullName}&apos;s Retirement Independence
+              {planningScope === "HOUSEHOLD"
+                ? `${selectedClient?.fullName}'s Household Combined Retirement Plan`
+                : `${selectedClient?.fullName}'s Individual Retirement Plan`}
             </h1>
 
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              {isRetired
-                ? `Currently retired at age ${currentAge}. Your Three-Bucket decumulation architecture protects your ₹${formatINR(diagnosticResult.currentTotalRetirementCorpus)} portfolio, generating a safe monthly SWP of ${formatINR(diagnosticResult.sustainableMonthlySpend)} to shield your wealth from market crashes.`
-                : `Plan your retirement to age ${retirementAge} and life expectancy to age ${lifeExpectancy}. Automatically imports your EPF, NPS, mutual funds, and living expenses to calculate your exact corpus gap, required SIP, and institutional decumulation buckets.`}
+              {planningScope === "HOUSEHOLD"
+                ? `Joint family retirement architecture combining ${householdMembers.map((m) => m.fullName).join(" & ")}. Aggregates mutual fund SIPs (${formatINR(totalHouseholdSip)}/mo), EPF/NPS accounts, and household living expenses (${formatINR(currentMonthlyExpense)}/mo) to compute joint readiness and sustainable decumulation.`
+                : isRetired
+                ? `Currently retired at age ${currentAge}. Your Three-Bucket decumulation architecture protects your portfolio, generating a safe monthly SWP of ${formatINR(diagnosticResult?.sustainableMonthlySpend)} to shield your wealth from market crashes.`
+                : `Plan your individual retirement to age ${retirementAge} and life expectancy to age ${lifeExpectancy}. Automatically imports your EPF, NPS, personal mutual funds (${formatINR(ongoingMonthlySip)}/mo SIP), and living expenses to calculate your exact corpus gap and decumulation runway.`}
             </p>
           </div>
 

@@ -21,6 +21,8 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const requestedClientId = searchParams.get("clientId");
+    const requestedScope = searchParams.get("scope"); // "HOUSEHOLD" | "INDIVIDUAL"
+    const requestedMemberId = searchParams.get("memberId");
     const isAdvisor = session.role !== "CLIENT";
 
     let targetClient: any = null;
@@ -83,7 +85,7 @@ export async function GET(req: Request) {
       // 2. ADVISOR ACCESS: Allow client selection strictly within tenant
       let clientsQuery = supabaseAdmin
         .from("clients")
-        .select("client_id, full_name, date_of_birth, annual_gross_income, risk_profile, marital_status, tenant_id, user_id")
+        .select("client_id, household_id, full_name, date_of_birth, annual_gross_income, risk_profile, marital_status, tenant_id, user_id")
         .order("full_name", { ascending: true });
 
       if (session.tenantId && session.role !== "SUPER_ADMIN") {
@@ -121,39 +123,78 @@ export async function GET(req: Request) {
 
     const targetClientId = targetClient.client_id;
 
-    // Fetch household members if applicable
-    let memberIds = [targetClientId];
+    // Fetch all household members if applicable
+    let householdMembersData: any[] = [];
     if (targetClient.household_id) {
-      const { data: members } = await supabaseAdmin
+      const { data: hhMembers } = await supabaseAdmin
         .from("clients")
-        .select("client_id")
-        .eq("household_id", targetClient.household_id);
-      if (members && members.length > 0) {
-        memberIds = members.map((m) => m.client_id);
-      }
+        .select("client_id, full_name, date_of_birth, annual_gross_income, marital_status, risk_profile, household_id")
+        .eq("household_id", targetClient.household_id)
+        .order("annual_gross_income", { ascending: false });
+      householdMembersData = hhMembers || [];
     }
 
-    // Fetch financial entities concurrently
+    if (householdMembersData.length === 0) {
+      householdMembersData = [targetClient];
+    }
+
+    const householdMembers = householdMembersData.map((m) => {
+      let age = 38;
+      if (m.date_of_birth) {
+        const dob = new Date(m.date_of_birth);
+        const diffMs = Date.now() - dob.getTime();
+        const calculatedAge = Math.floor(diffMs / (365.25 * 24 * 60 * 60 * 1000));
+        if (!isNaN(calculatedAge) && calculatedAge > 0) age = calculatedAge;
+      }
+      return {
+        clientId: m.client_id,
+        fullName: m.full_name || "Family Member",
+        dateOfBirth: m.date_of_birth,
+        currentAge: age,
+        annualGrossIncome: Number(m.annual_gross_income || 0),
+        panNumber: m.pan_number || null,
+        riskProfile: m.risk_profile || "Moderate",
+        isPrimary: m.client_id === targetClient.client_id,
+      };
+    });
+
+    const hasMultipleMembers = householdMembers.length > 1;
+    // Default to "HOUSEHOLD" when multiple members exist unless "INDIVIDUAL" was requested
+    const planningScope: "HOUSEHOLD" | "INDIVIDUAL" =
+      hasMultipleMembers && requestedScope === "INDIVIDUAL"
+        ? "INDIVIDUAL"
+        : hasMultipleMembers
+        ? "HOUSEHOLD"
+        : "INDIVIDUAL";
+
+    let activeClient = targetClient;
+    if (planningScope === "INDIVIDUAL") {
+      const targetMemberId = requestedMemberId || requestedClientId || targetClient.client_id;
+      const found = householdMembersData.find((m) => m.client_id === targetMemberId);
+      if (found) activeClient = found;
+    }
+
+    // Fetch financial entities across all household members
+    const allHouseholdClientIds = householdMembers.map((m) => m.clientId);
     const [expensesRes, assetsRes, invRes, goalsRes, tenantRes] = await Promise.all([
       supabaseAdmin
         .from("expense_items")
         .select("*")
-        .in("client_id", memberIds),
+        .in("client_id", allHouseholdClientIds),
       supabaseAdmin
         .from("assets")
         .select("*")
-        .in("client_id", memberIds),
+        .in("client_id", allHouseholdClientIds),
       supabaseAdmin
         .from("investment_portfolio")
         .select("*")
-        .in("client_id", memberIds),
+        .in("client_id", allHouseholdClientIds),
       supabaseAdmin
         .from("financial_goals")
         .select("*")
-        .in("client_id", memberIds)
+        .in("client_id", allHouseholdClientIds)
         .ilike("goal_name", "%retirement%")
-        .order("created_at", { ascending: false })
-        .limit(1),
+        .order("created_at", { ascending: false }),
       supabaseAdmin
         .from("tenants")
         .select("subscription_plan, enabled_features")
@@ -161,10 +202,73 @@ export async function GET(req: Request) {
         .maybeSingle(),
     ]);
 
+    const allRawInvestments = invRes.data || [];
+    const allRawAssets = (assetsRes.data || []).map(unpackAsset);
+    const allRawExpenses = expensesRes.data || [];
+
+    // Calculate per-member breakdown for household overview
+    const memberBreakdown = householdMembers.map((m) => {
+      const mInvestments = allRawInvestments.filter((i) => i.client_id === m.clientId);
+      const mAssets = allRawAssets.filter((a) => a.client_id === m.clientId);
+      const mExpenses = allRawExpenses.filter((e) => e.client_id === m.clientId);
+
+      const mSip = mInvestments.reduce((sum, i) => sum + Number(i.monthly_sip_amount || 0), 0);
+      const mMfVal = mInvestments.reduce((sum, i) => sum + Number(i.current_value || 0), 0);
+
+      let mEpf = 0;
+      let mNps = 0;
+      let mLiquid = 0;
+      mAssets.forEach((a) => {
+        const cat = (a.asset_category || "").toLowerCase();
+        const val = Number(a.current_market_value || 0);
+        if (cat.includes("epf") || cat.includes("vpf") || cat.includes("employees' provident")) {
+          mEpf += val;
+        } else if (cat.includes("nps") || cat.includes("national pension")) {
+          mNps += val;
+        } else if (a.is_liquid || cat.includes("deposit") || cat.includes("fd") || cat.includes("cash") || cat.includes("liquid")) {
+          mLiquid += val;
+        }
+      });
+
+      const mExp = mExpenses.reduce((sum, e) => sum + Number(e.monthly_amount || 0), 0);
+
+      return {
+        clientId: m.clientId,
+        fullName: m.fullName,
+        currentAge: m.currentAge,
+        annualGrossIncome: m.annualGrossIncome,
+        monthlySip: mSip,
+        mutualFundValue: mMfVal,
+        epfCorpus: mEpf,
+        npsCorpus: mNps,
+        liquidCorpus: mLiquid,
+        recordedMonthlyExpenses: mExp,
+      };
+    });
+
+    const totalHouseholdSip = memberBreakdown.reduce((sum, m) => sum + m.monthlySip, 0);
+
+    // Filter scoped entities according to planningScope (Individual vs Clubbed Household)
+    const scopedAssets =
+      planningScope === "INDIVIDUAL"
+        ? allRawAssets.filter((a) => a.client_id === activeClient.client_id)
+        : allRawAssets;
+
+    const scopedInvestments =
+      planningScope === "INDIVIDUAL"
+        ? allRawInvestments.filter((i) => i.client_id === activeClient.client_id).map(unpackInvestment)
+        : allRawInvestments.map(unpackInvestment);
+
+    const scopedGoals =
+      planningScope === "INDIVIDUAL"
+        ? (goalsRes.data || []).filter((g) => g.client_id === activeClient.client_id)
+        : goalsRes.data || [];
+
     // 1. Calculate uneditable current age from Date of Birth
     let currentAge = 38;
-    if (targetClient.date_of_birth) {
-      const dob = new Date(targetClient.date_of_birth);
+    const targetDob = planningScope === "INDIVIDUAL" ? activeClient.date_of_birth : targetClient.date_of_birth;
+    if (targetDob) {
+      const dob = new Date(targetDob);
       const diffMs = Date.now() - dob.getTime();
       const calculatedAge = Math.floor(diffMs / (365.25 * 24 * 60 * 60 * 1000));
       if (!isNaN(calculatedAge) && calculatedAge > 0) {
@@ -173,18 +277,30 @@ export async function GET(req: Request) {
     }
 
     // 2. Calculate current monthly living expenses (editable)
-    const rawExpenses = expensesRes.data || [];
     let currentMonthlyExpense = 0;
-    if (rawExpenses.length > 0) {
-      currentMonthlyExpense = rawExpenses.reduce((sum, item) => sum + Number(item.monthly_amount || 0), 0);
-    }
-    if (currentMonthlyExpense <= 0) {
-      const annualIncome = Number(targetClient.annual_gross_income || 1800000);
-      currentMonthlyExpense = Math.max(35000, Math.round((annualIncome * 0.4) / 12));
+    if (planningScope === "HOUSEHOLD") {
+      currentMonthlyExpense = allRawExpenses.reduce((sum, item) => sum + Number(item.monthly_amount || 0), 0);
+      if (currentMonthlyExpense <= 0) {
+        const totalHouseholdIncome = householdMembers.reduce((sum, m) => sum + m.annualGrossIncome, 0);
+        currentMonthlyExpense = Math.max(35000, Math.round(((totalHouseholdIncome || 1800000) * 0.4) / 12));
+      }
+    } else {
+      // Individual: prioritize individual expense items, else apportion by income ratio
+      const memberExpenses = allRawExpenses.filter((e) => e.client_id === activeClient.client_id);
+      if (memberExpenses.length > 0) {
+        currentMonthlyExpense = memberExpenses.reduce((sum, item) => sum + Number(item.monthly_amount || 0), 0);
+      } else if (allRawExpenses.length > 0) {
+        const totalHouseholdIncome = householdMembers.reduce((sum, m) => sum + m.annualGrossIncome, 0);
+        const totalHhExp = allRawExpenses.reduce((sum, item) => sum + Number(item.monthly_amount || 0), 0);
+        const ratio = totalHouseholdIncome > 0 ? (Number(activeClient.annual_gross_income || 0) / totalHouseholdIncome) : (1 / householdMembers.length);
+        currentMonthlyExpense = Math.max(25000, Math.round(totalHhExp * ratio));
+      } else {
+        const annualIncome = Number(activeClient.annual_gross_income || 1200000);
+        currentMonthlyExpense = Math.max(25000, Math.round((annualIncome * 0.4) / 12));
+      }
     }
 
     // 3. Process EPF, NPS, PPF & Fixed Assets
-    const unpackedAssets = (assetsRes.data || []).map(unpackAsset);
     let epfCorpus = 0;
     let epfMonthlyDeposit = 0;
     let npsCorpus = 0;
@@ -193,7 +309,7 @@ export async function GET(req: Request) {
     let ppfMonthlyDeposit = 0;
     let otherLiquidCorpus = 0;
 
-    unpackedAssets.forEach((ast) => {
+    scopedAssets.forEach((ast) => {
       const cat = (ast.asset_category || "").toLowerCase();
       const val = Number(ast.current_market_value || 0);
       const dep = Number(ast.monthly_deposit || 0);
@@ -213,11 +329,10 @@ export async function GET(req: Request) {
     });
 
     // 4. Process Mutual Fund Portfolio & SIPs
-    const unpackedInvestments = (invRes.data || []).map(unpackInvestment);
     let mutualFundCorpus = 0;
     let ongoingMonthlySip = 0;
 
-    const retirementHoldings: RetirementHoldingItem[] = unpackedInvestments.map((inv, idx) => {
+    const retirementHoldings: RetirementHoldingItem[] = scopedInvestments.map((inv, idx) => {
       const val = Number(inv.current_value || 0);
       const sip = Number(inv.monthly_sip_amount || 0);
       mutualFundCorpus += val;
@@ -239,7 +354,7 @@ export async function GET(req: Request) {
     });
 
     // 5. Existing Saved Retirement Goal (if any)
-    const existingGoal = goalsRes.data && goalsRes.data[0] ? unpackGoal(goalsRes.data[0]) : null;
+    const existingGoal = scopedGoals && scopedGoals[0] ? unpackGoal(scopedGoals[0]) : null;
     const defaultRetirementAge = existingGoal ? existingGoal.target_year - (new Date().getFullYear() - currentAge) : Math.max(currentAge, 60);
 
     // Initial Engine Input
@@ -274,14 +389,21 @@ export async function GET(req: Request) {
       isAdvisor,
       clients: clientList,
       selectedClient: {
-        clientId: targetClient.client_id,
-        fullName: targetClient.full_name,
-        dateOfBirth: targetClient.date_of_birth,
-        panNumber: targetClient.pan_number || targetClient.pan || null,
-        annualGrossIncome: targetClient.annual_gross_income,
-        riskProfile: targetClient.risk_profile || "Moderate",
+        clientId: activeClient.client_id,
+        fullName: activeClient.full_name,
+        dateOfBirth: activeClient.date_of_birth,
+        panNumber: activeClient.pan_number || activeClient.pan || null,
+        annualGrossIncome: activeClient.annual_gross_income,
+        riskProfile: activeClient.risk_profile || "Moderate",
         currentAge,
       },
+      householdId: targetClient.household_id || null,
+      householdMembers,
+      memberBreakdown,
+      hasMultipleMembers,
+      planningScope,
+      activeMemberId: activeClient.client_id,
+      totalHouseholdSip,
       engineInput,
       diagnosticResult,
       savedGoal: existingGoal,
