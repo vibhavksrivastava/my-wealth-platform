@@ -338,3 +338,4 @@ Respond directly to the investor's query in structured GitHub markdown. Highligh
     return NextResponse.json({ error: err.message || "Failed to process AI chat query." }, { status: 500 });
   }
 }
+

@@ -21,7 +21,11 @@ import {
   Receipt, 
   Calendar,
   Menu,
-  X
+  X,
+  PanelLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ChevronRight
 } from "lucide-react";
 import { TenantConfigProvider } from "@/lib/tenant-config";
 import { FirmBrandingProvider, useFirmBranding } from "@/lib/context/FirmBrandingContext";
@@ -63,85 +67,169 @@ function DynamicUserRoleBadge({ role }: { role: string }) {
   );
 }
 
-function getNavItems(userRole?: string) {
-  return [
+export interface NavItem {
+  name: string;
+  href: string;
+  icon: any;
+  isActive: (p: string) => boolean;
+  badge?: { label: string; color: string } | null;
+}
+
+export interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+function getNavSections(userRole?: string): NavSection[] {
+  const sections: NavSection[] = [
     {
-      name: "Dashboard",
-      href: userRole === "CLIENT" ? "/dashboard/client" : "/dashboard/advisor",
-      icon: LayoutDashboard,
-      isActive: (p: string) => p === "/dashboard/advisor" || p === "/dashboard/client",
-      badge: null,
+      title: "Core Portfolio",
+      items: [
+        {
+          name: "Dashboard",
+          href: userRole === "CLIENT" ? "/dashboard/client" : "/dashboard/advisor",
+          icon: LayoutDashboard,
+          isActive: (p: string) => p === "/dashboard/advisor" || p === "/dashboard/client",
+          badge: null,
+        },
+        {
+          name: "Mutual Fund Portfolio",
+          href: "/dashboard/portfolio",
+          icon: TrendingUp,
+          isActive: (p: string) => p.startsWith("/dashboard/portfolio"),
+          badge: { label: "NEW", color: "bg-sky-500/10 text-sky-400 border-sky-500/20" },
+        },
+      ],
     },
     {
-      name: "Mutual Fund Portfolio",
-      href: "/dashboard/portfolio",
-      icon: TrendingUp,
-      isActive: (p: string) => p.startsWith("/dashboard/portfolio"),
-      badge: { label: "NEW", color: "bg-sky-500/10 text-sky-400 border-sky-500/20" },
+      title: "Financial Planning",
+      items: [
+        {
+          name: "Investment Planning",
+          href: "/dashboard/planning",
+          icon: Compass,
+          isActive: (p: string) =>
+            p === "/dashboard/planning" ||
+            (p.startsWith("/dashboard/planning") &&
+              !p.startsWith("/dashboard/planning/tax") &&
+              !p.startsWith("/dashboard/planning/retirement") &&
+              !p.startsWith("/dashboard/planning/estate") &&
+              !p.startsWith("/dashboard/planning/risk")),
+          badge: null,
+        },
+        {
+          name: "Tax Planning",
+          href: "/dashboard/planning/tax",
+          icon: Receipt,
+          isActive: (p: string) => p.startsWith("/dashboard/planning/tax"),
+          badge: { label: "Live AI", color: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/30" },
+        },
+        {
+          name: "Retirement Planning",
+          href: "/dashboard/planning/retirement",
+          icon: Target,
+          isActive: (p: string) => p.startsWith("/dashboard/planning/retirement"),
+          badge: { label: "Live AI", color: "bg-purple-500/20 text-purple-600 dark:text-purple-300 border-purple-500/30" },
+        },
+        {
+          name: "Risk Planning",
+          href: "/dashboard/planning/risk",
+          icon: Shield,
+          isActive: (p: string) => p.startsWith("/dashboard/planning/risk"),
+          badge: { label: "Live AI", color: "bg-blue-500/20 text-blue-600 dark:text-blue-300 border-blue-500/30" },
+        },
+        {
+          name: "Estate Planning",
+          href: "/dashboard/planning/estate",
+          icon: FileCheck,
+          isActive: (p: string) => p.startsWith("/dashboard/planning/estate"),
+          badge: { label: "Soon", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
+        },
+      ],
     },
     {
-      name: "Investment Planning",
-      href: "/dashboard/planning",
-      icon: Compass,
-      isActive: (p: string) =>
-        p === "/dashboard/planning" ||
-        (p.startsWith("/dashboard/planning") &&
-          !p.startsWith("/dashboard/planning/tax") &&
-          !p.startsWith("/dashboard/planning/retirement") &&
-          !p.startsWith("/dashboard/planning/estate") &&
-          !p.startsWith("/dashboard/planning/risk")),
-      badge: null,
-    },
-    {
-      name: "Tax Planning",
-      href: "/dashboard/planning/tax",
-      icon: Receipt,
-      isActive: (p: string) => p.startsWith("/dashboard/planning/tax"),
-      badge: { label: "Live AI", color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" },
-    },
-    {
-      name: "Retirement Planning",
-      href: "/dashboard/planning/retirement",
-      icon: Target,
-      isActive: (p: string) => p.startsWith("/dashboard/planning/retirement"),
-      badge: { label: "Live AI", color: "bg-purple-500/20 text-purple-600 dark:text-purple-300 border-purple-500/30" },
-    },
-    {
-      name: "Risk Planning",
-      href: "/dashboard/planning/risk",
-      icon: Shield,
-      isActive: (p: string) => p.startsWith("/dashboard/planning/risk"),
-      badge: { label: "Live AI", color: "bg-blue-500/20 text-blue-600 dark:text-blue-300 border-blue-500/30" },
-    },
-    {
-      name: "AI Agents",
-      href: "/dashboard/ai-copilot",
-      icon: Sparkles,
-      isActive: (p: string) => p.startsWith("/dashboard/ai-copilot"),
-      badge: { label: "4 Agents", color: "bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border-indigo-500/30" },
-    },
-    {
-      name: "Estate Planning",
-      href: "/dashboard/planning/estate",
-      icon: FileCheck,
-      isActive: (p: string) => p.startsWith("/dashboard/planning/estate"),
-      badge: { label: "Soon", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-    },
-    {
-      name: "Calendar",
-      href: "/dashboard/calendar",
-      icon: Calendar,
-      isActive: (p: string) => p.startsWith("/dashboard/calendar"),
-      badge: null,
-    },
-    {
-      name: "Calculators",
-      href: "/dashboard/calculators",
-      icon: Calculator,
-      isActive: (p: string) => p.startsWith("/dashboard/calculators"),
-      badge: null,
+      title: "AI Copilot & Tools",
+      items: [
+        {
+          name: "AI Agents Copilot",
+          href: "/dashboard/ai-copilot",
+          icon: Sparkles,
+          isActive: (p: string) => p.startsWith("/dashboard/ai-copilot"),
+          badge: { label: "4 Agents", color: "bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border-indigo-500/30" },
+        },
+        {
+          name: "Calculators",
+          href: "/dashboard/calculators",
+          icon: Calculator,
+          isActive: (p: string) => p.startsWith("/dashboard/calculators"),
+          badge: null,
+        },
+        {
+          name: "Calendar",
+          href: "/dashboard/calendar",
+          icon: Calendar,
+          isActive: (p: string) => p.startsWith("/dashboard/calendar"),
+          badge: null,
+        },
+      ],
     },
   ];
+
+  if (userRole === "TENANT_ADMIN" || userRole === "SUPER_ADMIN") {
+    const adminItems: NavItem[] = [
+      {
+        name: "Firm Admin Console",
+        href: "/admin",
+        icon: ShieldCheck,
+        isActive: (p: string) => p.startsWith("/admin"),
+        badge: { label: "Firm", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
+      },
+    ];
+
+    if (userRole === "SUPER_ADMIN") {
+      adminItems.push({
+        name: "Super Admin Portal",
+        href: "/super-admin",
+        icon: ShieldAlert,
+        isActive: (p: string) => p.startsWith("/super-admin"),
+        badge: { label: "Root", color: "bg-rose-500/10 text-rose-500 border-rose-500/20" },
+      });
+    }
+
+    sections.push({
+      title: "Administration",
+      items: adminItems,
+    });
+  }
+
+  return sections;
+}
+
+function getCurrentPageTitle(pathname: string): string {
+  if (pathname === "/dashboard/advisor") return "Advisor Console";
+  if (pathname === "/dashboard/client") return "Client Investor Portal";
+  if (pathname.startsWith("/dashboard/portfolio")) return "Mutual Fund Portfolio";
+  if (pathname.startsWith("/dashboard/planning/tax")) return "Tax Planning & Harvesting";
+  if (pathname.startsWith("/dashboard/planning/retirement")) return "Smart Retirement Planning";
+  if (pathname.startsWith("/dashboard/planning/risk")) return "Risk & Insurance Planning";
+  if (pathname.startsWith("/dashboard/planning/estate")) return "Estate Planning";
+  if (pathname.startsWith("/dashboard/planning")) return "Investment Planning";
+  if (pathname.startsWith("/dashboard/ai-copilot")) return "AI Advisory Multi-Agent Copilot";
+  if (pathname.startsWith("/dashboard/calculators")) return "Financial Calculators";
+  if (pathname.startsWith("/dashboard/calendar")) return "Calendar & Appointments";
+  if (pathname.startsWith("/dashboard/clients")) return "Client 360 & Profiles";
+  if (pathname.startsWith("/admin")) return "Firm Administration";
+  if (pathname.startsWith("/super-admin")) return "Platform Super Admin";
+  return "Overview";
+}
+
+function PageTitleBreadcrumb() {
+  const pathname = usePathname();
+  return (
+    <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+      {getCurrentPageTitle(pathname)}
+    </h2>
+  );
 }
 
 export default function DashboardLayout({
@@ -152,6 +240,8 @@ export default function DashboardLayout({
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   const [tenant, setTenant] = useState<{
     firm_brand_name?: string;
     subdomain?: string;
@@ -160,6 +250,26 @@ export default function DashboardLayout({
     logo_url?: string;
     theme_mode?: string;
   } | null>(null);
+
+  // Load saved sidebar preference
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("dashboard_sidebar_collapsed");
+      if (saved !== null) {
+        setIsSidebarCollapsed(saved === "true");
+      }
+    } catch {}
+  }, []);
+
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("dashboard_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Lock body scroll when mobile menu drawer is open
   useEffect(() => {
@@ -223,8 +333,6 @@ export default function DashboardLayout({
     router.push("/login");
   };
 
-  const currentRole = user ? roleLabels[user.role] || roleLabels.CLIENT : roleLabels.CLIENT;
-  const RoleIcon = currentRole.icon;
   const brandColor = tenant?.primary_color || "#0284c7";
   const brandName = tenant?.firm_brand_name || "Wealth Advisory";
   const isDark = tenant?.theme_mode === "dark";
@@ -236,170 +344,300 @@ export default function DashboardLayout({
         userRole={user?.role}
       >
         <div 
-          className={`${isDark ? "dark" : ""} min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200`}
+          className={`${isDark ? "dark" : ""} min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex font-sans transition-colors duration-200`}
           style={{
             ["--tenant-primary" as string]: brandColor,
             ["--tenant-secondary" as string]: tenant?.secondary_color || "#0f172a",
           }}
         >
-          {/* Top Header */}
-          <header className="border-b border-slate-200 dark:border-slate-900 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-3.5 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-              {/* Mobile Drawer Hamburger Button */}
-              <button
-                type="button"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                aria-label="Toggle mobile navigation menu"
-                className="md:hidden p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition -ml-1 shrink-0"
-              >
-                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
+          {/* 1. Sliding Left Sidebar (Desktop / Tablet) */}
+          <Suspense fallback={null}>
+            <DashboardSidebar
+              user={user}
+              tenant={tenant}
+              isCollapsed={isSidebarCollapsed}
+              onToggleCollapse={handleToggleSidebar}
+              onLogout={handleLogout}
+            />
+          </Suspense>
 
-              <Link href="/" className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-                {tenant?.logo_url ? (
-                  <img 
-                    src={tenant.logo_url} 
-                    alt={brandName}
-                    className="h-7 sm:h-8 max-w-[110px] sm:max-w-[120px] object-contain rounded shrink-0" 
-                  />
-                ) : (
-                  <div 
-                    className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center font-bold text-white shadow-md text-xs sm:text-sm shrink-0"
-                    style={{ backgroundColor: brandColor }}
-                  >
-                    {brandName.charAt(0)}
-                  </div>
-                )}
-                <span className="font-bold text-base sm:text-lg text-slate-900 dark:text-white truncate max-w-[130px] xs:max-w-[200px] sm:max-w-none">
-                  {brandName}
-                </span>
-              </Link>
-              <span className="text-slate-300 dark:text-slate-600 hidden sm:inline">|</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium hidden sm:inline truncate max-w-[180px]">
-                {tenant?.subdomain ? `${tenant.subdomain}.unifiedwealth.com` : "Platform"}
-              </span>
-            </div>
+          {/* 2. Main Content & Top Header Wrapper */}
+          <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+            {/* Clean Top Header */}
+            <header className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-30 px-3.5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+                {/* Mobile Drawer Hamburger Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  aria-label="Toggle mobile navigation menu"
+                  className="md:hidden p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition -ml-1 shrink-0"
+                >
+                  {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                </button>
 
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {user ? (
-                <>
-                  <div className="flex items-center gap-2">
+                {/* Desktop sidebar toggle button */}
+                <button
+                  type="button"
+                  onClick={handleToggleSidebar}
+                  aria-label="Toggle sliding sidebar"
+                  className="hidden md:flex p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0 cursor-pointer"
+                  title={isSidebarCollapsed ? "Expand sliding side menu" : "Collapse side menu"}
+                >
+                  <PanelLeft className="h-4 w-4" />
+                </button>
+
+                {/* Active Page Title / Breadcrumb */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 hidden sm:inline">
+                    Workspace
+                  </span>
+                  <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">/</span>
+                  <Suspense fallback={<h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">Workspace</h2>}>
+                    <PageTitleBreadcrumb />
+                  </Suspense>
+                </div>
+              </div>
+
+              {/* Right Side User Profile & Status */}
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                {user ? (
+                  <>
                     <DynamicUserRoleBadge role={user.role} />
-                    <div className="text-right hidden md:block">
-                      <div className="text-xs font-bold text-slate-900 dark:text-white">{user.firstName} {user.lastName}</div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400">{user.email}</div>
+                    <span className="text-slate-200 dark:text-slate-800 hidden sm:inline">|</span>
+                    <div className="text-right hidden lg:block">
+                      <div className="text-xs font-bold text-slate-900 dark:text-white">
+                        {user.firstName} {user.lastName}
+                      </div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[160px]">
+                        {user.email}
+                      </div>
                     </div>
-                  </div>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition shadow-xs cursor-pointer"
+                      title="Sign Out"
+                    >
+                      <LogOut className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Sign Out</span>
+                    </button>
+                  </>
+                ) : (
+                  <div className="h-7 w-24 bg-slate-200 dark:bg-slate-900 rounded-lg animate-pulse" />
+                )}
+              </div>
+            </header>
 
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition shadow-xs"
-                    title="Sign Out"
-                  >
-                    <LogOut className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Sign Out</span>
-                  </button>
-                </>
-              ) : (
-                <div className="h-7 w-24 bg-slate-200 dark:bg-slate-900 rounded-lg animate-pulse" />
-              )}
-            </div>
-          </header>
+            {/* Main Content Area */}
+            <main className="flex-1 p-3.5 sm:p-6 pb-24 md:pb-8 max-w-7xl w-full mx-auto">
+              <Suspense fallback={<div className="text-slate-500 text-xs py-8">Loading workspace view...</div>}>
+                {children}
+              </Suspense>
+            </main>
 
-          {/* Primary App Navigation Sub-Header (Desktop view) */}
-          <div className="hidden md:block">
-            <Suspense fallback={<div className="h-10 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-900" />}>
-              <DashboardNavBar user={user} />
+            {/* Mobile Bottom Navigation Bar (Thumb-friendly 5 tabs) */}
+            <Suspense fallback={null}>
+              <MobileBottomNav
+                user={user}
+                onOpenMenu={() => setIsMobileMenuOpen(true)}
+              />
+            </Suspense>
+
+            {/* Mobile Drawer (Slide-Over Sheet) */}
+            <Suspense fallback={null}>
+              <MobileDrawer
+                user={user}
+                isOpen={isMobileMenuOpen}
+                onClose={() => setIsMobileMenuOpen(false)}
+                onLogout={handleLogout}
+                tenant={tenant}
+              />
             </Suspense>
           </div>
-
-          {/* Main Content Area */}
-          <main className="flex-1 p-3.5 sm:p-6 pb-24 md:pb-8 max-w-7xl w-full mx-auto">
-            <Suspense fallback={<div className="text-slate-500 text-xs py-8">Loading workspace view...</div>}>
-              {children}
-            </Suspense>
-          </main>
-
-          {/* Mobile Bottom Navigation Bar (Thumb-friendly 5 tabs) */}
-          <Suspense fallback={null}>
-            <MobileBottomNav
-              user={user}
-              onOpenMenu={() => setIsMobileMenuOpen(true)}
-            />
-          </Suspense>
-
-          {/* Mobile Drawer (Slide-Over Sheet) */}
-          <Suspense fallback={null}>
-            <MobileDrawer
-              user={user}
-              isOpen={isMobileMenuOpen}
-              onClose={() => setIsMobileMenuOpen(false)}
-              onLogout={handleLogout}
-              tenant={tenant}
-            />
-          </Suspense>
         </div>
       </FirmBrandingProvider>
     </TenantConfigProvider>
   );
 }
 
-// Child Client Navigation Component isolated with Suspense boundary for Desktop
-function DashboardNavBar({ user }: { user: UserProfile | null }) {
+// 1. Sliding Left Sidebar Component (Desktop / Tablet)
+function DashboardSidebar({
+  user,
+  tenant,
+  isCollapsed,
+  onToggleCollapse,
+  onLogout,
+}: {
+  user: UserProfile | null;
+  tenant: any;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
+  onLogout: () => void;
+}) {
   const pathname = usePathname();
-  const navItems = getNavItems(user?.role);
+  const navSections = getNavSections(user?.role);
+  const brandName = tenant?.firm_brand_name || "Wealth Advisory";
+  const brandColor = tenant?.primary_color || "#0284c7";
 
   return (
-    <nav className="border-b border-slate-200 dark:border-slate-900 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm px-6 py-2 flex items-center justify-between text-xs z-40 sticky top-[57px] overflow-x-auto">
-      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        {navItems.map((item) => {
-          const active = item.isActive(pathname);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition shrink-0 ${
-                active
-                  ? "bg-sky-50 dark:bg-sky-950/80 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 font-bold shadow-xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900"
-              }`}
+    <aside
+      className={`hidden md:flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 sticky top-0 h-screen z-40 transition-all duration-300 ease-in-out shrink-0 select-none ${
+        isCollapsed ? "w-20" : "w-64"
+      }`}
+    >
+      {/* Top Brand Logo & Toggle */}
+      <div className="h-[57px] px-3.5 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <Link href="/" className="flex items-center gap-2.5 min-w-0 overflow-hidden">
+          {tenant?.logo_url ? (
+            <img
+              src={tenant.logo_url}
+              alt={brandName}
+              className="h-8 max-w-[110px] object-contain rounded shrink-0"
+            />
+          ) : (
+            <div
+              className="h-8 w-8 rounded-xl flex items-center justify-center font-bold text-white text-xs shadow-md shrink-0"
+              style={{ backgroundColor: brandColor }}
             >
-              <Icon className="h-3.5 w-3.5" />
-              <span>{item.name}</span>
-              {item.badge && (
-                <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${item.badge.color}`}>
-                  {item.badge.label}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+              {brandName.charAt(0)}
+            </div>
+          )}
+
+          {!isCollapsed && (
+            <div className="min-w-0 flex-1">
+              <span className="font-bold text-sm text-slate-900 dark:text-white truncate block leading-tight">
+                {brandName}
+              </span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate block mt-0.5 font-mono">
+                {tenant?.subdomain ? `${tenant.subdomain}.unifiedwealth.com` : "Platform"}
+              </span>
+            </div>
+          )}
+        </Link>
+
+        {/* Collapse / Expand Toggle Button */}
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          title={isCollapsed ? "Expand sliding sidebar" : "Collapse sidebar"}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0 cursor-pointer"
+        >
+          {isCollapsed ? (
+            <PanelLeftOpen className="h-4 w-4" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4" />
+          )}
+        </button>
       </div>
 
-      {/* Quick Admin Links */}
-      <div className="flex items-center gap-2">
-        {user && (user.role === "TENANT_ADMIN" || user.role === "SUPER_ADMIN") && (
-          <Link
-            href="/admin"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-[11px] font-bold transition shadow-xs"
-          >
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Firm Admin</span>
-          </Link>
-        )}
+      {/* Categorized Navigation Menu */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+        {navSections.map((section, idx) => (
+          <div key={idx} className="space-y-1">
+            {!isCollapsed ? (
+              <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {section.title}
+              </div>
+            ) : (
+              <div className="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-1" />
+            )}
 
-        {user && user.role === "SUPER_ADMIN" && (
-          <Link
-            href="/super-admin"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-[11px] font-bold transition shadow-xs"
-          >
-            <ShieldAlert className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Super Admin</span>
-          </Link>
-        )}
+            {section.items.map((item) => {
+              const active = item.isActive(pathname);
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  title={isCollapsed ? item.name : undefined}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition group relative ${
+                    active
+                      ? "bg-sky-50 dark:bg-sky-950/80 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 font-bold shadow-xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                  } ${isCollapsed ? "justify-center px-0" : ""}`}
+                >
+                  <Icon
+                    className={`h-4 w-4 shrink-0 transition-transform ${
+                      active ? "text-sky-600 dark:text-sky-400 scale-105" : "text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300"
+                    }`}
+                  />
+
+                  {!isCollapsed && (
+                    <div className="flex-1 flex items-center justify-between min-w-0">
+                      <span className="truncate">{item.name}</span>
+                      {item.badge && (
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[9px] font-bold border shrink-0 ml-1.5 ${item.badge.color}`}
+                        >
+                          {item.badge.label}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Active Indicator on Collapsed View */}
+                  {isCollapsed && active && (
+                    <span className="absolute left-0 top-2 bottom-2 w-1 bg-sky-500 rounded-r" />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </div>
-    </nav>
+
+      {/* Bottom User Profile Section */}
+      {user && (
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40 shrink-0">
+          {!isCollapsed ? (
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className="h-8 w-8 rounded-xl flex items-center justify-center font-bold text-white text-xs shadow-xs shrink-0"
+                  style={{ backgroundColor: brandColor }}
+                >
+                  {user.firstName?.charAt(0) || "U"}{user.lastName?.charAt(0) || ""}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                    {user.firstName} {user.lastName}
+                  </div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+                    {user.email}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={onLogout}
+                title="Sign Out"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0 cursor-pointer"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <div
+                className="h-8 w-8 rounded-xl flex items-center justify-center font-bold text-white text-xs shadow-xs"
+                style={{ backgroundColor: brandColor }}
+                title={`${user.firstName} ${user.lastName} (${user.email})`}
+              >
+                {user.firstName?.charAt(0) || "U"}
+              </div>
+              <button
+                onClick={onLogout}
+                title="Sign Out"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </aside>
   );
 }
 
@@ -491,7 +729,7 @@ function MobileBottomNav({
   );
 }
 
-// Mobile Slide-Over Drawer
+// 3. Mobile Slide-Over Drawer with Categorized Sections
 function MobileDrawer({
   user,
   isOpen,
@@ -508,7 +746,7 @@ function MobileDrawer({
   const pathname = usePathname();
   const brandName = tenant?.firm_brand_name || "Wealth Advisory";
   const brandColor = tenant?.primary_color || "#0284c7";
-  const navItems = getNavItems(user?.role);
+  const navSections = getNavSections(user?.role);
 
   if (!isOpen) return null;
 
@@ -577,65 +815,42 @@ function MobileDrawer({
           </div>
         )}
 
-        {/* Navigation Items List */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-1">
-          <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Navigation Menu
-          </div>
-
-          {navItems.map((item) => {
-            const active = item.isActive(pathname);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={onClose}
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
-                  active
-                    ? "bg-sky-50 dark:bg-sky-950/80 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 font-bold shadow-xs"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Icon className={`h-4 w-4 ${active ? "text-sky-500" : "text-slate-400"}`} />
-                  <span>{item.name}</span>
-                </div>
-                {item.badge && (
-                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${item.badge.color}`}>
-                    {item.badge.label}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-
-          {/* Admin section */}
-          {user && (user.role === "TENANT_ADMIN" || user.role === "SUPER_ADMIN") && (
-            <div className="pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 space-y-1">
-              <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Administration
+        {/* Categorized Navigation Sections */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-4">
+          {navSections.map((section, idx) => (
+            <div key={idx} className="space-y-1">
+              <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {section.title}
               </div>
-              <Link
-                href="/admin"
-                onClick={onClose}
-                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition"
-              >
-                <ShieldCheck className="h-4 w-4" />
-                <span>Firm Admin Console</span>
-              </Link>
-              {user.role === "SUPER_ADMIN" && (
-                <Link
-                  href="/super-admin"
-                  onClick={onClose}
-                  className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition"
-                >
-                  <ShieldAlert className="h-4 w-4" />
-                  <span>Super Admin Portal</span>
-                </Link>
-              )}
+
+              {section.items.map((item) => {
+                const active = item.isActive(pathname);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={onClose}
+                    className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
+                      active
+                        ? "bg-sky-50 dark:bg-sky-950/80 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800 font-bold shadow-xs"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Icon className={`h-4 w-4 ${active ? "text-sky-500" : "text-slate-400"}`} />
+                      <span>{item.name}</span>
+                    </div>
+                    {item.badge && (
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${item.badge.color}`}>
+                        {item.badge.label}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
-          )}
+          ))}
         </div>
 
         {/* Footer with Logout */}
@@ -646,7 +861,7 @@ function MobileDrawer({
               onClose();
               onLogout();
             }}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition shadow-xs"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition shadow-xs cursor-pointer"
           >
             <LogOut className="h-4 w-4" />
             <span>Sign Out</span>
