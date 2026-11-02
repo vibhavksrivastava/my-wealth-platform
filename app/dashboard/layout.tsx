@@ -14,6 +14,7 @@ import {
   ChevronDown, 
   Sparkles, 
   ShieldAlert, 
+  Shield,
   FileCheck, 
   Calculator, 
   Compass, 
@@ -87,7 +88,8 @@ function getNavItems(userRole?: string) {
         (p.startsWith("/dashboard/planning") &&
           !p.startsWith("/dashboard/planning/tax") &&
           !p.startsWith("/dashboard/planning/retirement") &&
-          !p.startsWith("/dashboard/planning/estate")),
+          !p.startsWith("/dashboard/planning/estate") &&
+          !p.startsWith("/dashboard/planning/risk")),
       badge: null,
     },
     {
@@ -103,6 +105,20 @@ function getNavItems(userRole?: string) {
       icon: Target,
       isActive: (p: string) => p.startsWith("/dashboard/planning/retirement"),
       badge: { label: "Live AI", color: "bg-purple-500/20 text-purple-600 dark:text-purple-300 border-purple-500/30" },
+    },
+    {
+      name: "Risk Planning",
+      href: "/dashboard/planning/risk",
+      icon: Shield,
+      isActive: (p: string) => p.startsWith("/dashboard/planning/risk"),
+      badge: { label: "Live AI", color: "bg-blue-500/20 text-blue-600 dark:text-blue-300 border-blue-500/30" },
+    },
+    {
+      name: "AI Agents",
+      href: "/dashboard/ai-copilot",
+      icon: Sparkles,
+      isActive: (p: string) => p.startsWith("/dashboard/ai-copilot"),
+      badge: { label: "4 Agents", color: "bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border-indigo-500/30" },
     },
     {
       name: "Estate Planning",

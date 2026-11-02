@@ -56,6 +56,10 @@ export default function HomePage() {
   // Interactive Demo Tab preview state
   const [activeDemoTab, setActiveDemoTab] = useState<"360" | "suggestions" | "calendar" | "brokerage">("360");
 
+  // Pricing Section State (MFD vs RIA + Billing Cycle)
+  const [pricingCategory, setPricingCategory] = useState<"MFD" | "RIA">("MFD");
+  const [isAnnualBilling, setIsAnnualBilling] = useState(true);
+
   const handleBookDemo = async (e: React.FormEvent) => {
     e.preventDefault();
     setBookingError(null);
@@ -682,29 +686,377 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 7. Transparent Pricing (InvestWell Mint Exact Model) */}
-      <section id="pricing" className="px-4 sm:px-8 lg:px-16 py-16 border-t border-slate-800/80 bg-slate-900/20">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-            All Features, All Modules. Pay Only Based on Your AUM.
-          </h2>
-          <p className="mt-2 text-xs sm:text-sm text-slate-400">
-            Transparent annual pricing with zero per-client penalties or module lock-outs.
-          </p>
+      {/* 7. Transparent SaaS Pricing (MFD & RIA Tiers with & without AI) */}
+      <section id="pricing" className="px-4 sm:px-8 lg:px-16 py-20 border-t border-slate-800/80 bg-slate-900/30">
+        <div className="max-w-6xl mx-auto">
+          {/* Section Header */}
+          <div className="text-center max-w-3xl mx-auto">
+            <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-sky-500/10 text-sky-400 border border-sky-500/20">
+              Transparent Practice SaaS Pricing
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-white mt-3 tracking-tight">
+              Predictable Plans for MFDs &amp; RIAs. Choose With or Without AI.
+            </h2>
+            <p className="mt-2 text-xs sm:text-sm text-slate-400">
+              No hidden transaction fees, zero client penalization, and full BSE StAR MF routing guaranteed across every tier.
+            </p>
 
-          <div className="mt-8 p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-sky-950/40 to-slate-900 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="text-left">
-              <span className="text-[10px] uppercase font-bold text-sky-400 tracking-wider">MINT ADVANTAGE PLAN</span>
-              <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1">Starting at ₹25,000<span className="text-xs text-slate-400 font-normal"> / year</span></div>
-              <p className="text-xs text-slate-400 mt-1">For advisory practices with AUM up to ₹25 Cr. Scales gracefully as your AUM multiplies.</p>
+            {/* MFD vs RIA Category Toggle & Billing Cycle */}
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+              {/* Category Pills */}
+              <div className="inline-flex rounded-xl border border-slate-800 p-1 bg-slate-950">
+                <button
+                  type="button"
+                  onClick={() => setPricingCategory("MFD")}
+                  className={`px-5 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    pricingCategory === "MFD"
+                      ? "bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  MFD (Mutual Fund Distributors)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPricingCategory("RIA")}
+                  className={`px-5 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    pricingCategory === "RIA"
+                      ? "bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  RIA (Registered Investment Advisors)
+                </button>
+              </div>
+
+              {/* Annual / Monthly Toggle */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-xs">
+                <span className={!isAnnualBilling ? "font-bold text-white" : "text-slate-400"}>
+                  Monthly
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsAnnualBilling(!isAnnualBilling)}
+                  className={`w-10 h-5 rounded-full p-0.5 transition cursor-pointer ${
+                    isAnnualBilling ? "bg-sky-500" : "bg-slate-700"
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full bg-white transition transform ${
+                      isAnnualBilling ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+                <span className={isAnnualBilling ? "font-bold text-white" : "text-slate-400"}>
+                  Annual <span className="text-[10px] text-emerald-400 font-bold">(Save 20%)</span>
+                </span>
+              </div>
             </div>
-            <a
-              href="#book-demo"
-              className="px-6 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold transition shadow-md shadow-sky-500/20 whitespace-nowrap"
-            >
-              Get Custom Proposal
-            </a>
           </div>
+
+          {/* MFD PRICING CARDS */}
+          {pricingCategory === "MFD" && (
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Card 1: MFD Starter (Without AI) */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-6 flex flex-col justify-between hover:border-slate-700 transition">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Solo IFA</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                      Standard / No AI
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mt-2">MFD Starter</h3>
+                  <p className="text-xs text-slate-400 mt-1">Essential order execution and portfolio reporting for solo practitioners.</p>
+
+                  <div className="mt-6 pb-6 border-b border-slate-800">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-white">
+                        ₹{isAnnualBilling ? "799" : "999"}
+                      </span>
+                      <span className="text-xs text-slate-400">/ month</span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 block mt-0.5">
+                      {isAnnualBilling ? "Billed annually at ₹9,588/yr" : "Billed monthly"}
+                    </span>
+                  </div>
+
+                  <ul className="mt-6 space-y-3 text-xs text-slate-300">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span><strong>1 Advisor Seat</strong> included</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>BSE StAR MF Order Routing</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>CAMS &amp; KFintech CAS Parser</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>Client Household Portfolio 360</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-slate-500">
+                      <Lock className="h-3.5 w-3.5 shrink-0" />
+                      <span>AI Intelligence Agents (Not Included)</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-slate-500">
+                      <Lock className="h-3.5 w-3.5 shrink-0" />
+                      <span>White-Label Branding (Not Included)</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <a
+                  href="#book-demo"
+                  className="mt-8 block text-center py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition"
+                >
+                  Start Solo Trial
+                </a>
+              </div>
+
+              {/* Card 2: MFD Growth + AI Copilot (With AI) - HIGHLIGHTED */}
+              <div className="rounded-2xl border-2 border-sky-500 bg-gradient-to-b from-sky-950/30 via-slate-900 to-slate-950 p-6 flex flex-col justify-between relative shadow-xl shadow-sky-500/10">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-0.5 rounded-full bg-sky-500 text-slate-950 font-black text-[10px] uppercase tracking-wider">
+                  Most Popular for Practice Growth
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-sky-400 uppercase tracking-wider">Growing Firm</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" /> Full AI Suite
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mt-2">MFD Growth + AI Copilot</h3>
+                  <p className="text-xs text-slate-300 mt-1">Autonomous multi-agent advisory, white-label client portal, and risk planning.</p>
+
+                  <div className="mt-6 pb-6 border-b border-slate-800">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-white">
+                        ₹{isAnnualBilling ? "1,999" : "2,499"}
+                      </span>
+                      <span className="text-xs text-slate-400">/ month</span>
+                    </div>
+                    <span className="text-[11px] text-sky-400 block mt-0.5 font-medium">
+                      {isAnnualBilling ? "Billed annually at ₹23,988/yr (Save ₹6,000)" : "Billed monthly"}
+                    </span>
+                  </div>
+
+                  <ul className="mt-6 space-y-3 text-xs text-slate-200">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-sky-400 shrink-0" />
+                      <span><strong>Up to 3 Advisor Seats</strong></span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-purple-400 shrink-0" />
+                      <span><strong>4 Autonomous AI Agents</strong> (Diagnostics, Rebalance, Retirement, Risk)</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-sky-400 shrink-0" />
+                      <span>White-Label Client Portal &amp; Brand Logo</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-sky-400 shrink-0" />
+                      <span>Risk Planning (HLV Term &amp; Health Floater)</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-sky-400 shrink-0" />
+                      <span>Retirement 3-Bucket Solution &amp; SWP Planning</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-sky-400 shrink-0" />
+                      <span>Priority Support SLA &amp; Onboarding</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <a
+                  href="#book-demo"
+                  className="mt-8 block text-center py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs transition shadow-md shadow-sky-500/20"
+                >
+                  Book Live Demo &amp; Free 14-Day Trial
+                </a>
+              </div>
+
+              {/* Card 3: Zero-Fee ARN Partnership */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-6 flex flex-col justify-between hover:border-slate-700 transition">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Zero Fixed Cost</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      80/20 Revenue Split
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mt-2">Zero-Fee ARN Partnership</h3>
+                  <p className="text-xs text-slate-400 mt-1">Zero monthly software fee. Pay only from new trail brokerage earned together.</p>
+
+                  <div className="mt-6 pb-6 border-b border-slate-800">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-emerald-400">₹0</span>
+                      <span className="text-xs text-slate-400">/ month subscription</span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 block mt-0.5">
+                      80% distributor / 20% platform brokerage split
+                    </span>
+                  </div>
+
+                  <ul className="mt-6 space-y-3 text-xs text-slate-300">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span><strong>3 Advisor Seats</strong> with Full AI Suite</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>Zero Setup &amp; Zero Monthly Subscriptions</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>BSE StAR MF Sub-Broker Routing</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>White-Label Web &amp; Mobile Client Portal</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>Dedicated Account Manager</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <a
+                  href="#book-demo"
+                  className="mt-8 block text-center py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition"
+                >
+                  Apply for Partnership
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* RIA PRICING CARDS */}
+          {pricingCategory === "RIA" && (
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              {/* RIA Card 1: RIA Practice (Standard / No AI) */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-7 flex flex-col justify-between hover:border-slate-700 transition">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">SEBI RIA Practice</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                      Standard
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mt-2">RIA Practice (Standard)</h3>
+                  <p className="text-xs text-slate-400 mt-1">Direct plan analytics, fiduciary fee invoicing, and asset allocation modeling.</p>
+
+                  <div className="mt-6 pb-6 border-b border-slate-800">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-white">
+                        ₹{isAnnualBilling ? "2,399" : "2,999"}
+                      </span>
+                      <span className="text-xs text-slate-400">/ month</span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 block mt-0.5">
+                      {isAnnualBilling ? "Billed annually at ₹28,788/yr" : "Billed monthly"}
+                    </span>
+                  </div>
+
+                  <ul className="mt-6 space-y-3.5 text-xs text-slate-300">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span><strong>3 RIA Advisor Seats</strong></span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>Direct Plan Mutual Fund Analytics</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>Fiduciary Fee Invoicing &amp; GST Receipts</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>Household Net Worth &amp; Goal Asset Alignment</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-slate-500">
+                      <Lock className="h-3.5 w-3.5 shrink-0" />
+                      <span>Autonomous AI Intelligence Suite (Not Included)</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <a
+                  href="#book-demo"
+                  className="mt-8 block text-center py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition"
+                >
+                  Schedule RIA Walkthrough
+                </a>
+              </div>
+
+              {/* RIA Card 2: RIA Enterprise AI Suite (With AI) - FLAGSHIP */}
+              <div className="rounded-2xl border-2 border-indigo-500 bg-gradient-to-b from-indigo-950/30 via-slate-900 to-slate-950 p-7 flex flex-col justify-between relative shadow-xl shadow-indigo-500/10">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-0.5 rounded-full bg-indigo-500 text-white font-black text-[10px] uppercase tracking-wider">
+                  Flagship Institutional RIA
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Multi-Family Office &amp; RIA</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" /> Full AI Copilot
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mt-2">RIA Enterprise AI Suite</h3>
+                  <p className="text-xs text-slate-300 mt-1">Autonomous 4-Agent copilot, custom domain CNAME, and unlimited family office households.</p>
+
+                  <div className="mt-6 pb-6 border-b border-slate-800">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-white">
+                        ₹{isAnnualBilling ? "5,599" : "6,999"}
+                      </span>
+                      <span className="text-xs text-slate-400">/ month</span>
+                    </div>
+                    <span className="text-[11px] text-indigo-400 block mt-0.5 font-medium">
+                      {isAnnualBilling ? "Billed annually at ₹67,188/yr (Save ₹16,800)" : "Billed monthly"}
+                    </span>
+                  </div>
+
+                  <ul className="mt-6 space-y-3.5 text-xs text-slate-200">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-indigo-400 shrink-0" />
+                      <span><strong>15 RIA Seats</strong> with Role-based Privileges</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-purple-400 shrink-0" />
+                      <span><strong>All 4 Autonomous AI Agents</strong> (Diagnostics, Sec 112A, Retirement, Risk)</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-indigo-400 shrink-0" />
+                      <span>Custom Domain CNAME (e.g. wealth.yourfirm.com)</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-indigo-400 shrink-0" />
+                      <span>Automated Fee Invoicing, Mandates &amp; Billing</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-indigo-400 shrink-0" />
+                      <span>24/7 Priority SLA &amp; Dedicated Actuarial Engineer</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <a
+                  href="#book-demo"
+                  className="mt-8 block text-center py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs transition shadow-md shadow-indigo-500/20"
+                >
+                  Request Institutional Proposal
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

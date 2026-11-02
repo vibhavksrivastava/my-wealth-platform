@@ -63,6 +63,10 @@ const DEFAULT_FEATURE_STATE: PlanFeatureState = {
   priority_support: false,
   commission_sharing: false,
   zero_subscription_fee: false,
+  ai_features: false,
+  ai_chat_agents: false,
+  risk_planning: false,
+  retirement_planning: true,
 };
 
 export default function SuperAdminPlansPage() {
@@ -541,6 +545,33 @@ export default function SuperAdminPlansPage() {
                       )}
                       <span className="text-[11px]">Priority Support</span>
                     </div>
+
+                    <div className={`flex items-center gap-1.5 ${plan.features.ai_features ? "text-slate-300" : "text-slate-500"}`}>
+                      {plan.features.ai_features ? (
+                        <Check className="h-3.5 w-3.5 text-purple-400 flex-shrink-0" />
+                      ) : (
+                        <X className="h-3.5 w-3.5 text-slate-600 flex-shrink-0" />
+                      )}
+                      <span className="text-[11px] font-semibold text-purple-300">AI Intelligence Suite</span>
+                    </div>
+
+                    <div className={`flex items-center gap-1.5 ${plan.features.ai_chat_agents ? "text-slate-300" : "text-slate-500"}`}>
+                      {plan.features.ai_chat_agents ? (
+                        <Check className="h-3.5 w-3.5 text-indigo-400 flex-shrink-0" />
+                      ) : (
+                        <X className="h-3.5 w-3.5 text-slate-600 flex-shrink-0" />
+                      )}
+                      <span className="text-[11px] text-indigo-300">AI Chat Agents</span>
+                    </div>
+
+                    <div className={`flex items-center gap-1.5 ${plan.features.risk_planning ? "text-slate-300" : "text-slate-500"}`}>
+                      {plan.features.risk_planning ? (
+                        <Check className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
+                      ) : (
+                        <X className="h-3.5 w-3.5 text-slate-600 flex-shrink-0" />
+                      )}
+                      <span className="text-[11px] text-blue-300">Risk &amp; Insurance</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -813,6 +844,39 @@ export default function SuperAdminPlansPage() {
                       checked={planForm.features.commission_sharing}
                       onChange={() => handleToggleFeature("commission_sharing")}
                       className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20"
+                    />
+                  </label>
+
+                  {/* AI Intelligence Suite */}
+                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-purple-950/20 border border-purple-800/40 cursor-pointer hover:border-purple-600 transition">
+                    <span className="text-xs font-semibold text-purple-200">AI Intelligence Suite (Gemini)</span>
+                    <input
+                      type="checkbox"
+                      checked={planForm.features.ai_features}
+                      onChange={() => handleToggleFeature("ai_features")}
+                      className="rounded border-purple-700 bg-slate-900 text-purple-500 focus:ring-purple-500/20"
+                    />
+                  </label>
+
+                  {/* AI Chat Agents */}
+                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-indigo-950/20 border border-indigo-800/40 cursor-pointer hover:border-indigo-600 transition">
+                    <span className="text-xs font-semibold text-indigo-200">Interactive AI Chat Agents</span>
+                    <input
+                      type="checkbox"
+                      checked={planForm.features.ai_chat_agents}
+                      onChange={() => handleToggleFeature("ai_chat_agents")}
+                      className="rounded border-indigo-700 bg-slate-900 text-indigo-500 focus:ring-indigo-500/20"
+                    />
+                  </label>
+
+                  {/* Risk & Insurance Planning */}
+                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-blue-950/20 border border-blue-800/40 cursor-pointer hover:border-blue-600 transition">
+                    <span className="text-xs font-semibold text-blue-200">Risk Planning (Health &amp; Term)</span>
+                    <input
+                      type="checkbox"
+                      checked={planForm.features.risk_planning}
+                      onChange={() => handleToggleFeature("risk_planning")}
+                      className="rounded border-blue-700 bg-slate-900 text-blue-500 focus:ring-blue-500/20"
                     />
                   </label>
                 </div>

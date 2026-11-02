@@ -11,25 +11,44 @@ export interface PlanFeatures {
   commission_sharing?: boolean;
   zero_subscription_fee?: boolean;
   priority_support?: boolean;
+  ai_features?: boolean;
+  ai_chat_agents?: boolean;
+  risk_planning?: boolean;
+  retirement_planning?: boolean;
+  tax_planning?: boolean;
+  fee_invoicing?: boolean;
 }
 
 export interface PlanRecord {
   id: string;
   name: string;
-  slug: "basic" | "growth" | "enterprise" | "arn_partnership" | string;
+  slug:
+    | "mfd_starter"
+    | "mfd_pro_ai"
+    | "arn_partnership"
+    | "ria_practice"
+    | "ria_enterprise_ai"
+    | "basic"
+    | "growth"
+    | "enterprise"
+    | string;
+  category?: "MFD" | "RIA" | "HYBRID";
   price_monthly: number;
   max_seats: number;
+  description?: string;
   features: PlanFeatures;
 }
 
 // Built-in standard plans for robust fallback and type guarantees
 export const DEFAULT_PLANS: Record<string, PlanRecord> = {
-  basic: {
-    id: "plan-starter-basic",
-    name: "Starter / Solo IFA",
-    slug: "basic",
+  mfd_starter: {
+    id: "plan-mfd-starter",
+    name: "MFD Starter (Standard)",
+    slug: "mfd_starter",
+    category: "MFD",
     price_monthly: 999.0,
     max_seats: 1,
+    description: "Ideal for solo Mutual Fund Distributors managing up to ₹15 Cr AUM without AI copilot.",
     features: {
       white_label: false,
       custom_domain: false,
@@ -37,16 +56,22 @@ export const DEFAULT_PLANS: Record<string, PlanRecord> = {
       bse_star_mf: true, // Universal access
       cas_import: true,
       client_portal: true,
-      suggestions_engine: true,
+      suggestions_engine: false,
+      ai_features: false,
+      ai_chat_agents: false,
+      risk_planning: false,
+      retirement_planning: true,
       priority_support: false,
     },
   },
-  growth: {
-    id: "plan-growth-practice",
-    name: "Growth Practice",
-    slug: "growth",
+  mfd_pro_ai: {
+    id: "plan-mfd-growth-ai",
+    name: "MFD Growth + AI Copilot",
+    slug: "mfd_pro_ai",
+    category: "MFD",
     price_monthly: 2499.0,
     max_seats: 3,
+    description: "Most popular for growing MFD practices. Full 4-Agent AI Suite, White-Label Portal & Risk Planning.",
     features: {
       white_label: true,
       custom_domain: false,
@@ -55,32 +80,21 @@ export const DEFAULT_PLANS: Record<string, PlanRecord> = {
       cas_import: true,
       client_portal: true,
       suggestions_engine: true,
-      priority_support: true,
-    },
-  },
-  enterprise: {
-    id: "plan-enterprise-wealth",
-    name: "Enterprise Wealth Firm",
-    slug: "enterprise",
-    price_monthly: 5999.0,
-    max_seats: 20,
-    features: {
-      white_label: true,
-      custom_domain: true,
-      advanced_reports: true,
-      bse_star_mf: true, // Universal access
-      cas_import: true,
-      client_portal: true,
-      suggestions_engine: true,
+      ai_features: true,
+      ai_chat_agents: true,
+      risk_planning: true,
+      retirement_planning: true,
       priority_support: true,
     },
   },
   arn_partnership: {
     id: "plan-zero-fee-arn",
-    name: "Zero-Fee ARN Partnership",
+    name: "MFD Zero-Fee ARN Partnership",
     slug: "arn_partnership",
+    category: "MFD",
     price_monthly: 0.0,
     max_seats: 3,
+    description: "Zero monthly fee + 80/20 trail brokerage split. Full platform access with AI Agents and white-labeling.",
     features: {
       white_label: true,
       custom_domain: false,
@@ -91,6 +105,128 @@ export const DEFAULT_PLANS: Record<string, PlanRecord> = {
       suggestions_engine: true,
       commission_sharing: true,
       zero_subscription_fee: true,
+      ai_features: true,
+      ai_chat_agents: true,
+      risk_planning: true,
+      retirement_planning: true,
+      priority_support: true,
+    },
+  },
+  ria_practice: {
+    id: "plan-ria-practice",
+    name: "RIA Practice (Standard)",
+    slug: "ria_practice",
+    category: "RIA",
+    price_monthly: 2999.0,
+    max_seats: 3,
+    description: "Tailored for SEBI Registered Investment Advisors. Direct plan analytics, fee invoicing, and fiduciary planning.",
+    features: {
+      white_label: true,
+      custom_domain: false,
+      advanced_reports: true,
+      bse_star_mf: true,
+      cas_import: true,
+      client_portal: true,
+      suggestions_engine: true,
+      ai_features: false,
+      ai_chat_agents: false,
+      risk_planning: true,
+      retirement_planning: true,
+      fee_invoicing: true,
+      priority_support: true,
+    },
+  },
+  ria_enterprise_ai: {
+    id: "plan-ria-enterprise-ai",
+    name: "RIA Enterprise AI Suite",
+    slug: "ria_enterprise_ai",
+    category: "RIA",
+    price_monthly: 6999.0,
+    max_seats: 15,
+    description: "Flagship institutional plan for Multi-Family Offices and RIAs. Autonomous 4-Agent AI copilot, Custom CNAME domain, and dedicated support SLA.",
+    features: {
+      white_label: true,
+      custom_domain: true,
+      advanced_reports: true,
+      bse_star_mf: true,
+      cas_import: true,
+      client_portal: true,
+      suggestions_engine: true,
+      ai_features: true,
+      ai_chat_agents: true,
+      risk_planning: true,
+      retirement_planning: true,
+      fee_invoicing: true,
+      priority_support: true,
+    },
+  },
+  // Backward compatibility aliases
+  basic: {
+    id: "plan-starter-basic",
+    name: "Starter / Solo IFA",
+    slug: "basic",
+    category: "MFD",
+    price_monthly: 999.0,
+    max_seats: 1,
+    description: "Legacy tier mapped to MFD Starter.",
+    features: {
+      white_label: false,
+      custom_domain: false,
+      advanced_reports: false,
+      bse_star_mf: true,
+      cas_import: true,
+      client_portal: true,
+      suggestions_engine: true,
+      ai_features: false,
+      ai_chat_agents: false,
+      risk_planning: false,
+      retirement_planning: true,
+      priority_support: false,
+    },
+  },
+  growth: {
+    id: "plan-growth-practice",
+    name: "Growth Practice",
+    slug: "growth",
+    category: "MFD",
+    price_monthly: 2499.0,
+    max_seats: 3,
+    description: "Legacy tier mapped to MFD Growth + AI.",
+    features: {
+      white_label: true,
+      custom_domain: false,
+      advanced_reports: true,
+      bse_star_mf: true,
+      cas_import: true,
+      client_portal: true,
+      suggestions_engine: true,
+      ai_features: true,
+      ai_chat_agents: true,
+      risk_planning: true,
+      retirement_planning: true,
+      priority_support: true,
+    },
+  },
+  enterprise: {
+    id: "plan-enterprise-wealth",
+    name: "Enterprise Wealth Firm",
+    slug: "enterprise",
+    category: "RIA",
+    price_monthly: 5999.0,
+    max_seats: 20,
+    description: "Legacy tier mapped to RIA Enterprise AI Suite.",
+    features: {
+      white_label: true,
+      custom_domain: true,
+      advanced_reports: true,
+      bse_star_mf: true,
+      cas_import: true,
+      client_portal: true,
+      suggestions_engine: true,
+      ai_features: true,
+      ai_chat_agents: true,
+      risk_planning: true,
+      retirement_planning: true,
       priority_support: true,
     },
   },
