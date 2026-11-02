@@ -11,6 +11,46 @@ import {
 import { generateAiRetirementDiagnostic, RetirementAiContext } from "@/lib/retirement/retirementAi";
 import { createClientSuggestion } from "@/lib/suggestions";
 
+function isLiquidSavingsOrFd(category?: string | null, isLiquid?: boolean | null): boolean {
+  const cat = (category || "").toLowerCase().trim();
+  // Strictly exclude mutual funds, equities, stocks, real estate, gold, epf, etc.
+  if (
+    cat.includes("mutual fund") ||
+    cat.includes("equity") ||
+    cat.includes("stock") ||
+    cat.includes("share") ||
+    cat.includes("real estate") ||
+    cat.includes("gold") ||
+    cat.includes("precious metal") ||
+    cat.includes("vehicle") ||
+    cat.includes("automobile") ||
+    cat.includes("epf") ||
+    cat.includes("vpf") ||
+    cat.includes("provident") ||
+    cat.includes("nps") ||
+    cat.includes("pension") ||
+    cat.includes("ppf") ||
+    cat.includes("crypto") ||
+    cat.includes("bond")
+  ) {
+    return false;
+  }
+  // Include true bank deposits, savings accounts, and liquid cash reserves
+  return (
+    cat.includes("fixed deposit") ||
+    cat.includes("deposit") ||
+    cat.includes("fd") ||
+    cat.includes("recurring deposit") ||
+    cat.includes("rd") ||
+    cat.includes("savings account") ||
+    cat.includes("bank account") ||
+    cat.includes("cash & liquid") ||
+    cat.includes("cash") ||
+    cat.includes("emergency") ||
+    (Boolean(isLiquid) && (cat.includes("liquid") || cat.includes("bank") || cat.includes("saving")))
+  );
+}
+
 export async function GET(req: Request) {
   await connection();
   try {
@@ -225,7 +265,7 @@ export async function GET(req: Request) {
           mEpf += val;
         } else if (cat.includes("nps") || cat.includes("national pension")) {
           mNps += val;
-        } else if (a.is_liquid || cat.includes("deposit") || cat.includes("fd") || cat.includes("cash") || cat.includes("liquid")) {
+        } else if (isLiquidSavingsOrFd(a.asset_category, a.is_liquid)) {
           mLiquid += val;
         }
       });
@@ -323,7 +363,7 @@ export async function GET(req: Request) {
       } else if (cat.includes("ppf") || cat.includes("public provident")) {
         ppfCorpus += val;
         ppfMonthlyDeposit += dep;
-      } else if (ast.is_liquid || cat.includes("deposit") || cat.includes("fd") || cat.includes("cash") || cat.includes("liquid")) {
+      } else if (isLiquidSavingsOrFd(ast.asset_category, ast.is_liquid)) {
         otherLiquidCorpus += val;
       }
     });
