@@ -277,6 +277,7 @@ export async function GET(req: Request) {
         clientId: targetClient.client_id,
         fullName: targetClient.full_name,
         dateOfBirth: targetClient.date_of_birth,
+        panNumber: targetClient.pan_number || targetClient.pan || null,
         annualGrossIncome: targetClient.annual_gross_income,
         riskProfile: targetClient.risk_profile || "Moderate",
         currentAge,

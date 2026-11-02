@@ -33,6 +33,12 @@ import {
   Zap,
   ArrowUpRight,
   Percent,
+  Download,
+  Key,
+  FileText,
+  X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 function formatINR(val: number) {
@@ -115,6 +121,115 @@ function RetirementPlanningContent() {
   const showToast = (text: string, type: "success" | "error" = "success") => {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  // PDF Export Modal State
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfEnablePassword, setPdfEnablePassword] = useState(true);
+  const [pdfPasswordType, setPdfPasswordType] = useState<"PAN" | "NAME_DOB" | "CUSTOM">("PAN");
+  const [customPdfPassword, setCustomPdfPassword] = useState("");
+  const [showPasswordText, setShowPasswordText] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfIncludeAi, setPdfIncludeAi] = useState(true);
+  const [pdfIncludeHoldings, setPdfIncludeHoldings] = useState(true);
+  const [pdfIncludeCashFlow, setPdfIncludeCashFlow] = useState(true);
+
+  // Compute unlock password based on client attributes and selected type
+  const resolvedPdfPassword = useMemo(() => {
+    if (!pdfEnablePassword) return "";
+    if (pdfPasswordType === "PAN") {
+      const rawPan = (selectedClient?.panNumber || selectedClient?.pan || "").toUpperCase().trim();
+      return rawPan || "ABCDE1234F"; // standard PAN format
+    }
+    if (pdfPasswordType === "NAME_DOB") {
+      const namePart = (selectedClient?.fullName || "USER")
+        .replace(/[^a-zA-Z]/g, "")
+        .slice(0, 4)
+        .toUpperCase()
+        .padEnd(4, "X");
+      let year = "1985";
+      if (selectedClient?.dateOfBirth) {
+        const parsedYear = new Date(selectedClient.dateOfBirth).getFullYear();
+        if (!isNaN(parsedYear)) year = parsedYear.toString();
+      } else if (currentAge) {
+        year = (new Date().getFullYear() - currentAge).toString();
+      }
+      return `${namePart}${year}`;
+    }
+    if (pdfPasswordType === "CUSTOM") {
+      return customPdfPassword.trim();
+    }
+    return "";
+  }, [pdfEnablePassword, pdfPasswordType, selectedClient, currentAge, customPdfPassword]);
+
+  const handleCopyPassword = () => {
+    if (!resolvedPdfPassword) return;
+    navigator.clipboard.writeText(resolvedPdfPassword);
+    setCopiedPassword(true);
+    setTimeout(() => setCopiedPassword(false), 2500);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!diagnosticResult) {
+      showToast("Diagnostic result not ready yet.", "error");
+      return;
+    }
+    if (pdfEnablePassword && pdfPasswordType === "CUSTOM" && !customPdfPassword.trim()) {
+      showToast("Please enter a custom password or switch password type.", "error");
+      return;
+    }
+
+    setIsGeneratingPdf(true);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") || localStorage.getItem("token") : null;
+      const finalPassword = pdfEnablePassword ? resolvedPdfPassword : null;
+
+      const payload = {
+        clientId: selectedClientId,
+        password: finalPassword,
+        diagnosticResult,
+        aiAdvisory,
+        options: {
+          includeAiMemo: pdfIncludeAi && !!aiAdvisory,
+          includeHoldingsTable: pdfIncludeHoldings,
+          includeCashFlowTable: pdfIncludeCashFlow,
+        },
+      };
+
+      const res = await fetch("/api/planning/retirement/pdf", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `Download failed with status ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const clientName = (selectedClient?.fullName || "Client").replace(/[^a-zA-Z0-9_-]/g, "_");
+      a.download = `Retirement_Plan_${clientName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      showToast("Retirement Plan PDF exported successfully!", "success");
+      setShowPdfModal(false);
+    } catch (err: any) {
+      console.error("PDF generation error:", err);
+      showToast(err.message || "Failed to generate PDF.", "error");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   // Fetch initial data
@@ -526,11 +641,11 @@ function RetirementPlanningContent() {
             </button>
 
             <button
-              onClick={() => window.print()}
-              className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-semibold text-xs flex items-center gap-2 shadow-xs transition"
+              onClick={() => setShowPdfModal(true)}
+              className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs flex items-center gap-2 shadow-sm transition"
             >
-              <Printer className="h-3.5 w-3.5 text-slate-400" />
-              <span>Print / Export PDF</span>
+              <Download className="h-3.5 w-3.5" />
+              <span>Export Professional Plan (PDF)</span>
             </button>
           </div>
         </div>
@@ -1466,6 +1581,283 @@ function RetirementPlanningContent() {
           )}
         </div>
       </div>
+
+      {/* Export Professional Plan (PDF) Modal */}
+      {showPdfModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
+          <div className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-7 space-y-6 text-slate-900 dark:text-white">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-md">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    Export Comprehensive Retirement Plan
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                      Institutional PDF
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Generate an official, branded retirement diagnostic report for{" "}
+                    <strong className="text-slate-700 dark:text-slate-200">
+                      {selectedClient?.fullName || "Valued Client"}
+                    </strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPdfModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Plan Summary Badge */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 grid grid-cols-3 gap-3 text-center">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400">Current Age</span>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">{currentAge} Years</p>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400">Retirement Age</span>
+                <p className="text-sm font-bold text-purple-600 dark:text-purple-400">{retirementAge} Years</p>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400">
+                  {diagnosticResult?.isAlreadyRetired ? "Current Corpus" : "Target Corpus"}
+                </span>
+                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                  {formatINR(diagnosticResult?.isAlreadyRetired ? diagnosticResult.currentTotalRetirementCorpus : diagnosticResult?.corpusNeededAtRetirement)}
+                </p>
+              </div>
+            </div>
+
+            {/* Password Protection Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pdfEnablePassword}
+                    onChange={(e) => setPdfEnablePassword(e.target.checked)}
+                    className="rounded border-slate-300 text-purple-600 focus:ring-purple-500 h-4 w-4"
+                  />
+                  <span className="flex items-center gap-1.5">
+                    <Lock className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                    Password Protect this PDF Document
+                  </span>
+                </label>
+                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  <ShieldCheck className="h-3 w-3" />
+                  128-bit Encrypted
+                </span>
+              </div>
+
+              {pdfEnablePassword ? (
+                <div className="space-y-3 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPdfPasswordType("PAN")}
+                      className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between ${
+                        pdfPasswordType === "PAN"
+                          ? "border-purple-600 bg-purple-50/70 dark:bg-purple-950/30 text-purple-950 dark:text-purple-200"
+                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700"
+                      }`}
+                    >
+                      <div>
+                        <div className="text-xs font-bold flex items-center gap-1.5">
+                          <Key className="h-3 w-3 text-purple-600 dark:text-purple-400" />
+                          Client PAN
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Standard AMC format (uppercase)
+                        </div>
+                      </div>
+                      <div className="mt-2 text-[11px] font-mono font-bold text-purple-700 dark:text-purple-300">
+                        {selectedClient?.panNumber || "ABCDE1234F"}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPdfPasswordType("NAME_DOB")}
+                      className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between ${
+                        pdfPasswordType === "NAME_DOB"
+                          ? "border-purple-600 bg-purple-50/70 dark:bg-purple-950/30 text-purple-950 dark:text-purple-200"
+                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700"
+                      }`}
+                    >
+                      <div>
+                        <div className="text-xs font-bold flex items-center gap-1.5">
+                          <Calendar className="h-3 w-3 text-purple-600 dark:text-purple-400" />
+                          Name + Birth Year
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          EPFO format (e.g. RAME1985)
+                        </div>
+                      </div>
+                      <div className="mt-2 text-[11px] font-mono font-bold text-purple-700 dark:text-purple-300">
+                        {(selectedClient?.fullName || "USER").replace(/[^a-zA-Z]/g, "").slice(0, 4).toUpperCase()}
+                        {selectedClient?.dateOfBirth ? new Date(selectedClient.dateOfBirth).getFullYear() : (new Date().getFullYear() - currentAge)}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPdfPasswordType("CUSTOM")}
+                      className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between ${
+                        pdfPasswordType === "CUSTOM"
+                          ? "border-purple-600 bg-purple-50/70 dark:bg-purple-950/30 text-purple-950 dark:text-purple-200"
+                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700"
+                      }`}
+                    >
+                      <div>
+                        <div className="text-xs font-bold flex items-center gap-1.5">
+                          <Lock className="h-3 w-3 text-purple-600 dark:text-purple-400" />
+                          Custom Password
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Specify secret PIN / text
+                        </div>
+                      </div>
+                      <div className="mt-2 text-[11px] font-mono font-bold text-purple-700 dark:text-purple-300">
+                        {customPdfPassword ? "••••••••" : "Custom..."}
+                      </div>
+                    </button>
+                  </div>
+
+                  {pdfPasswordType === "CUSTOM" && (
+                    <div className="relative mt-2">
+                      <input
+                        type={showPasswordText ? "text" : "password"}
+                        value={customPdfPassword}
+                        onChange={(e) => setCustomPdfPassword(e.target.value)}
+                        placeholder="Enter custom PDF password..."
+                        className="w-full px-3.5 py-2.5 pr-10 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordText(!showPasswordText)}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        {showPasswordText ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Shareable Password Preview Box */}
+                  <div className="p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">
+                        Recipient Unlock Password
+                      </span>
+                      <div className="text-sm font-mono font-black tracking-widest text-purple-700 dark:text-purple-300">
+                        {resolvedPdfPassword || "(Please enter custom password)"}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyPassword}
+                      disabled={!resolvedPdfPassword}
+                      className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-purple-600 dark:hover:text-purple-300 flex items-center gap-1.5 shadow-2xs transition"
+                    >
+                      {copiedPassword ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-emerald-500" />
+                          <span className="text-emerald-600 dark:text-emerald-400">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5" />
+                          <span>Copy Password</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                  <Info className="h-4 w-4 shrink-0 text-amber-600" />
+                  <span>Unprotected Mode: Document can be opened immediately by anyone without entering a password.</span>
+                </div>
+              )}
+            </div>
+
+            {/* Content Inclusions */}
+            <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Include in Report</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <label className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pdfIncludeAi}
+                    onChange={(e) => setPdfIncludeAi(e.target.checked)}
+                    className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-slate-700 dark:text-slate-300 text-[11px]">
+                    AI Actuarial &amp; Action Memo
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pdfIncludeHoldings}
+                    onChange={(e) => setPdfIncludeHoldings(e.target.checked)}
+                    className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-slate-700 dark:text-slate-300 text-[11px]">
+                    Savings Audit &amp; Scheme Matrix
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 cursor-pointer sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={pdfIncludeCashFlow}
+                    onChange={(e) => setPdfIncludeCashFlow(e.target.checked)}
+                    className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-slate-700 dark:text-slate-300 text-[11px]">
+                    Three-Bucket Architecture &amp; SWP Decumulation Schedule
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowPdfModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isGeneratingPdf || (pdfEnablePassword && pdfPasswordType === "CUSTOM" && !customPdfPassword.trim())}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-md transition disabled:opacity-50"
+              >
+                {isGeneratingPdf ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <span>Generating Encrypted PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    <span>Download Professional PDF</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
