@@ -430,6 +430,15 @@ export default function Client360Page({
             </button>
           </div>
 
+          <Link
+            href={`/dashboard/planning/retirement?clientId=${clientId}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/80 dark:hover:bg-purple-900 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-bold transition shadow-xs"
+            title="Open Smart Retirement Planning & 3-Bucket Decumulation"
+          >
+            <Target className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+            <span className="hidden sm:inline">Smart Retirement</span>
+          </Link>
+
           <button
             onClick={fetch360Data}
             disabled={isLoading}

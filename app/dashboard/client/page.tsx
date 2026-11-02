@@ -25,6 +25,7 @@ import {
   ShieldCheck,
   X,
   UploadCloud,
+  Target,
 } from "lucide-react";
 import Link from "next/link";
 import AppointmentsManager from "@/components/AppointmentsManager";
@@ -255,6 +256,13 @@ export default function ClientDashboard() {
           >
             <TrendingUp className="h-3.5 w-3.5 text-sky-500" />
             <span>Mutual Fund Portfolio</span>
+          </Link>
+          <Link
+            href="/dashboard/planning/retirement"
+            className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/80 dark:hover:bg-purple-900 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-bold transition shadow-xs"
+          >
+            <Target className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+            <span>Smart Retirement Plan</span>
           </Link>
           {clientRecord?.client_id && (
             <Link

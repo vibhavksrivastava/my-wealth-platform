@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Loader2,
   Sparkles,
-  Receipt
+  Receipt,
+  Target
 } from "lucide-react";
 import AppointmentsManager from "@/components/AppointmentsManager";
 import CasUploadModal from "@/components/CasUploadModal";
@@ -228,6 +229,13 @@ export default function AdvisorDashboard() {
           >
             <TrendingUp className="h-4 w-4 text-sky-500" />
             Mutual Fund Portfolio
+          </Link>
+          <Link
+            href="/dashboard/planning/retirement"
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-purple-50 dark:bg-purple-950/70 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 text-xs font-bold shadow-sm transition hover:bg-purple-100 dark:hover:bg-purple-900"
+          >
+            <Target className="h-4 w-4 text-purple-500" />
+            Retirement Suite
           </Link>
           <button
             onClick={() => {

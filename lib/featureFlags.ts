@@ -77,11 +77,10 @@ export const MASTER_FEATURE_CATALOG: FeatureDefinition[] = [
   },
   {
     key: "retirement_planning",
-    label: "Retirement Planning",
-    description: "Future retirement corpus, inflation-adjusted expense projection, and annuity planning.",
-    category: "UPCOMING",
+    label: "Smart Retirement Planning & 3-Bucket Solution",
+    description: "Future retirement corpus, inflation-adjusted expense projection, Three-Bucket decumulation, and Gemini AI SWP/STP diagnostic.",
+    category: "PLANNING",
     defaultEnabled: true,
-    isUpcoming: true,
   },
   {
     key: "estate_planning",

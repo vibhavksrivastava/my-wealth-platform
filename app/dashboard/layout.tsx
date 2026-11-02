@@ -102,7 +102,7 @@ function getNavItems(userRole?: string) {
       href: "/dashboard/planning/retirement",
       icon: Target,
       isActive: (p: string) => p.startsWith("/dashboard/planning/retirement"),
-      badge: { label: "Soon", color: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
+      badge: { label: "Live AI", color: "bg-purple-500/20 text-purple-600 dark:text-purple-300 border-purple-500/30" },
     },
     {
       name: "Estate Planning",
