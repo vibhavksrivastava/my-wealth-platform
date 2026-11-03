@@ -23,6 +23,9 @@ import {
   Search,
   Sparkles,
   Info,
+  Calendar,
+  Send,
+  Lock,
 } from "lucide-react";
 
 interface PlanFeatureState {
@@ -36,6 +39,11 @@ interface PlanFeatureState {
   priority_support?: boolean;
   commission_sharing?: boolean;
   zero_subscription_fee?: boolean;
+  ai_features?: boolean;
+  ai_chat_agents?: boolean;
+  risk_planning?: boolean;
+  retirement_planning?: boolean;
+  category?: "MFD" | "RIA" | "HYBRID";
   [key: string]: any;
 }
 
@@ -50,6 +58,16 @@ interface PlanItem {
   features: PlanFeatureState;
   tenant_count?: number;
   created_at?: string;
+}
+
+interface TenantOption {
+  id: string;
+  subdomain: string;
+  firm_brand_name: string;
+  arn_number?: string | null;
+  ria_number?: string | null;
+  plan_id?: string | null;
+  is_active: boolean;
 }
 
 const DEFAULT_FEATURE_STATE: PlanFeatureState = {
@@ -67,25 +85,36 @@ const DEFAULT_FEATURE_STATE: PlanFeatureState = {
   ai_chat_agents: false,
   risk_planning: false,
   retirement_planning: true,
+  category: "MFD",
 };
 
 export default function SuperAdminPlansPage() {
   const [plans, setPlans] = useState<PlanItem[]>([]);
+  const [tenants, setTenants] = useState<TenantOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<"ALL" | "MFD" | "RIA" | "AI_ENABLED">("ALL");
 
-  // Modal State
+  // Create / Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Assign Plan to Tenant Modal State
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [planToAssign, setPlanToAssign] = useState<PlanItem | null>(null);
+  const [selectedTenantId, setSelectedTenantId] = useState("");
+  const [assignExpiryMonths, setAssignExpiryMonths] = useState("12");
+  const [isAssigning, setIsAssigning] = useState(false);
 
   // Form State
   const [planForm, setPlanForm] = useState({
     id: "",
     name: "",
     slug: "",
+    category: "MFD" as "MFD" | "RIA" | "HYBRID",
     price_monthly: "2499",
     max_seats: "3",
     description: "",
@@ -93,21 +122,24 @@ export default function SuperAdminPlansPage() {
     features: { ...DEFAULT_FEATURE_STATE },
   });
 
-  const fetchPlans = async () => {
+  const fetchPlansAndTenants = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const token = localStorage.getItem("auth_token");
-      const res = await fetch("/api/super-admin/plans", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const [plansRes, tenantsRes] = await Promise.all([
+        fetch("/api/super-admin/plans", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/super-admin/tenants", { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
 
-      if (!res.ok) {
-        throw new Error("Failed to load platform subscription plans.");
+      if (!plansRes.ok) throw new Error("Failed to load platform subscription plans.");
+      const plansJson = await plansRes.json();
+      setPlans(plansJson.plans || []);
+
+      if (tenantsRes.ok) {
+        const tenantsJson = await tenantsRes.json();
+        setTenants(tenantsJson.tenants || []);
       }
-
-      const json = await res.json();
-      setPlans(json.plans || []);
     } catch (err: any) {
       setError(err.message || "Failed to load plans.");
     } finally {
@@ -116,7 +148,7 @@ export default function SuperAdminPlansPage() {
   };
 
   useEffect(() => {
-    fetchPlans();
+    fetchPlansAndTenants();
   }, []);
 
   const formatCurrency = (amount: number) => {
@@ -127,27 +159,38 @@ export default function SuperAdminPlansPage() {
     }).format(amount || 0);
   };
 
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = (presetCategory: "MFD" | "RIA" = "MFD", withAi = true) => {
     setIsEditing(false);
     setPlanForm({
       id: "",
-      name: "",
+      name: presetCategory === "MFD" ? (withAi ? "MFD Growth + AI" : "MFD Starter Solo") : (withAi ? "RIA Enterprise AI Suite" : "RIA Practice Standard"),
       slug: "",
-      price_monthly: "2499",
-      max_seats: "3",
-      description: "",
+      category: presetCategory,
+      price_monthly: presetCategory === "MFD" ? (withAi ? "2499" : "999") : (withAi ? "6999" : "2999"),
+      max_seats: presetCategory === "MFD" ? (withAi ? "3" : "1") : (withAi ? "15" : "3"),
+      description: presetCategory === "MFD" ? (withAi ? "Full AI copilot, white-label portal, and risk planning for MFDs." : "Essential execution and client reporting for solo IFAs.") : (withAi ? "Multi-family office and RIA flagship plan with custom domain and 4 AI agents." : "Direct plan analytics, fee billing, and goal modeling for RIAs."),
       is_active: true,
-      features: { ...DEFAULT_FEATURE_STATE },
+      features: {
+        ...DEFAULT_FEATURE_STATE,
+        category: presetCategory,
+        ai_features: withAi,
+        ai_chat_agents: withAi,
+        risk_planning: withAi || presetCategory === "RIA",
+        white_label: withAi,
+        custom_domain: presetCategory === "RIA" && withAi,
+      },
     });
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = (plan: PlanItem) => {
     setIsEditing(true);
+    const cat = plan.features?.category || (plan.slug.startsWith("ria") ? "RIA" : "MFD");
     setPlanForm({
       id: plan.id,
       name: plan.name,
       slug: plan.slug,
+      category: cat,
       price_monthly: String(plan.price_monthly),
       max_seats: String(plan.max_seats),
       description: plan.description || plan.features?.description || "",
@@ -155,6 +198,7 @@ export default function SuperAdminPlansPage() {
       features: {
         ...DEFAULT_FEATURE_STATE,
         ...(plan.features || {}),
+        category: cat,
         bse_star_mf: true,
       },
     });
@@ -182,6 +226,19 @@ export default function SuperAdminPlansPage() {
     }));
   };
 
+  const handleApplyAiPreset = (withAi: boolean) => {
+    setPlanForm((prev) => ({
+      ...prev,
+      features: {
+        ...prev.features,
+        ai_features: withAi,
+        ai_chat_agents: withAi,
+        risk_planning: withAi ? true : prev.features.risk_planning,
+        suggestions_engine: withAi ? true : prev.features.suggestions_engine,
+      },
+    }));
+  };
+
   const handleSavePlan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!planForm.name.trim()) {
@@ -196,13 +253,18 @@ export default function SuperAdminPlansPage() {
       const url = "/api/super-admin/plans";
       const method = isEditing ? "PATCH" : "POST";
 
+      const consolidatedFeatures = {
+        ...planForm.features,
+        category: planForm.category,
+      };
+
       const payload: Record<string, any> = {
         name: planForm.name.trim(),
         price_monthly: Number(planForm.price_monthly) || 0,
         max_seats: Number(planForm.max_seats) || 1,
         description: planForm.description.trim(),
         is_active: planForm.is_active,
-        features: planForm.features,
+        features: consolidatedFeatures,
       };
 
       if (isEditing) {
@@ -228,7 +290,7 @@ export default function SuperAdminPlansPage() {
 
       setSuccessMessage(isEditing ? `Plan "${planForm.name}" updated successfully.` : `Plan "${planForm.name}" created successfully.`);
       setIsModalOpen(false);
-      await fetchPlans();
+      await fetchPlansAndTenants();
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err: any) {
       setError(err.message || "Failed to save plan.");
@@ -237,38 +299,52 @@ export default function SuperAdminPlansPage() {
     }
   };
 
-  const handleDeletePlan = async (plan: PlanItem) => {
-    if (["basic", "growth", "enterprise", "arn_partnership"].includes(plan.slug)) {
-      alert("System default plans cannot be deleted. You can edit their pricing, seats, and features instead.");
-      return;
-    }
+  // Open Assign Plan to Tenant Modal
+  const handleOpenAssignModal = (plan: PlanItem) => {
+    setPlanToAssign(plan);
+    setSelectedTenantId(tenants[0]?.id || "");
+    setAssignExpiryMonths("12");
+    setIsAssignModalOpen(true);
+  };
 
-    if ((plan.tenant_count || 0) > 0) {
-      alert(`Cannot delete plan "${plan.name}" because ${plan.tenant_count} tenant firm(s) are actively subscribed. Please migrate them first or mark the plan as Inactive.`);
-      return;
-    }
+  // Submit Plan Assignment to Tenant
+  const handleExecuteAssignPlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!planToAssign || !selectedTenantId) return;
 
-    if (!confirm(`Are you sure you want to permanently delete plan "${plan.name}"?`)) {
-      return;
-    }
-
+    setIsAssigning(true);
+    setError(null);
     try {
       const token = localStorage.getItem("auth_token");
-      const res = await fetch(`/api/super-admin/plans?id=${encodeURIComponent(plan.id)}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + Number(assignExpiryMonths));
+
+      const res = await fetch(`/api/super-admin/tenants/${selectedTenantId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          planId: planToAssign.id,
+          planSlug: planToAssign.slug,
+          subscriptionExpiresAt: expiryDate.toISOString(),
+          commissionSharingActive: planToAssign.slug === "arn_partnership" || Boolean(planToAssign.features?.commission_sharing),
+        }),
       });
 
       const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || "Failed to delete plan.");
-      }
+      if (!res.ok) throw new Error(json.error || "Failed to assign plan to tenant.");
 
-      setSuccessMessage(`Plan "${plan.name}" was successfully removed.`);
-      await fetchPlans();
+      const tenantObj = tenants.find((t) => t.id === selectedTenantId);
+      setSuccessMessage(`Plan "${planToAssign.name}" successfully assigned to ${tenantObj?.firm_brand_name || "tenant"}!`);
+      setIsAssignModalOpen(false);
+      await fetchPlansAndTenants();
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err: any) {
-      setError(err.message || "Failed to delete plan.");
+      setError(err.message || "Failed to assign plan.");
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -291,7 +367,7 @@ export default function SuperAdminPlansPage() {
       if (!res.ok) throw new Error(json.error || "Failed to update status.");
 
       setSuccessMessage(`Plan "${plan.name}" marked as ${!plan.is_active ? "Active" : "Inactive"}.`);
-      await fetchPlans();
+      await fetchPlansAndTenants();
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
       setError(err.message || "Failed to update active status.");
@@ -300,12 +376,20 @@ export default function SuperAdminPlansPage() {
 
   const filteredPlans = plans.filter((p) => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    return (
+    const matchesSearch =
+      !q ||
       p.name.toLowerCase().includes(q) ||
       p.slug.toLowerCase().includes(q) ||
-      (p.description || "").toLowerCase().includes(q)
-    );
+      (p.description || "").toLowerCase().includes(q);
+
+    const planCat = p.features?.category || (p.slug.startsWith("ria") ? "RIA" : "MFD");
+    const matchesCategory =
+      categoryFilter === "ALL" ||
+      (categoryFilter === "MFD" && planCat === "MFD") ||
+      (categoryFilter === "RIA" && planCat === "RIA") ||
+      (categoryFilter === "AI_ENABLED" && Boolean(p.features?.ai_features));
+
+    return matchesSearch && matchesCategory;
   });
 
   const totalTenantsOnPlans = plans.reduce((acc, p) => acc + (p.tenant_count || 0), 0);
@@ -323,34 +407,33 @@ export default function SuperAdminPlansPage() {
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Create, configure, and edit SaaS licensing tiers, pricing, seat caps, and feature entitlements for tenant advisory firms.
+            Create, configure, and assign MFD and RIA plans (with or without AI copilot) directly to tenant practices.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Link
-            href="/super-admin/billing"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 hover:text-white transition"
+            href="/super-admin/tenants"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 hover:text-white transition cursor-pointer"
           >
-            <Receipt className="h-3.5 w-3.5 text-amber-400" />
-            <span>Billing &amp; Invoices</span>
+            <Building2 className="h-3.5 w-3.5 text-sky-400" />
+            <span>Manage Tenants</span>
           </Link>
 
           <button
-            onClick={fetchPlans}
-            disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs text-slate-300 hover:text-white transition"
+            onClick={() => handleOpenAddModal("MFD", true)}
+            className="flex items-center gap-1 px-3 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs transition shadow-md shadow-sky-500/20 cursor-pointer"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
-            <span>Reload</span>
+            <Plus className="h-3.5 w-3.5" />
+            <span>Add MFD Plan</span>
           </button>
 
           <button
-            onClick={handleOpenAddModal}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs transition shadow-md shadow-sky-500/20"
+            onClick={() => handleOpenAddModal("RIA", true)}
+            className="flex items-center gap-1 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition shadow-md shadow-indigo-600/20 cursor-pointer"
           >
-            <Plus className="h-4 w-4" />
-            <span>Add New Plan</span>
+            <Plus className="h-3.5 w-3.5" />
+            <span>Add RIA Plan</span>
           </button>
         </div>
       </div>
@@ -359,7 +442,7 @@ export default function SuperAdminPlansPage() {
       {error && (
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
           <button onClick={() => setError(null)} className="text-red-400 hover:text-white">✕</button>
@@ -369,7 +452,7 @@ export default function SuperAdminPlansPage() {
       {successMessage && (
         <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>{successMessage}</span>
           </div>
           <button onClick={() => setSuccessMessage(null)} className="text-emerald-400 hover:text-white">✕</button>
@@ -381,13 +464,15 @@ export default function SuperAdminPlansPage() {
         <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Defined Plans</span>
           <div className="text-2xl font-black text-white">{plans.length} Tiers</div>
-          <p className="text-[11px] text-slate-500">Platform pricing offerings</p>
+          <p className="text-[11px] text-slate-500">MFD &amp; RIA practice offerings</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-1">
-          <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Active For Self-Service</span>
-          <div className="text-2xl font-black text-emerald-400">{activePlansCount} Active</div>
-          <p className="text-[11px] text-slate-500">Available in firm upgrade modal</p>
+          <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">AI Copilot Tiers</span>
+          <div className="text-2xl font-black text-purple-400">
+            {plans.filter((p) => p.features?.ai_features).length} Plans
+          </div>
+          <p className="text-[11px] text-slate-500">Includes 4 autonomous AI agents</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-1">
@@ -399,13 +484,36 @@ export default function SuperAdminPlansPage() {
         <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-1">
           <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">BSE StAR MF Execution</span>
           <div className="text-2xl font-black text-amber-400">100% Guaranteed</div>
-          <p className="text-[11px] text-slate-500">Universal engine on all tiers</p>
+          <p className="text-[11px] text-slate-500">Universal order engine on all tiers</p>
         </div>
       </div>
 
-      {/* Search and Filter Bar */}
-      <div className="flex items-center justify-between gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-800">
-        <div className="relative flex-1 max-w-md">
+      {/* Category Pills & Search Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-800">
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
+          {(
+            [
+              { id: "ALL", label: "All Plans" },
+              { id: "MFD", label: "MFD Plans" },
+              { id: "RIA", label: "RIA Plans" },
+              { id: "AI_ENABLED", label: "✨ With AI Copilot" },
+            ] as const
+          ).map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setCategoryFilter(t.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                categoryFilter === t.id
+                  ? "bg-sky-500 text-slate-950 shadow-xs"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-500" />
           <input
             type="text"
@@ -415,16 +523,14 @@ export default function SuperAdminPlansPage() {
             className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition"
           />
         </div>
-        <span className="text-xs text-slate-400">
-          Showing <strong className="text-white">{filteredPlans.length}</strong> of {plans.length} plans
-        </span>
       </div>
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredPlans.map((plan) => {
-          const isArn = plan.slug === "arn_partnership" || plan.features.commission_sharing;
-          const isSystem = ["basic", "growth", "enterprise", "arn_partnership"].includes(plan.slug);
+          const isArn = plan.slug === "arn_partnership" || plan.features?.commission_sharing;
+          const planCat = plan.features?.category || (plan.slug.startsWith("ria") ? "RIA" : "MFD");
+          const hasAi = Boolean(plan.features?.ai_features);
 
           return (
             <div
@@ -439,11 +545,14 @@ export default function SuperAdminPlansPage() {
                 {/* Card Header */}
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <h3 className="text-base font-bold text-white tracking-tight">{plan.name}</h3>
-                      {isSystem && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-800 text-slate-400 border border-slate-700">
-                          System
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">
+                        {planCat}
+                      </span>
+                      {hasAi && (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/10 text-purple-300 border border-purple-500/30 flex items-center gap-0.5">
+                          <Sparkles className="h-2.5 w-2.5" /> AI
                         </span>
                       )}
                     </div>
@@ -451,7 +560,7 @@ export default function SuperAdminPlansPage() {
                   </div>
 
                   <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border shrink-0 ${
                       plan.is_active
                         ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                         : "bg-slate-800 text-slate-400 border-slate-700"
@@ -478,7 +587,7 @@ export default function SuperAdminPlansPage() {
                     <span className="text-[10px] uppercase font-bold text-slate-500 block">Seat Limit</span>
                     <div className="text-sm font-bold text-amber-400 flex items-center justify-end gap-1">
                       <Users className="h-3.5 w-3.5" />
-                      <span>{plan.max_seats} Seats</span>
+                      <span>{plan.max_seats} {plan.max_seats === 1 ? "Seat" : "Seats"}</span>
                     </div>
                   </div>
                 </div>
@@ -497,118 +606,107 @@ export default function SuperAdminPlansPage() {
                   </span>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex items-center gap-1.5 text-slate-300">
-                      <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                      <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                       <span className="text-[11px]">BSE StAR MF</span>
                     </div>
 
-                    <div className={`flex items-center gap-1.5 ${plan.features.white_label ? "text-slate-300" : "text-slate-500"}`}>
-                      {plan.features.white_label ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                    <div className={`flex items-center gap-1.5 ${plan.features?.white_label ? "text-slate-300" : "text-slate-500"}`}>
+                      {plan.features?.white_label ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                       ) : (
-                        <X className="h-3.5 w-3.5 text-slate-600 flex-shrink-0" />
+                        <X className="h-3.5 w-3.5 text-slate-600 shrink-0" />
                       )}
                       <span className="text-[11px]">White-Labeling</span>
                     </div>
 
-                    <div className={`flex items-center gap-1.5 ${plan.features.custom_domain ? "text-slate-300" : "text-slate-500"}`}>
-                      {plan.features.custom_domain ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                    <div className={`flex items-center gap-1.5 ${plan.features?.custom_domain ? "text-slate-300" : "text-slate-500"}`}>
+                      {plan.features?.custom_domain ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                       ) : (
-                        <X className="h-3.5 w-3.5 text-slate-600 flex-shrink-0" />
+                        <X className="h-3.5 w-3.5 text-slate-600 shrink-0" />
                       )}
                       <span className="text-[11px]">Custom Domain</span>
                     </div>
 
-                    <div className={`flex items-center gap-1.5 ${plan.features.advanced_reports ? "text-slate-300" : "text-slate-500"}`}>
-                      {plan.features.advanced_reports ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                    <div className={`flex items-center gap-1.5 ${plan.features?.advanced_reports ? "text-slate-300" : "text-slate-500"}`}>
+                      {plan.features?.advanced_reports ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                       ) : (
                         <X className="h-3.5 w-3.5 text-slate-600 flex-shrink-0" />
                       )}
-                      <span className="text-[11px]">Rebalancing</span>
+                      <span className="text-[11px]">Rebalancing Engine</span>
                     </div>
 
-                    <div className={`flex items-center gap-1.5 ${plan.features.cas_import ? "text-slate-300" : "text-slate-500"}`}>
-                      {plan.features.cas_import ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                    <div className={`flex items-center gap-1.5 ${plan.features?.ai_features ? "text-slate-300" : "text-slate-500"}`}>
+                      {plan.features?.ai_features ? (
+                        <Check className="h-3.5 w-3.5 text-purple-400 shrink-0" />
                       ) : (
-                        <X className="h-3.5 w-3.5 text-slate-600 flex-shrink-0" />
-                      )}
-                      <span className="text-[11px]">CAS Engine</span>
-                    </div>
-
-                    <div className={`flex items-center gap-1.5 ${plan.features.priority_support ? "text-slate-300" : "text-slate-500"}`}>
-                      {plan.features.priority_support ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
-                      ) : (
-                        <X className="h-3.5 w-3.5 text-slate-600 flex-shrink-0" />
-                      )}
-                      <span className="text-[11px]">Priority Support</span>
-                    </div>
-
-                    <div className={`flex items-center gap-1.5 ${plan.features.ai_features ? "text-slate-300" : "text-slate-500"}`}>
-                      {plan.features.ai_features ? (
-                        <Check className="h-3.5 w-3.5 text-purple-400 flex-shrink-0" />
-                      ) : (
-                        <X className="h-3.5 w-3.5 text-slate-600 flex-shrink-0" />
+                        <X className="h-3.5 w-3.5 text-slate-600 shrink-0" />
                       )}
                       <span className="text-[11px] font-semibold text-purple-300">AI Intelligence Suite</span>
                     </div>
 
-                    <div className={`flex items-center gap-1.5 ${plan.features.ai_chat_agents ? "text-slate-300" : "text-slate-500"}`}>
-                      {plan.features.ai_chat_agents ? (
-                        <Check className="h-3.5 w-3.5 text-indigo-400 flex-shrink-0" />
+                    <div className={`flex items-center gap-1.5 ${plan.features?.ai_chat_agents ? "text-slate-300" : "text-slate-500"}`}>
+                      {plan.features?.ai_chat_agents ? (
+                        <Check className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
                       ) : (
-                        <X className="h-3.5 w-3.5 text-slate-600 flex-shrink-0" />
+                        <X className="h-3.5 w-3.5 text-slate-600 shrink-0" />
                       )}
                       <span className="text-[11px] text-indigo-300">AI Chat Agents</span>
                     </div>
 
-                    <div className={`flex items-center gap-1.5 ${plan.features.risk_planning ? "text-slate-300" : "text-slate-500"}`}>
-                      {plan.features.risk_planning ? (
-                        <Check className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
+                    <div className={`flex items-center gap-1.5 ${plan.features?.risk_planning ? "text-slate-300" : "text-slate-500"}`}>
+                      {plan.features?.risk_planning ? (
+                        <Check className="h-3.5 w-3.5 text-blue-400 shrink-0" />
                       ) : (
-                        <X className="h-3.5 w-3.5 text-slate-600 flex-shrink-0" />
+                        <X className="h-3.5 w-3.5 text-slate-600 shrink-0" />
                       )}
                       <span className="text-[11px] text-blue-300">Risk &amp; Insurance</span>
+                    </div>
+
+                    <div className={`flex items-center gap-1.5 ${plan.features?.priority_support ? "text-slate-300" : "text-slate-500"}`}>
+                      {plan.features?.priority_support ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      ) : (
+                        <X className="h-3.5 w-3.5 text-slate-600 shrink-0" />
+                      )}
+                      <span className="text-[11px]">Priority Support</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Card Footer: Tenant Count & Actions */}
+              {/* Card Footer: Assign to Tenant & Actions */}
               <div className="pt-4 mt-4 border-t border-slate-800 flex items-center justify-between gap-2">
                 <span className="text-[11px] text-slate-400">
-                  <strong className="text-white font-mono">{plan.tenant_count || 0}</strong> tenants on this plan
+                  <strong className="text-white font-mono">{plan.tenant_count || 0}</strong> tenants
                 </span>
 
                 <div className="flex items-center gap-1.5">
                   <button
+                    onClick={() => handleOpenAssignModal(plan)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold transition cursor-pointer"
+                    title="Assign this plan to a tenant practice"
+                  >
+                    <Building2 className="h-3 w-3" />
+                    <span>Assign Plan</span>
+                  </button>
+
+                  <button
                     onClick={() => handleToggleActiveStatus(plan)}
                     title={plan.is_active ? "Deactivate plan" : "Activate plan"}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition text-xs"
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition text-xs cursor-pointer"
                   >
                     {plan.is_active ? "Pause" : "Resume"}
                   </button>
 
                   <button
                     onClick={() => handleOpenEditModal(plan)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 text-xs font-semibold transition"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 text-xs font-semibold transition cursor-pointer"
                   >
                     <Edit2 className="h-3 w-3" />
                     <span>Edit</span>
                   </button>
-
-                  {!isSystem && (
-                    <button
-                      onClick={() => handleDeletePlan(plan)}
-                      disabled={(plan.tenant_count || 0) > 0}
-                      title={(plan.tenant_count || 0) > 0 ? "Cannot delete plan with active tenants" : "Delete plan"}
-                      className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -616,25 +714,22 @@ export default function SuperAdminPlansPage() {
         })}
       </div>
 
-      {/* Add / Edit Plan Modal */}
+      {/* MODAL 1: Create / Edit Plan Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400">
-                  <Layers className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">
-                    {isEditing ? `Edit Plan Tier: ${planForm.name}` : "Create New Subscription Plan"}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Define pricing, team seat limits, and unlockable platform capabilities.
-                  </p>
-                </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-sky-400" />
+                  <span>{isEditing ? `Edit Plan: ${planForm.name}` : "Create New Subscription Plan"}</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Configure plan pricing, seat allocations, and capabilities for MFD and RIA firms.
+                </p>
               </div>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
               >
@@ -643,6 +738,50 @@ export default function SuperAdminPlansPage() {
             </div>
 
             <form onSubmit={handleSavePlan} className="space-y-4">
+              {/* Category Selector */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                  Firm Category *
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["MFD", "RIA", "HYBRID"] as const).map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setPlanForm((prev) => ({ ...prev, category: cat }))}
+                      className={`py-2 px-3 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                        planForm.category === cat
+                          ? "bg-sky-500/20 text-sky-300 border-sky-500"
+                          : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      {cat === "MFD" ? "MFD (Distributor)" : cat === "RIA" ? "RIA (Advisor)" : "Hybrid Wealth"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick AI Presets */}
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs">
+                <span className="text-slate-300 font-semibold">AI Features Configuration:</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleApplyAiPreset(true)}
+                    className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <Sparkles className="h-3 w-3" /> With AI Copilot
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyAiPreset(false)}
+                    className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition cursor-pointer"
+                  >
+                    Standard (Without AI)
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Plan Name */}
                 <div>
@@ -652,7 +791,7 @@ export default function SuperAdminPlansPage() {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Pro Multi-Family Office"
+                    placeholder="e.g. MFD Growth + AI"
                     value={planForm.name}
                     onChange={(e) => handleNameChange(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition"
@@ -668,7 +807,7 @@ export default function SuperAdminPlansPage() {
                     type="text"
                     required
                     disabled={isEditing}
-                    placeholder="e.g. pro_mfo"
+                    placeholder="e.g. mfd_growth_ai"
                     value={planForm.slug}
                     onChange={(e) =>
                       setPlanForm((prev) => ({
@@ -724,7 +863,7 @@ export default function SuperAdminPlansPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Best suited for high-growth RIAs and MFD teams requiring custom domain and rebalancing."
+                  placeholder="e.g. Best suited for high-growth RIAs and MFD teams requiring custom domain and AI copilot."
                   value={planForm.description}
                   onChange={(e) => setPlanForm((prev) => ({ ...prev, description: e.target.value }))}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition"
@@ -751,101 +890,12 @@ export default function SuperAdminPlansPage() {
                   Platform Capabilities &amp; Entitlements
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {/* BSE StAR MF */}
                   <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800">
                     <span className="text-xs text-slate-300">BSE StAR MF Order Engine</span>
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                       Universal Active
                     </span>
                   </div>
-
-                  {/* White-Label */}
-                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
-                    <span className="text-xs text-slate-300">White-Label Portal &amp; Logo</span>
-                    <input
-                      type="checkbox"
-                      checked={planForm.features.white_label}
-                      onChange={() => handleToggleFeature("white_label")}
-                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20"
-                    />
-                  </label>
-
-                  {/* Custom Domain */}
-                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
-                    <span className="text-xs text-slate-300">Custom Domain CNAME</span>
-                    <input
-                      type="checkbox"
-                      checked={planForm.features.custom_domain}
-                      onChange={() => handleToggleFeature("custom_domain")}
-                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20"
-                    />
-                  </label>
-
-                  {/* Advanced Reports / Rebalancing */}
-                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
-                    <span className="text-xs text-slate-300">Portfolio Rebalancing Engine</span>
-                    <input
-                      type="checkbox"
-                      checked={planForm.features.advanced_reports}
-                      onChange={() => handleToggleFeature("advanced_reports")}
-                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20"
-                    />
-                  </label>
-
-                  {/* CAS Parser */}
-                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
-                    <span className="text-xs text-slate-300">CAS PDF Parser &amp; Sync</span>
-                    <input
-                      type="checkbox"
-                      checked={planForm.features.cas_import}
-                      onChange={() => handleToggleFeature("cas_import")}
-                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20"
-                    />
-                  </label>
-
-                  {/* Client Portal */}
-                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
-                    <span className="text-xs text-slate-300">Client Investor Portal</span>
-                    <input
-                      type="checkbox"
-                      checked={planForm.features.client_portal}
-                      onChange={() => handleToggleFeature("client_portal")}
-                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20"
-                    />
-                  </label>
-
-                  {/* AI Suggestions */}
-                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
-                    <span className="text-xs text-slate-300">AI Suggestions Engine</span>
-                    <input
-                      type="checkbox"
-                      checked={planForm.features.suggestions_engine}
-                      onChange={() => handleToggleFeature("suggestions_engine")}
-                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20"
-                    />
-                  </label>
-
-                  {/* Priority Support */}
-                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
-                    <span className="text-xs text-slate-300">Priority Support SLA</span>
-                    <input
-                      type="checkbox"
-                      checked={planForm.features.priority_support}
-                      onChange={() => handleToggleFeature("priority_support")}
-                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20"
-                    />
-                  </label>
-
-                  {/* ARN Commission Sharing */}
-                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
-                    <span className="text-xs text-slate-300">80/20 ARN Revenue Split</span>
-                    <input
-                      type="checkbox"
-                      checked={planForm.features.commission_sharing}
-                      onChange={() => handleToggleFeature("commission_sharing")}
-                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20"
-                    />
-                  </label>
 
                   {/* AI Intelligence Suite */}
                   <label className="flex items-center justify-between p-2.5 rounded-lg bg-purple-950/20 border border-purple-800/40 cursor-pointer hover:border-purple-600 transition">
@@ -854,7 +904,7 @@ export default function SuperAdminPlansPage() {
                       type="checkbox"
                       checked={planForm.features.ai_features}
                       onChange={() => handleToggleFeature("ai_features")}
-                      className="rounded border-purple-700 bg-slate-900 text-purple-500 focus:ring-purple-500/20"
+                      className="rounded border-purple-700 bg-slate-900 text-purple-500 focus:ring-purple-500/20 cursor-pointer"
                     />
                   </label>
 
@@ -865,18 +915,95 @@ export default function SuperAdminPlansPage() {
                       type="checkbox"
                       checked={planForm.features.ai_chat_agents}
                       onChange={() => handleToggleFeature("ai_chat_agents")}
-                      className="rounded border-indigo-700 bg-slate-900 text-indigo-500 focus:ring-indigo-500/20"
+                      className="rounded border-indigo-700 bg-slate-900 text-indigo-500 focus:ring-indigo-500/20 cursor-pointer"
                     />
                   </label>
 
-                  {/* Risk & Insurance Planning */}
+                  {/* Risk Planning */}
                   <label className="flex items-center justify-between p-2.5 rounded-lg bg-blue-950/20 border border-blue-800/40 cursor-pointer hover:border-blue-600 transition">
                     <span className="text-xs font-semibold text-blue-200">Risk Planning (Health &amp; Term)</span>
                     <input
                       type="checkbox"
                       checked={planForm.features.risk_planning}
                       onChange={() => handleToggleFeature("risk_planning")}
-                      className="rounded border-blue-700 bg-slate-900 text-blue-500 focus:ring-blue-500/20"
+                      className="rounded border-blue-700 bg-slate-900 text-blue-500 focus:ring-blue-500/20 cursor-pointer"
+                    />
+                  </label>
+
+                  {/* White-Label */}
+                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                    <span className="text-xs text-slate-300">White-Label Portal &amp; Logo</span>
+                    <input
+                      type="checkbox"
+                      checked={planForm.features.white_label}
+                      onChange={() => handleToggleFeature("white_label")}
+                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20 cursor-pointer"
+                    />
+                  </label>
+
+                  {/* Custom Domain */}
+                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                    <span className="text-xs text-slate-300">Custom Domain CNAME</span>
+                    <input
+                      type="checkbox"
+                      checked={planForm.features.custom_domain}
+                      onChange={() => handleToggleFeature("custom_domain")}
+                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20 cursor-pointer"
+                    />
+                  </label>
+
+                  {/* Advanced Reports / Rebalancing */}
+                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                    <span className="text-xs text-slate-300">Portfolio Rebalancing Engine</span>
+                    <input
+                      type="checkbox"
+                      checked={planForm.features.advanced_reports}
+                      onChange={() => handleToggleFeature("advanced_reports")}
+                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20 cursor-pointer"
+                    />
+                  </label>
+
+                  {/* CAS Parser */}
+                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                    <span className="text-xs text-slate-300">CAS PDF Parser &amp; Sync</span>
+                    <input
+                      type="checkbox"
+                      checked={planForm.features.cas_import}
+                      onChange={() => handleToggleFeature("cas_import")}
+                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20 cursor-pointer"
+                    />
+                  </label>
+
+                  {/* Client Portal */}
+                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                    <span className="text-xs text-slate-300">Client Investor Portal</span>
+                    <input
+                      type="checkbox"
+                      checked={planForm.features.client_portal}
+                      onChange={() => handleToggleFeature("client_portal")}
+                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20 cursor-pointer"
+                    />
+                  </label>
+
+                  {/* Priority Support */}
+                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                    <span className="text-xs text-slate-300">Priority Support SLA</span>
+                    <input
+                      type="checkbox"
+                      checked={planForm.features.priority_support}
+                      onChange={() => handleToggleFeature("priority_support")}
+                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20 cursor-pointer"
+                    />
+                  </label>
+
+                  {/* ARN Commission Sharing */}
+                  <label className="flex items-center justify-between p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                    <span className="text-xs text-slate-300">80/20 ARN Revenue Split</span>
+                    <input
+                      type="checkbox"
+                      checked={planForm.features.commission_sharing}
+                      onChange={() => handleToggleFeature("commission_sharing")}
+                      className="rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500/20 cursor-pointer"
                     />
                   </label>
                 </div>
@@ -888,14 +1015,14 @@ export default function SuperAdminPlansPage() {
                   type="button"
                   onClick={() => setIsModalOpen(false)}
                   disabled={isSaving}
-                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs transition shadow-md shadow-sky-500/20 disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs transition shadow-md shadow-sky-500/20 disabled:opacity-50 cursor-pointer"
                 >
                   {isSaving && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
                   <span>{isSaving ? "Saving..." : isEditing ? "Save Plan Changes" : "Create Plan"}</span>
@@ -905,7 +1032,108 @@ export default function SuperAdminPlansPage() {
           </div>
         </div>
       )}
+
+      {/* MODAL 2: Direct Assign Plan to Tenant */}
+      {isAssignModalOpen && planToAssign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-amber-400" />
+                  <span>Assign Plan to Tenant</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Assign &ldquo;{planToAssign.name}&rdquo; ({formatCurrency(planToAssign.price_monthly)}/mo) to an active firm.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAssignModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleExecuteAssignPlan} className="space-y-4">
+              {/* Target Tenant Selector */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                  Select Tenant Organization *
+                </label>
+                <select
+                  required
+                  value={selectedTenantId}
+                  onChange={(e) => setSelectedTenantId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500 transition"
+                >
+                  {tenants.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.firm_brand_name} ({t.subdomain}.unifiedwealth.com)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Plan Summary Preview */}
+              <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Assigned Plan:</span>
+                  <span className="font-bold text-white">{planToAssign.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Seat Capacity:</span>
+                  <span className="text-amber-400 font-bold">{planToAssign.max_seats} Seats</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">AI Features Included:</span>
+                  <span className={planToAssign.features?.ai_features ? "text-purple-400 font-bold" : "text-slate-500"}>
+                    {planToAssign.features?.ai_features ? "✓ Full AI Copilot Suite" : "No AI (Standard)"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Duration */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
+                  Subscription License Duration *
+                </label>
+                <select
+                  value={assignExpiryMonths}
+                  onChange={(e) => setAssignExpiryMonths(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 transition"
+                >
+                  <option value="1">1 Month (Monthly Trial)</option>
+                  <option value="3">3 Months (Quarterly)</option>
+                  <option value="6">6 Months (Half-Yearly)</option>
+                  <option value="12">12 Months (1 Year Standard)</option>
+                  <option value="36">36 Months (3 Years Long-Term)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAssignModalOpen(false)}
+                  disabled={isAssigning}
+                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAssigning}
+                  className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow-md shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
+                >
+                  {isAssigning && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                  <span>{isAssigning ? "Assigning..." : "Confirm Plan Assignment"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

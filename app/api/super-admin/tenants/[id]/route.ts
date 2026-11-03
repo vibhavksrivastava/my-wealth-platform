@@ -114,6 +114,28 @@ export async function PATCH(
       updates.plan_id = resolvedPlanId;
     }
 
+    // Automatically sync plan feature entitlements when plan is assigned
+    if (planSlug && DEFAULT_PLANS[planSlug]) {
+      const pf = DEFAULT_PLANS[planSlug].features;
+      updates.enabled_features = {
+        mutual_funds: true,
+        mf_transactions: true,
+        mf_sips: true,
+        rebalancing: Boolean(pf.advanced_reports),
+        investment_planning: true,
+        run_diagnostic: Boolean(pf.advanced_reports || pf.suggestions_engine),
+        cas_import: Boolean(pf.cas_import),
+        client_portal: Boolean(pf.client_portal),
+        retirement_planning: pf.retirement_planning !== false,
+        risk_planning: pf.risk_planning !== false,
+        ai_features: Boolean(pf.ai_features),
+        ai_chat_agents: Boolean(pf.ai_chat_agents),
+        estate_planning: true,
+        tax_planning: true,
+        billing_invoicing: Boolean(pf.fee_invoicing || pf.commission_sharing),
+      };
+    }
+
     // Handle Subscription Expiry Date
     if (subscriptionExpiresAt !== undefined) {
       if (subscriptionExpiresAt === null || subscriptionExpiresAt === "") {

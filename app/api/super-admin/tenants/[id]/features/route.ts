@@ -1,7 +1,7 @@
 import { NextResponse, connection } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
-import { MASTER_FEATURE_CATALOG } from "@/lib/featureFlags";
+import { MASTER_FEATURE_CATALOG, DEFAULT_ROLE_PERMISSIONS } from "@/lib/featureFlags";
 
 export async function GET(
   req: Request,
@@ -38,6 +38,29 @@ export async function GET(
       ...(tenant.enabled_features || {}),
     };
 
+    // Fetch tenant role permissions (Client, Advisor, Staff)
+    let rolePermissions = { ...DEFAULT_ROLE_PERMISSIONS };
+    try {
+      const { data: tSettings } = await supabaseAdmin
+        .from("tenant_settings")
+        .select("role_permissions, features_override")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (tSettings?.features_override) {
+        Object.assign(masterFeatures, tSettings.features_override);
+      }
+
+      if (tSettings?.role_permissions) {
+        rolePermissions = {
+          ...DEFAULT_ROLE_PERMISSIONS,
+          ...tSettings.role_permissions,
+        };
+      }
+    } catch {
+      // Fallback to default role permissions
+    }
+
     return NextResponse.json({
       success: true,
       tenant: {
@@ -46,6 +69,7 @@ export async function GET(
         firmBrandName: tenant.firm_brand_name,
       },
       masterFeatures,
+      rolePermissions,
       catalog: MASTER_FEATURE_CATALOG,
     });
   } catch (err: any) {
@@ -67,51 +91,73 @@ export async function PATCH(
 
     const { id: tenantId } = await params;
     const body = await req.json();
-    const { features } = body;
+    const { features, rolePermissions } = body;
 
-    if (!features || typeof features !== "object") {
-      return NextResponse.json({ error: "Valid features object is required." }, { status: 400 });
+    let updatedFeatures = features;
+
+    // 1. If features provided, update `enabled_features` in `tenants` & `tenant_settings`
+    if (features && typeof features === "object") {
+      const { error: updateErr } = await supabaseAdmin
+        .from("tenants")
+        .update({
+          enabled_features: features,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", tenantId);
+
+      if (updateErr) {
+        await supabaseAdmin
+          .from("tenant_settings")
+          .upsert({
+            tenant_id: tenantId,
+            features_override: features,
+            updated_at: new Date().toISOString(),
+          });
+      } else {
+        await supabaseAdmin
+          .from("tenant_settings")
+          .upsert({
+            tenant_id: tenantId,
+            features_override: features,
+            updated_at: new Date().toISOString(),
+          });
+      }
+      updatedFeatures = features;
     }
 
-    // Update `enabled_features` in `tenants`
-    const { data: updatedTenant, error: updateErr } = await supabaseAdmin
-      .from("tenants")
-      .update({
-        enabled_features: features,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", tenantId)
-      .select("id, subdomain, firm_brand_name, enabled_features")
-      .single();
+    // 2. If rolePermissions provided, sanitize against master features and save
+    let sanitizedRolePermissions = rolePermissions;
+    if (rolePermissions && typeof rolePermissions === "object") {
+      sanitizedRolePermissions = {};
+      const activeMaster = updatedFeatures || {};
 
-    if (updateErr) {
-      // Fallback: If enabled_features column is pending migration, save to tenant_settings.features_override
+      for (const [role, perms] of Object.entries(rolePermissions)) {
+        sanitizedRolePermissions[role] = { ...((perms as any) || {}) };
+        for (const [fKey, isEnabled] of Object.entries(sanitizedRolePermissions[role])) {
+          // If feature is disabled by Super Admin at tenant master level, it CANNOT be enabled for any role
+          if (activeMaster[fKey] === false) {
+            sanitizedRolePermissions[role][fKey] = false;
+          }
+        }
+      }
+
       await supabaseAdmin
         .from("tenant_settings")
         .upsert({
           tenant_id: tenantId,
-          features_override: features,
-          updated_at: new Date().toISOString(),
-        });
-    } else {
-      // Also sync to tenant_settings.features_override for compatibility
-      await supabaseAdmin
-        .from("tenant_settings")
-        .upsert({
-          tenant_id: tenantId,
-          features_override: features,
+          role_permissions: sanitizedRolePermissions,
           updated_at: new Date().toISOString(),
         });
     }
 
     return NextResponse.json({
       success: true,
-      message: "Tenant subscription features updated successfully.",
-      features,
+      message: "Tenant subscription features and client role permissions updated successfully.",
+      features: updatedFeatures,
+      rolePermissions: sanitizedRolePermissions,
     });
   } catch (err: any) {
     console.error("Super Admin Tenant Features PATCH Error:", err);
     return NextResponse.json({ error: err.message || "Failed to update tenant features." }, { status: 500 });
   }
 }
-
