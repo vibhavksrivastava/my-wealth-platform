@@ -327,29 +327,39 @@ function AiCopilotContent() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const getWelcomeMessage = (type: AgentType, ctx: ClientContext | null): MessageItem => {
+    const name = ctx?.clientName || "Investor";
+    const aum = ctx?.totalAum || 0;
+    const sip = ctx?.monthlySip || 0;
+    return {
+      id: `welcome-${type}-${ctx?.clientId || "init"}`,
+      sender: "agent",
+      text: AGENTS[type].welcomeMessage(name, aum, sip),
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      isAi: true,
+    };
+  };
+
   // Sync welcome messages when clientContext is loaded or activeAgent changes
   useEffect(() => {
-    const name = clientContext?.clientName || "Investor";
-    const aum = clientContext?.totalAum || 0;
-    const sip = clientContext?.monthlySip || 0;
-
     setMessages((prev) => {
       const updated = { ...prev };
+      let changed = false;
+
       (Object.keys(AGENTS) as AgentType[]).forEach((type) => {
-        // Only set if thread is empty or is currently the default welcome message
-        if (!updated[type] || updated[type].length === 0 || updated[type][0].id.startsWith("welcome-")) {
-          updated[type] = [
-            {
-              id: `welcome-${type}-${clientContext?.clientId || "default"}`,
-              sender: "agent",
-              text: AGENTS[type].welcomeMessage(name, aum, sip),
-              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-              isAi: true,
-            },
-          ];
+        const thread = updated[type] || [];
+        // Only set/update if thread is empty OR has only 1 message which is a welcome message
+        if (thread.length === 0) {
+          updated[type] = [getWelcomeMessage(type, clientContext)];
+          changed = true;
+        } else if (thread.length === 1 && thread[0].id.startsWith("welcome-")) {
+          updated[type] = [getWelcomeMessage(type, clientContext)];
+          changed = true;
         }
+        // If thread has user messages (length > 1), NEVER wipe it!
       });
-      return updated;
+
+      return changed ? updated : prev;
     });
   }, [clientContext]);
 
@@ -368,6 +378,13 @@ function AiCopilotContent() {
   const handleSelectClient = (c: ClientSummary) => {
     setIsPickerOpen(false);
     setClientSearchQuery("");
+    // Clear threads so new client starts with fresh welcome messages
+    setMessages({
+      DIAGNOSTICS: [],
+      REBALANCING: [],
+      RETIREMENT: [],
+      RISK_PLANNING: [],
+    });
     loadContext(c.clientId);
   };
 
@@ -385,15 +402,18 @@ function AiCopilotContent() {
 
     setMessages((prev) => ({
       ...prev,
-      [currentAgent]: [...prev[currentAgent], userMsg],
+      [currentAgent]: [...(prev[currentAgent] || []), userMsg],
     }));
 
     if (!textToSend) setInputValue("");
     setIsSending(true);
 
     try {
-      const token = localStorage.getItem("auth_token");
-      const history = messages[currentAgent].map((m) => ({
+      const token = typeof window !== "undefined"
+        ? localStorage.getItem("auth_token") || localStorage.getItem("token")
+        : null;
+
+      const history = (messages[currentAgent] || []).map((m) => ({
         role: m.sender === "user" ? "user" : "assistant",
         content: m.text,
       }));
@@ -402,7 +422,7 @@ function AiCopilotContent() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token || ""}`,
         },
         body: JSON.stringify({
           agentType: currentAgent,
@@ -417,11 +437,6 @@ function AiCopilotContent() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to generate AI response.");
 
-      // Sync updated context if returned
-      if (json.clientContext) {
-        setClientContext(json.clientContext);
-      }
-
       const agentMsg: MessageItem = {
         id: `agent-${Date.now()}`,
         sender: "agent",
@@ -432,18 +447,18 @@ function AiCopilotContent() {
 
       setMessages((prev) => ({
         ...prev,
-        [currentAgent]: [...prev[currentAgent], agentMsg],
+        [currentAgent]: [...(prev[currentAgent] || []), agentMsg],
       }));
     } catch (err: any) {
       const errMsg: MessageItem = {
         id: `err-${Date.now()}`,
         sender: "agent",
-        text: `Error connecting to advisory agent: ${err.message || "Please check network connection."}`,
+        text: `⚠️ **Advisory Agent Notice**: ${err.message || "Please check network connection."}`,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => ({
         ...prev,
-        [currentAgent]: [...prev[currentAgent], errMsg],
+        [currentAgent]: [...(prev[currentAgent] || []), errMsg],
       }));
     } finally {
       setIsSending(false);
