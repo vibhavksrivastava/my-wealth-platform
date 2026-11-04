@@ -26,6 +26,8 @@ export interface TenantRecord {
   disclaimer_text: string | null;
   arn_number: string | null;
   ria_number: string | null;
+  tenant_type: string | null;
+  firm_type: string | null;
   is_active: boolean;
 }
 
@@ -41,7 +43,7 @@ async function TenantLayoutContent({ children, params }: TenantLayoutProps) {
   // 1. Fetch tenant record from Supabase based on the subdomain parameter
   const { data: tenant, error } = await supabaseAdmin
     .from("tenants")
-    .select("id, subdomain, firm_brand_name, firm_legal_name, logo_url, primary_color, secondary_color, theme_mode, disclaimer_text, arn_number, ria_number, is_active")
+    .select("id, subdomain, firm_brand_name, firm_legal_name, logo_url, primary_color, secondary_color, theme_mode, disclaimer_text, arn_number, ria_number, tenant_type, firm_type, is_active")
     .eq("subdomain", cleanSubdomain)
     .maybeSingle();
 
@@ -55,6 +57,16 @@ async function TenantLayoutContent({ children, params }: TenantLayoutProps) {
   const primaryColor = tenant.primary_color || "#0284c7";
   const secondaryColor = tenant.secondary_color || "#0f172a";
   const brandName = tenant.firm_brand_name || "Wealth Advisory";
+
+  // Regulatory classification: check whether firm is RIA, MFD, or Both
+  const isRia =
+    tenant.tenant_type === "RIA" ||
+    tenant.firm_type === "RIA" ||
+    (Boolean(tenant.ria_number) && !tenant.arn_number);
+  const isBoth =
+    tenant.tenant_type === "BOTH" ||
+    tenant.firm_type === "BOTH" ||
+    (Boolean(tenant.ria_number) && Boolean(tenant.arn_number));
 
   return (
     <div
@@ -70,9 +82,9 @@ async function TenantLayoutContent({ children, params }: TenantLayoutProps) {
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1 font-semibold text-slate-800 dark:text-slate-200">
               <ShieldCheck className="h-3.5 w-3.5" style={{ color: primaryColor }} />
-              <span>Certified Advisory Portal</span>
+              <span>{isRia ? "SEBI Registered Advisory Portal" : "Certified Advisory Portal"}</span>
             </span>
-            {tenant.arn_number && (
+            {tenant.arn_number && !isRia && (
               <span className="font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded text-[10px] text-slate-700 dark:text-slate-300">
                 ARN: {tenant.arn_number}
               </span>
@@ -95,7 +107,11 @@ async function TenantLayoutContent({ children, params }: TenantLayoutProps) {
             </span>
             <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
             <span className="text-slate-500 dark:text-slate-400 hidden sm:inline">
-              AMFI Registered Mutual Fund Distributor
+              {isRia
+                ? "SEBI Registered Investment Advisor (RIA)"
+                : isBoth
+                ? "SEBI Registered Investment Advisor & AMFI Registered Mutual Fund Distributor"
+                : "AMFI Registered Mutual Fund Distributor"}
             </span>
           </div>
         </div>
@@ -175,10 +191,12 @@ async function TenantLayoutContent({ children, params }: TenantLayoutProps) {
               <span className="font-bold text-slate-800 dark:text-slate-200">
                 {brandName}
               </span>
-              <span>• Unified Wealth Advisory Platform</span>
+              <span>• {isRia ? "SEBI Registered Investment Advisory" : "Unified Wealth Advisory Platform"}</span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Mutual fund investments are subject to market risks. Read all scheme related documents carefully.
+              {isRia
+                ? "Investments in securities market are subject to market risks. Read all related documents carefully before investing."
+                : "Mutual fund investments are subject to market risks. Read all scheme related documents carefully."}
             </p>
           </div>
 

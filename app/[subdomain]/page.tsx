@@ -28,7 +28,7 @@ async function TenantPageContent({ params }: TenantPageProps) {
   // Query tenant details
   const { data: tenant, error } = await supabaseAdmin
     .from("tenants")
-    .select("id, subdomain, firm_brand_name, firm_legal_name, logo_url, primary_color, secondary_color, theme_mode, disclaimer_text, arn_number, ria_number, is_active")
+    .select("id, subdomain, firm_brand_name, firm_legal_name, logo_url, primary_color, secondary_color, theme_mode, disclaimer_text, arn_number, ria_number, tenant_type, firm_type, is_active")
     .eq("subdomain", cleanSubdomain)
     .maybeSingle();
 
@@ -39,6 +39,12 @@ async function TenantPageContent({ params }: TenantPageProps) {
   const primaryColor = tenant.primary_color || "#0284c7";
   const brandName = tenant.firm_brand_name || "Wealth Advisory";
   const isDark = tenant.theme_mode === "dark";
+
+  // Regulatory classification: check whether firm is RIA, MFD, or Both
+  const isRia =
+    tenant.tenant_type === "RIA" ||
+    tenant.firm_type === "RIA" ||
+    (Boolean(tenant.ria_number) && !tenant.arn_number);
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 space-y-12">
@@ -146,7 +152,9 @@ async function TenantPageContent({ params }: TenantPageProps) {
             SEBI Regulatory Compliance
           </h3>
           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Bank-grade 256-bit encryption with full KYC document validation and certified AMFI distributor transparency.
+            {isRia
+              ? "Bank-grade 256-bit encryption with full KYC document validation and certified SEBI Registered Investment Advisor fiduciary standards."
+              : "Bank-grade 256-bit encryption with full KYC document validation and certified AMFI distributor transparency."}
           </p>
           <div className="pt-2">
             <span 
@@ -165,11 +173,15 @@ async function TenantPageContent({ params }: TenantPageProps) {
           <div className="flex items-center gap-2">
             <Building2 className="h-5 w-5" style={{ color: primaryColor }} />
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Are you an Advisor or Relationship Manager at {brandName}?
+              {isRia
+                ? `Are you an Investment Advisor or Financial Planner at ${brandName}?`
+                : `Are you an Advisor or Relationship Manager at ${brandName}?`}
             </h2>
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xl">
-            Access your Advisor CRM, client book manager, automated SIP orders via BSE StAR MF, and generate comprehensive PDF wealth reports.
+            {isRia
+              ? "Access your Fiduciary Advisory CRM, fee-only client book manager, goal planning, and generate comprehensive PDF wealth reports."
+              : "Access your Advisor CRM, client book manager, automated SIP orders via BSE StAR MF, and generate comprehensive PDF wealth reports."}
           </p>
         </div>
 
