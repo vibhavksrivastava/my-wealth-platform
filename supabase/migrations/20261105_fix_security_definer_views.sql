@@ -24,3 +24,4 @@ ALTER VIEW IF EXISTS public.view_cfp_dashboard
 -- 4. View: Live Portfolio Valuation
 ALTER VIEW IF EXISTS public.view_live_portfolio_valuation 
   SET (security_invoker = on);
+

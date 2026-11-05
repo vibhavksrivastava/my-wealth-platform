@@ -29,13 +29,14 @@ export async function GET(req: Request) {
 
     let targetClient: any = null;
     let clientList: any[] = [];
+    let householdMembers: any[] = [];
 
     if (!isAdvisor) {
       // 1. CLIENT LOGIN: Directly locate logged-in client record strictly within this tenant
       // Check by user_id
       let uClientQuery = supabaseAdmin
         .from("clients")
-        .select("*")
+        .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
         .eq("user_id", session.sub);
       if (session.tenantId && session.role !== "SUPER_ADMIN") {
         uClientQuery = uClientQuery.eq("tenant_id", session.tenantId);
@@ -48,7 +49,7 @@ export async function GET(req: Request) {
         // Check by client_id
         let cByIdQuery = supabaseAdmin
           .from("clients")
-          .select("*")
+          .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
           .eq("client_id", session.sub);
         if (session.tenantId && session.role !== "SUPER_ADMIN") {
           cByIdQuery = cByIdQuery.eq("tenant_id", session.tenantId);
@@ -63,7 +64,7 @@ export async function GET(req: Request) {
           if (fullName) {
             let cByNameQuery = supabaseAdmin
               .from("clients")
-              .select("*")
+              .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
               .ilike("full_name", `%${fullName}%`);
             if (session.tenantId && session.role !== "SUPER_ADMIN") {
               cByNameQuery = cByNameQuery.eq("tenant_id", session.tenantId);
@@ -88,7 +89,7 @@ export async function GET(req: Request) {
         if (profile?.household_id) {
           let hhClientQuery = supabaseAdmin
             .from("clients")
-            .select("*")
+            .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
             .eq("household_id", profile.household_id);
           if (session.tenantId && session.role !== "SUPER_ADMIN") {
             hhClientQuery = hhClientQuery.eq("tenant_id", session.tenantId);
@@ -102,17 +103,37 @@ export async function GET(req: Request) {
       if (!targetClient && session.tenantId) {
         const { data: defaultClient } = await supabaseAdmin
           .from("clients")
-          .select("*")
+          .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
           .eq("tenant_id", session.tenantId)
           .limit(1)
           .maybeSingle();
         targetClient = defaultClient;
       }
+
+      // Fetch household members if client belongs to a household
+      if (targetClient?.household_id) {
+        let hhListQuery = supabaseAdmin
+          .from("clients")
+          .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
+          .eq("household_id", targetClient.household_id)
+          .order("full_name", { ascending: true });
+        if (session.tenantId && session.role !== "SUPER_ADMIN") {
+          hhListQuery = hhListQuery.eq("tenant_id", session.tenantId);
+        }
+        const { data: hhList } = await hhListQuery;
+        householdMembers = hhList || [];
+
+        // Allow client to switch between verified members of their own household
+        if (requestedClientId && householdMembers.some((m) => m.client_id === requestedClientId)) {
+          const selected = householdMembers.find((m) => m.client_id === requestedClientId);
+          if (selected) targetClient = selected;
+        }
+      }
     } else {
       // 2. ADVISOR LOGIN: Allow selecting client strictly within this tenant
       let clientsQuery = supabaseAdmin
         .from("clients")
-        .select("client_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id")
+        .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
         .order("full_name", { ascending: true });
 
       if (session.tenantId && session.role !== "SUPER_ADMIN") {
@@ -128,7 +149,7 @@ export async function GET(req: Request) {
         if (!targetClient && session.role === "SUPER_ADMIN") {
           const { data: directClient } = await supabaseAdmin
             .from("clients")
-            .select("*")
+            .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
             .eq("client_id", requestedClientId)
             .maybeSingle();
           if (directClient) targetClient = directClient;
@@ -137,6 +158,10 @@ export async function GET(req: Request) {
 
       if (!targetClient) {
         targetClient = clientList[0] || null;
+      }
+
+      if (targetClient?.household_id) {
+        householdMembers = clientList.filter((c) => c.household_id === targetClient.household_id);
       }
     }
 
@@ -262,14 +287,19 @@ export async function GET(req: Request) {
 
     const holdings = Array.from(holdingsMap.values());
 
-    // Baseline client deductions
-    const grossIncome = Number(targetClient.annual_gross_income || 4600000);
+    // Baseline client deductions: strictly individual assessee (Section 4, Income Tax Act, 1961)
+    // Individual income is never clubbed with spouse/household members and never defaulted to 46L.
+    const grossIncome =
+      targetClient.annual_gross_income !== null && targetClient.annual_gross_income !== undefined
+        ? Math.max(0, Number(targetClient.annual_gross_income))
+        : 0;
+
     const defaultDeductions: TaxDeductionsInput = {
-      section80C: detectedEpfVal > 0 ? 150000 : 150000, // Section 80C capped at ₹1.5L
-      section80D: 25000, // Health insurance baseline
-      section80CCD1B: detectedNpsVal > 0 ? 50000 : 50000, // Additional NPS tier 1
-      section24b: 200000, // Standard home loan interest cap
-      hraExemption: 120000, // Average HRA exemption
+      section80C: detectedEpfVal > 0 ? Math.min(150000, detectedEpfVal) : (grossIncome > 0 ? 150000 : 0),
+      section80D: grossIncome > 0 ? 25000 : 0,
+      section80CCD1B: detectedNpsVal > 0 ? Math.min(50000, detectedNpsVal) : (grossIncome > 0 ? 50000 : 0),
+      section24b: grossIncome > 0 ? 200000 : 0,
+      hraExemption: grossIncome > 0 ? 120000 : 0,
       otherDeductions: 0,
     };
 
@@ -293,16 +323,27 @@ export async function GET(req: Request) {
         ? clientList.map((c) => ({
             clientId: c.client_id,
             fullName: c.full_name,
-            annualIncome: c.annual_gross_income || 4600000,
+            annualIncome: Number(c.annual_gross_income ?? 0),
             taxRegime: c.tax_regime || "New",
             riskProfile: c.risk_profile || "Moderate",
+            householdId: c.household_id || null,
           }))
         : [],
+      householdMembers: householdMembers.map((m) => ({
+        clientId: m.client_id,
+        fullName: m.full_name,
+        annualIncome: Number(m.annual_gross_income ?? 0),
+        taxRegime: m.tax_regime || "New",
+        riskProfile: m.risk_profile || "Moderate",
+        pan: m.pan_number || null,
+        isCurrent: m.client_id === targetClient.client_id,
+      })),
       selectedClient: {
         clientId: targetClient.client_id,
+        householdId: targetClient.household_id || null,
         fullName: targetClient.full_name,
-        email: targetClient.email,
-        pan: targetClient.pan_number || "ABCDE1234F",
+        email: targetClient.email || null,
+        pan: targetClient.pan_number || "PAN Pending",
         annualGrossIncome: grossIncome,
         taxRegime: targetClient.tax_regime || "New",
         riskProfile: targetClient.risk_profile || "Moderate",
@@ -335,16 +376,72 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}));
     const action = body.action || "recalculate_regimes";
+    const isAdvisor = session.role !== "CLIENT";
+
+    // 0. Update Individual Client Income
+    if (action === "update_client_income") {
+      const { clientId, annualGrossIncome } = body;
+      if (!clientId || annualGrossIncome === undefined) {
+        return NextResponse.json({ error: "Missing clientId or annualGrossIncome." }, { status: 400 });
+      }
+
+      const incomeVal = Math.max(0, Number(annualGrossIncome));
+
+      // Access verification
+      let canUpdate = isAdvisor;
+      if (!canUpdate) {
+        if (session.sub === clientId) {
+          canUpdate = true;
+        } else {
+          const { data: myClient } = await supabaseAdmin
+            .from("clients")
+            .select("household_id")
+            .eq("user_id", session.sub)
+            .maybeSingle();
+
+          if (myClient?.household_id) {
+            const { data: targetClient } = await supabaseAdmin
+              .from("clients")
+              .select("household_id")
+              .eq("client_id", clientId)
+              .maybeSingle();
+            if (targetClient?.household_id === myClient.household_id) {
+              canUpdate = true;
+            }
+          }
+        }
+      }
+
+      if (!canUpdate) {
+        return NextResponse.json({ error: "Unauthorized to update this client's individual income." }, { status: 403 });
+      }
+
+      const { error: updErr } = await supabaseAdmin
+        .from("clients")
+        .update({ annual_gross_income: incomeVal })
+        .eq("client_id", clientId);
+
+      if (updErr) {
+        return NextResponse.json({ error: updErr.message }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        clientId,
+        annualGrossIncome: incomeVal,
+        message: "Individual client income updated successfully.",
+      });
+    }
 
     // 1. Interactive Old vs New Regime Simulation
     if (action === "recalculate_regimes") {
-      const grossIncome = Number(body.grossIncome || 4600000);
+      const grossIncome = Math.max(0, Number(body.grossIncome ?? 0));
       const deductions: TaxDeductionsInput = {
-        section80C: Math.min(150000, Math.max(0, Number(body.section80C ?? 150000))),
-        section80D: Math.min(100000, Math.max(0, Number(body.section80D ?? 25000))),
-        section80CCD1B: Math.min(50000, Math.max(0, Number(body.section80CCD1B ?? 50000))),
-        section24b: Math.min(200000, Math.max(0, Number(body.section24b ?? 200000))),
-        hraExemption: Math.max(0, Number(body.hraExemption ?? 120000)),
+        section80C: Math.min(150000, Math.max(0, Number(body.section80C ?? 0))),
+        section80D: Math.min(100000, Math.max(0, Number(body.section80D ?? 0))),
+        section80CCD1B: Math.min(50000, Math.max(0, Number(body.section80CCD1B ?? 0))),
+        section24b: Math.min(200000, Math.max(0, Number(body.section24b ?? 0))),
+        hraExemption: Math.max(0, Number(body.hraExemption ?? 0)),
         otherDeductions: Math.max(0, Number(body.otherDeductions ?? 0)),
       };
 
@@ -366,17 +463,20 @@ export async function POST(req: Request) {
         saveToSuggestions,
       } = body;
 
+      const individualIncome = Math.max(0, Number(grossIncome ?? 0));
+
       const context: TaxAdvisoryContext = {
         clientId,
         clientName: clientName || "Client",
-        grossIncome: Number(grossIncome || 4600000),
-        regimeComparison: regimeComparison || {
-          newRegimeTotalTax: 1200000,
-          oldRegimeTotalTax: 1350000,
-          recommendedRegime: "NEW",
-          taxSavings: 150000,
-          breakevenDeductionsNeeded: 475000,
-        },
+        grossIncome: individualIncome,
+        regimeComparison: regimeComparison || compareTaxRegimes(individualIncome, {
+          section80C: 0,
+          section80D: 0,
+          section80CCD1B: 0,
+          section24b: 0,
+          hraExemption: 0,
+          otherDeductions: 0,
+        }),
         ltcgHarvesting: ltcgHarvesting || {
           annualExemptionLimit: 125000,
           utilizedExemptionThisFY: 0,

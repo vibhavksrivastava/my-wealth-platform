@@ -80,15 +80,19 @@ function TaxPlanningContent() {
   const [withdrawalFilter, setWithdrawalFilter] = useState<"ALL" | "LTCG" | "STCG" | "DEBT">("ALL");
 
   // Interactive Regime Simulator controls
-  const [grossIncome, setGrossIncome] = useState<number>(4600000);
+  const [grossIncome, setGrossIncome] = useState<number>(0);
   const [showDeductionTuning, setShowDeductionTuning] = useState(false);
-  const [sim80C, setSim80C] = useState<number>(150000);
-  const [sim80D, setSim80D] = useState<number>(25000);
-  const [sim80CCD, setSim80CCD] = useState<number>(50000);
-  const [sim24b, setSim24b] = useState<number>(200000);
-  const [simHRA, setSimHRA] = useState<number>(120000);
+  const [sim80C, setSim80C] = useState<number>(0);
+  const [sim80D, setSim80D] = useState<number>(0);
+  const [sim80CCD, setSim80CCD] = useState<number>(0);
+  const [sim24b, setSim24b] = useState<number>(0);
+  const [simHRA, setSimHRA] = useState<number>(0);
   const [simOther, setSimOther] = useState<number>(0);
   const [regimeComparison, setRegimeComparison] = useState<any>(null);
+
+  // Profile Income saving state
+  const [isSavingIncome, setIsSavingIncome] = useState(false);
+  const [incomeSaveMessage, setIncomeSaveMessage] = useState<string | null>(null);
 
   // AI Advisory controls
   const [customAiPrompt, setCustomAiPrompt] = useState("");
@@ -123,14 +127,18 @@ function TaxPlanningContent() {
       setData(resData);
       if (resData.selectedClient) {
         setSelectedClientId(resData.selectedClient.clientId);
-        setGrossIncome(resData.selectedClient.annualGrossIncome || 4600000);
+        setGrossIncome(
+          resData.selectedClient.annualGrossIncome !== undefined && resData.selectedClient.annualGrossIncome !== null
+            ? Number(resData.selectedClient.annualGrossIncome)
+            : 0
+        );
       }
       if (resData.baselineDeductions) {
-        setSim80C(resData.baselineDeductions.section80C || 150000);
-        setSim80D(resData.baselineDeductions.section80D || 25000);
-        setSim80CCD(resData.baselineDeductions.section80CCD1B || 50000);
-        setSim24b(resData.baselineDeductions.section24b || 200000);
-        setSimHRA(resData.baselineDeductions.hraExemption || 120000);
+        setSim80C(resData.baselineDeductions.section80C ?? 0);
+        setSim80D(resData.baselineDeductions.section80D ?? 0);
+        setSim80CCD(resData.baselineDeductions.section80CCD1B ?? 0);
+        setSim24b(resData.baselineDeductions.section24b ?? 0);
+        setSimHRA(resData.baselineDeductions.hraExemption ?? 0);
       }
       if (resData.regimeComparison) {
         setRegimeComparison(resData.regimeComparison);
@@ -196,6 +204,42 @@ function TaxPlanningContent() {
       }
     } catch (err) {
       console.error("Simulator recalculation error:", err);
+    }
+  };
+
+  // Save current gross income to client profile in database
+  const handleSaveIncome = async () => {
+    const cid = selectedClientId || data?.selectedClient?.clientId;
+    if (!cid) return;
+    setIsSavingIncome(true);
+    setIncomeSaveMessage(null);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") || localStorage.getItem("token") : null;
+      const res = await fetch("/api/planning/tax", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify({
+          action: "update_client_income",
+          clientId: cid,
+          annualGrossIncome: grossIncome,
+        }),
+      });
+      const resJson = await res.json();
+      if (resJson.success) {
+        setIncomeSaveMessage("Saved to profile!");
+        setTimeout(() => setIncomeSaveMessage(null), 3000);
+        fetchData(cid, fiscalYear);
+      } else {
+        throw new Error(resJson.error || "Failed to update income.");
+      }
+    } catch (err: any) {
+      console.error("Save income error:", err);
+      alert(err.message || "Failed to save income to profile.");
+    } finally {
+      setIsSavingIncome(false);
     }
   };
 
@@ -344,7 +388,7 @@ function TaxPlanningContent() {
 
         {/* Client & Fiscal Year Selector */}
         <div className="flex items-center gap-3">
-          {/* ADVISOR-ONLY: Client Switcher Dropdown (Hidden for Client Login) */}
+          {/* ADVISOR-ONLY: Client Switcher Dropdown */}
           {isAdvisor && data?.clientList && data.clientList.length > 0 && (
             <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 shadow-sm">
               <User className="h-3.5 w-3.5 text-slate-400" />
@@ -356,6 +400,25 @@ function TaxPlanningContent() {
                 {data.clientList.map((c: any) => (
                   <option key={c.clientId} value={c.clientId} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
                     {c.fullName} ({formatINR(c.annualIncome)})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* CLIENT-LOGIN: Household Member Switcher (Strictly Individual Assessee) */}
+          {!isAdvisor && data?.householdMembers && data.householdMembers.length > 1 && (
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-emerald-500/30 rounded-xl px-3 py-1.5 shadow-sm">
+              <User className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Assessee:</span>
+              <select
+                value={selectedClientId}
+                onChange={(e) => handleClientChange(e.target.value)}
+                className="bg-transparent text-xs text-slate-800 dark:text-white font-semibold focus:outline-none cursor-pointer"
+              >
+                {data.householdMembers.map((m: any) => (
+                  <option key={m.clientId} value={m.clientId} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+                    {m.fullName} ({formatINR(m.annualIncome)})
                   </option>
                 ))}
               </select>
@@ -382,6 +445,20 @@ function TaxPlanningContent() {
           >
             <RefreshCw className="h-4 w-4" />
           </button>
+        </div>
+      </div>
+
+      {/* Statutory Individual PAN Assessment Notice */}
+      <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-500/30 text-xs shadow-xs">
+        <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+        <div className="text-slate-700 dark:text-slate-300 leading-relaxed">
+          <span className="font-bold text-slate-900 dark:text-white">Individual PAN-Based Assessment (Section 4, Income Tax Act, 1961): </span>
+          Tax planning and mutual fund redemptions are computed on an individual assessee basis. Incomes of family members (e.g. spouse) are strictly isolated and never summed or clubbed. Each individual has independent tax slabs, deductions, and Section 112A annual exemption quotas.
+          {data?.householdMembers && data.householdMembers.length > 1 && (
+            <span className="ml-1 text-emerald-700 dark:text-emerald-300 font-semibold">
+              Currently viewing individual tax assessment for <span className="underline">{client?.fullName}</span>.
+            </span>
+          )}
         </div>
       </div>
 
@@ -822,23 +899,41 @@ function TaxPlanningContent() {
             {/* Gross Income Input */}
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80">
               <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex justify-between mb-2">
-                <span>Annual Gross Salary / Business Income</span>
+                <span>Annual Gross Salary / Business Income ({client?.fullName || "Assessee"})</span>
                 <span className="text-emerald-600 dark:text-emerald-400 font-mono text-sm">{formatINR(grossIncome)}</span>
               </label>
-              <div className="flex items-center gap-3">
-                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono">₹</span>
-                <input
-                  type="number"
-                  step="50000"
-                  value={grossIncome}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setGrossIncome(val);
-                    runSimulatorRecalc(val, sim80C, sim80D, sim80CCD, sim24b, simHRA, simOther);
-                  }}
-                  className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 font-mono"
-                />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="flex items-center gap-3 flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-1.5 focus-within:border-emerald-500">
+                  <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono">₹</span>
+                  <input
+                    type="number"
+                    step="50000"
+                    value={grossIncome}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setGrossIncome(val);
+                      runSimulatorRecalc(val, sim80C, sim80D, sim80CCD, sim24b, simHRA, simOther);
+                    }}
+                    className="flex-1 bg-transparent py-1 text-sm font-bold text-slate-900 dark:text-white focus:outline-none font-mono"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveIncome}
+                  disabled={isSavingIncome}
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm shrink-0 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  {isSavingIncome ? (
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  ) : incomeSaveMessage ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : null}
+                  {isSavingIncome ? "Saving..." : incomeSaveMessage || "Save to Profile"}
+                </button>
               </div>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2">
+                Note: Incomes are assessed on an individual PAN basis per Section 4 of the Income Tax Act. Incomes across household members are not clubbed.
+              </p>
             </div>
 
             {/* Collapsible Deduction Controls */}
