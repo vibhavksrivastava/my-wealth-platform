@@ -13,6 +13,9 @@ import {
 import { generateAiTaxAdvisory, TaxAdvisoryContext } from "@/lib/gemini";
 import { createClientSuggestion } from "@/lib/suggestions";
 
+const CLIENT_SELECT_FIELDS =
+  "client_id, household_id, uwp_client_code, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id";
+
 export async function GET(req: Request) {
   await connection();
   try {
@@ -36,7 +39,7 @@ export async function GET(req: Request) {
       // Check by user_id
       let uClientQuery = supabaseAdmin
         .from("clients")
-        .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
+        .select(CLIENT_SELECT_FIELDS)
         .eq("user_id", session.sub);
       if (session.tenantId && session.role !== "SUPER_ADMIN") {
         uClientQuery = uClientQuery.eq("tenant_id", session.tenantId);
@@ -49,7 +52,7 @@ export async function GET(req: Request) {
         // Check by client_id
         let cByIdQuery = supabaseAdmin
           .from("clients")
-          .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
+          .select(CLIENT_SELECT_FIELDS)
           .eq("client_id", session.sub);
         if (session.tenantId && session.role !== "SUPER_ADMIN") {
           cByIdQuery = cByIdQuery.eq("tenant_id", session.tenantId);
@@ -64,7 +67,7 @@ export async function GET(req: Request) {
           if (fullName) {
             let cByNameQuery = supabaseAdmin
               .from("clients")
-              .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
+              .select(CLIENT_SELECT_FIELDS)
               .ilike("full_name", `%${fullName}%`);
             if (session.tenantId && session.role !== "SUPER_ADMIN") {
               cByNameQuery = cByNameQuery.eq("tenant_id", session.tenantId);
@@ -89,7 +92,7 @@ export async function GET(req: Request) {
         if (profile?.household_id) {
           let hhClientQuery = supabaseAdmin
             .from("clients")
-            .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
+            .select(CLIENT_SELECT_FIELDS)
             .eq("household_id", profile.household_id);
           if (session.tenantId && session.role !== "SUPER_ADMIN") {
             hhClientQuery = hhClientQuery.eq("tenant_id", session.tenantId);
@@ -103,7 +106,7 @@ export async function GET(req: Request) {
       if (!targetClient && session.tenantId) {
         const { data: defaultClient } = await supabaseAdmin
           .from("clients")
-          .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
+          .select(CLIENT_SELECT_FIELDS)
           .eq("tenant_id", session.tenantId)
           .limit(1)
           .maybeSingle();
@@ -114,7 +117,7 @@ export async function GET(req: Request) {
       if (targetClient?.household_id) {
         let hhListQuery = supabaseAdmin
           .from("clients")
-          .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
+          .select(CLIENT_SELECT_FIELDS)
           .eq("household_id", targetClient.household_id)
           .order("full_name", { ascending: true });
         if (session.tenantId && session.role !== "SUPER_ADMIN") {
@@ -133,7 +136,7 @@ export async function GET(req: Request) {
       // 2. ADVISOR LOGIN: Allow selecting client strictly within this tenant
       let clientsQuery = supabaseAdmin
         .from("clients")
-        .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
+        .select(CLIENT_SELECT_FIELDS)
         .order("full_name", { ascending: true });
 
       if (session.tenantId && session.role !== "SUPER_ADMIN") {
@@ -149,7 +152,7 @@ export async function GET(req: Request) {
         if (!targetClient && session.role === "SUPER_ADMIN") {
           const { data: directClient } = await supabaseAdmin
             .from("clients")
-            .select("client_id, household_id, full_name, annual_gross_income, tax_regime, risk_profile, planning_horizon_years, date_of_birth, marital_status, tenant_id, user_id, pan_number, email")
+            .select(CLIENT_SELECT_FIELDS)
             .eq("client_id", requestedClientId)
             .maybeSingle();
           if (directClient) targetClient = directClient;
@@ -172,6 +175,10 @@ export async function GET(req: Request) {
         selectedClient: null,
         message: "No clients found.",
       });
+    }
+
+    if (householdMembers.length === 0) {
+      householdMembers = [targetClient];
     }
 
     const targetClientId = targetClient.client_id;
@@ -315,6 +322,34 @@ export async function GET(req: Request) {
       taxLossHarvesting.totalTaxAlphaPotential +
       (ltcgHarvesting.harvestableGain > 0 ? Math.round(ltcgHarvesting.harvestableGain * 0.125) : 0);
 
+    // Look up email from users and pan from client_profiles
+    const userIdsToLookup = [
+      targetClient.user_id,
+      ...householdMembers.map((m) => m.user_id),
+      ...clientList.map((c) => c.user_id),
+    ].filter(Boolean);
+
+    const emailMap = new Map<string, string>();
+    const panMap = new Map<string, string>();
+
+    if (userIdsToLookup.length > 0) {
+      const [usersRes, profilesRes] = await Promise.all([
+        supabaseAdmin.from("users").select("id, email").in("id", userIdsToLookup),
+        supabaseAdmin.from("client_profiles").select("user_id, pan_number").in("user_id", userIdsToLookup),
+      ]);
+
+      (usersRes.data || []).forEach((u) => {
+        if (u.id && u.email) emailMap.set(u.id, u.email);
+      });
+
+      (profilesRes.data || []).forEach((p) => {
+        if (p.user_id && p.pan_number) panMap.set(p.user_id, p.pan_number);
+      });
+    }
+
+    const clientEmail = targetClient.user_id ? emailMap.get(targetClient.user_id) || null : null;
+    const clientPan = targetClient.user_id ? panMap.get(targetClient.user_id) || "PAN Pending" : "PAN Pending";
+
     return NextResponse.json({
       success: true,
       isAdvisor,
@@ -327,6 +362,8 @@ export async function GET(req: Request) {
             taxRegime: c.tax_regime || "New",
             riskProfile: c.risk_profile || "Moderate",
             householdId: c.household_id || null,
+            pan: c.user_id ? panMap.get(c.user_id) || "PAN Pending" : "PAN Pending",
+            email: c.user_id ? emailMap.get(c.user_id) || null : null,
           }))
         : [],
       householdMembers: householdMembers.map((m) => ({
@@ -335,15 +372,16 @@ export async function GET(req: Request) {
         annualIncome: Number(m.annual_gross_income ?? 0),
         taxRegime: m.tax_regime || "New",
         riskProfile: m.risk_profile || "Moderate",
-        pan: m.pan_number || null,
+        pan: m.user_id ? panMap.get(m.user_id) || "PAN Pending" : "PAN Pending",
+        email: m.user_id ? emailMap.get(m.user_id) || null : null,
         isCurrent: m.client_id === targetClient.client_id,
       })),
       selectedClient: {
         clientId: targetClient.client_id,
         householdId: targetClient.household_id || null,
         fullName: targetClient.full_name,
-        email: targetClient.email || null,
-        pan: targetClient.pan_number || "PAN Pending",
+        email: clientEmail,
+        pan: clientPan,
         annualGrossIncome: grossIncome,
         taxRegime: targetClient.tax_regime || "New",
         riskProfile: targetClient.risk_profile || "Moderate",
