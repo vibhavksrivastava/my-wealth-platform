@@ -8,6 +8,7 @@ import {
   TrendingUp,
   DollarSign,
   ShieldAlert,
+  Shield,
   Wallet,
   PiggyBank,
   CreditCard,
@@ -53,6 +54,7 @@ import {
 } from "@/lib/goalAssetAlignment";
 import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
 import RiaAgreementBadge from "@/components/ria/RiaAgreementBadge";
+import ClientRiskProfileTab from "@/components/ria/ClientRiskProfileTab";
 
 interface Client360Data {
   client: any;
@@ -127,8 +129,8 @@ export default function Client360Page({
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  // Active Tab: overview | cashflow | assets | liabilities | goals | suggestions
-  const [activeTab, setActiveTab] = useState<"overview" | "cashflow" | "assets" | "liabilities" | "goals" | "suggestions">("overview");
+  // Active Tab: overview | cashflow | assets | liabilities | goals | suggestions | risk-profile
+  const [activeTab, setActiveTab] = useState<"overview" | "cashflow" | "assets" | "liabilities" | "goals" | "suggestions" | "risk-profile">("overview");
   const [suggestionsCount, setSuggestionsCount] = useState<number>(0);
   const [currentUserRole, setCurrentUserRole] = useState<string>("ADVISOR");
 
@@ -356,9 +358,14 @@ export default function Client360Page({
             <span>&bull;</span>
             <span className="font-mono text-slate-600 dark:text-slate-300">{client.uwp_client_code || "UWP-CLIENT"}</span>
             <span>&bull;</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold uppercase text-[10px] tracking-wider">
-              {client.risk_profile || "Moderate"} Risk
-            </span>
+            <button
+              onClick={() => setActiveTab("risk-profile")}
+              className="text-emerald-600 dark:text-emerald-400 font-semibold uppercase text-[10px] tracking-wider hover:underline transition cursor-pointer flex items-center gap-1"
+              title="Click to view full Risk Profile & Suitability Questionnaire"
+            >
+              <Shield className="h-3 w-3" />
+              <span>{client.risk_profile || "Moderate"} Risk {client.risk_score ? `(${client.risk_score}/100)` : ""}</span>
+            </button>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{client.full_name}</h1>
@@ -527,6 +534,7 @@ export default function Client360Page({
           { key: "assets", label: "Assets & Investments", icon: Wallet, count: visibleAssets.length + visibleInvestments.length + visibleRetirementAssets.length },
           { key: "liabilities", label: "Liabilities & Debt", icon: CreditCard, count: visibleLiabilities.length },
           { key: "goals", label: "Life Goals & Projections", icon: Target, count: visibleGoals.length },
+          { key: "risk-profile", label: "Risk Profile & Suitability", icon: Shield, count: client.risk_profile || "Moderate" },
           { key: "suggestions", label: "Future Suggestions & Action Plan", icon: Sparkles, count: suggestionsCount },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -1854,6 +1862,16 @@ export default function Client360Page({
         />
       )}
 
+      {/* 7. TAB: MULTI-FACTOR RISK PROFILING & SEBI SUITABILITY */}
+      {activeTab === "risk-profile" && data?.client && (
+        <ClientRiskProfileTab
+          clientId={clientId}
+          client={data.client}
+          showToast={showToast}
+          formatINR={formatINR}
+        />
+      )}
+
       {/* ============================================================== */}
       {/* MODALS & DRAWERS FOR INLINE EDITING & CREATION */}
       {/* ============================================================== */}
@@ -1944,7 +1962,9 @@ export default function Client360Page({
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="Conservative">Conservative</option>
+                  <option value="Moderately Conservative">Moderately Conservative</option>
                   <option value="Moderate">Moderate</option>
+                  <option value="Moderately Aggressive">Moderately Aggressive</option>
                   <option value="Aggressive">Aggressive</option>
                 </select>
               </div>

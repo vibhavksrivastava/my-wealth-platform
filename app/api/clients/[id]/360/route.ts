@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuthHeader } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 import { unpackAsset, unpackInvestment, unpackGoal, isRetirementAsset, isMarketAsset } from "@/lib/goalAssetAlignment";
+import { computeCompleteRiskProfile, RISK_QUESTIONS } from "@/lib/risk/riskProfileEngine";
 
 export async function GET(
   req: Request,
@@ -312,6 +313,10 @@ export async function PUT(
       "annual_gross_income",
       "tax_regime",
       "risk_profile",
+      "risk_score",
+      "risk_capacity_score",
+      "risk_tolerance_score",
+      "risk_assessment_responses",
       "planning_horizon_years",
       "spouse_name",
       "spouse_dob",
@@ -323,12 +328,65 @@ export async function PUT(
 
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
-        if (field === "annual_gross_income" || field === "planning_horizon_years" || field === "dependents_count") {
+        if (
+          field === "annual_gross_income" ||
+          field === "planning_horizon_years" ||
+          field === "dependents_count" ||
+          field === "risk_score" ||
+          field === "risk_capacity_score" ||
+          field === "risk_tolerance_score"
+        ) {
           updates[field] = Number(body[field]);
         } else {
           updates[field] = body[field];
         }
       }
+    }
+
+    // Auto-update Risk Profile & Capacity when changes happen in client demographics or financial parameters
+    if (
+      updates.date_of_birth !== undefined ||
+      updates.dependents_count !== undefined ||
+      updates.annual_gross_income !== undefined
+    ) {
+      let responses = existingClient.risk_assessment_responses || {};
+      if (!responses || Object.keys(responses).length === 0) {
+        responses = {};
+        RISK_QUESTIONS.forEach((q) => {
+          responses[q.id] = q.options[Math.floor(q.options.length / 2)].value;
+        });
+      }
+
+      const effectiveDob = updates.date_of_birth || existingClient.date_of_birth;
+      const effectiveDependents = updates.dependents_count !== undefined ? updates.dependents_count : existingClient.dependents_count;
+      const effectiveIncome = updates.annual_gross_income !== undefined ? updates.annual_gross_income : existingClient.annual_gross_income;
+
+      const recomputed = computeCompleteRiskProfile({
+        responses,
+        demographics: {
+          dateOfBirth: effectiveDob,
+          dependentsCount: Number(effectiveDependents || 0),
+          maritalStatus: updates.marital_status || existingClient.marital_status,
+          planningHorizonYears: Number(updates.planning_horizon_years || existingClient.planning_horizon_years || 10),
+        },
+        financials: {
+          annualGrossIncome: Number(effectiveIncome || 1200000),
+          monthlyIncome: Number(effectiveIncome || 1200000) / 12,
+        },
+      });
+
+      if (body.risk_profile === undefined) {
+        updates.risk_profile = recomputed.riskCategory;
+      }
+      updates.risk_score = recomputed.riskScore;
+      updates.risk_capacity_score = recomputed.capacityScore;
+      updates.risk_tolerance_score = recomputed.toleranceScore;
+      updates.risk_recommended_equity_pct = recomputed.recommendedAllocation.equityPct;
+      updates.risk_recommended_debt_pct = recomputed.recommendedAllocation.debtPct;
+      updates.risk_recommended_gold_pct = recomputed.recommendedAllocation.goldPct;
+      updates.risk_recommended_cash_pct = recomputed.recommendedAllocation.cashPct;
+      updates.risk_next_review_due = recomputed.nextReviewDue;
+      updates.risk_assessment_date = recomputed.assessedAt;
     }
 
     const { data: updatedClient, error: updateErr } = await supabaseAdmin
