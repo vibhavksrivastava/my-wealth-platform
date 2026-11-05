@@ -175,6 +175,28 @@ function getNavSections(userRole?: string): NavSection[] {
     },
   ];
 
+  if (userRole !== "CLIENT") {
+    sections.push({
+      title: "RIA Compliance & Billing",
+      items: [
+        {
+          name: "Compliance Vault",
+          href: "/dashboard/compliance",
+          icon: ShieldCheck,
+          isActive: (p: string) => p.startsWith("/dashboard/compliance"),
+          badge: { label: "SEBI Audit", color: "bg-teal-500/20 text-teal-600 dark:text-teal-300 border-teal-500/30" },
+        },
+        {
+          name: "Advisory Billing & Fees",
+          href: "/dashboard/ria-billing",
+          icon: Receipt,
+          isActive: (p: string) => p.startsWith("/dashboard/ria-billing"),
+          badge: { label: "18% GST", color: "bg-sky-500/20 text-sky-600 dark:text-sky-300 border-sky-500/30" },
+        },
+      ],
+    });
+  }
+
   if (userRole === "TENANT_ADMIN" || userRole === "SUPER_ADMIN") {
     const adminItems: NavItem[] = [
       {

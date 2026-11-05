@@ -52,6 +52,7 @@ import {
   isMarketAsset,
 } from "@/lib/goalAssetAlignment";
 import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
+import RiaAgreementBadge from "@/components/ria/RiaAgreementBadge";
 
 interface Client360Data {
   client: any;
@@ -359,7 +360,7 @@ export default function Client360Page({
               {client.risk_profile || "Moderate"} Risk
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{client.full_name}</h1>
             <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
               Client 360 &deg;
@@ -370,6 +371,7 @@ export default function Client360Page({
                 {household.household_name} ({householdMembers.length} {householdMembers.length === 1 ? "Member" : "Members"})
               </span>
             )}
+            <RiaAgreementBadge clientId={clientId} clientName={client.full_name} showToast={showToast} />
           </div>
         </div>
 

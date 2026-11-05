@@ -251,7 +251,21 @@ export default function TenantAdminBillingPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/dashboard/ria-billing"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition shadow-sm"
+          >
+            <Receipt className="h-3.5 w-3.5" />
+            <span>RIA Invoicing &amp; Fees</span>
+          </Link>
+          <Link
+            href="/dashboard/compliance"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 dark:text-teal-300 font-bold text-xs transition shadow-sm"
+          >
+            <Shield className="h-3.5 w-3.5" />
+            <span>Compliance Vault</span>
+          </Link>
           {!isArnPartner && (
             <button
               onClick={() => setShowUpgradeModal(true)}

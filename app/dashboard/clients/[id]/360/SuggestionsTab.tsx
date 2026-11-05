@@ -26,6 +26,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useFirmBranding } from "@/lib/context/FirmBrandingContext";
+import RiaPositiveConsentModal from "@/components/ria/RiaPositiveConsentModal";
 
 interface SuggestionsTabProps {
   clientId: string;
@@ -54,6 +55,15 @@ export default function SuggestionsTab({
   // Execution tracking inputs per suggestion
   const [actionLogInputs, setActionLogInputs] = useState<{ [id: string]: string }>({});
   const [isLoggingAction, setIsLoggingAction] = useState<{ [id: string]: boolean }>({});
+
+  // Pre-Trade Positive Consent Gate State (SEBI Requirement)
+  const [consentModalItem, setConsentModalItem] = useState<{
+    schemeCode: string;
+    schemeName: string;
+    recommendationType: "BUY" | "SELL" | "HOLD" | "SWITCH" | "STP";
+    rationaleText: string;
+    targetAmount: number;
+  } | null>(null);
 
   const fetchSuggestions = async (showLoadingSpinner = true) => {
     if (showLoadingSpinner) setIsLoading(true);
@@ -760,13 +770,33 @@ export default function SuggestionsTab({
                       </span>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {s.recommended_investments.map((rec: any, idx: number) => (
-                          <div key={idx} className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs space-y-1 shadow-xs">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-slate-900 dark:text-white">{rec.title}</span>
-                              <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">{rec.priority}</span>
+                          <div key={idx} className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs space-y-2 shadow-xs flex flex-col justify-between">
+                            <div>
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-slate-900 dark:text-white">{rec.title}</span>
+                                <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">{rec.priority}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1">{rec.suggestedAction}</p>
+                              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Impact: {rec.expectedImpact}</p>
                             </div>
-                            <p className="text-[11px] text-slate-600 dark:text-slate-400">{rec.suggestedAction}</p>
-                            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Impact: {rec.expectedImpact}</p>
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                              <span className="text-[10px] text-slate-400 font-mono">Positive Consent Gate</span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setConsentModalItem({
+                                    schemeCode: rec.title || "SCHEME-REC",
+                                    schemeName: rec.title || "Advisory Strategy Recommendation",
+                                    recommendationType: "BUY",
+                                    rationaleText: rec.suggestedAction || "Portfolio rebalancing and goal alignment.",
+                                    targetAmount: 0,
+                                  })
+                                }
+                                className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400 hover:bg-teal-500/20 transition"
+                              >
+                                Record Consent Gate &rarr;
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -854,6 +884,24 @@ export default function SuggestionsTab({
           </div>
         )}
       </div>
+      {/* Pre-Trade Positive Consent Modal */}
+      {consentModalItem && (
+        <RiaPositiveConsentModal
+          isOpen={Boolean(consentModalItem)}
+          onClose={() => setConsentModalItem(null)}
+          clientId={clientId}
+          schemeCode={consentModalItem.schemeCode}
+          schemeName={consentModalItem.schemeName}
+          recommendationType={consentModalItem.recommendationType}
+          rationaleText={consentModalItem.rationaleText}
+          targetAmount={consentModalItem.targetAmount}
+          onConsentRecorded={() => {
+            showToast("Positive consent recorded in compliance ledger.", "success");
+            fetchSuggestions(false);
+          }}
+          showToast={showToast}
+        />
+      )}
     </div>
   );
 }
