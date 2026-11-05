@@ -118,10 +118,10 @@ export async function GET(
     };
 
     // 4. Fetch stored assessment or default responses
-    let storedResponses: Record<string, string> = client.risk_assessment_responses || {};
+    let storedResponses: Record<string, string> = {};
+    let history: any[] = [];
 
     // Try fetching from client_risk_assessments table
-    let history: any[] = [];
     try {
       const { data: histData } = await supabaseAdmin
         .from("client_risk_assessments")
@@ -132,12 +132,29 @@ export async function GET(
 
       if (histData && histData.length > 0) {
         history = histData;
-        if (Object.keys(storedResponses).length === 0 && histData[0].questionnaire_responses) {
+        if (histData[0].questionnaire_responses) {
           storedResponses = histData[0].questionnaire_responses;
         }
       }
     } catch {
       // quiet fail
+    }
+
+    // Fallback: check tenant_settings store
+    if (Object.keys(storedResponses).length === 0 && client.tenant_id) {
+      try {
+        const { data: tData } = await supabaseAdmin
+          .from("tenant_settings")
+          .select("branding")
+          .eq("tenant_id", client.tenant_id)
+          .maybeSingle();
+        const store = tData?.branding?.ria_compliance_store?.riskAssessments || [];
+        const clientHist = store.filter((a: any) => a.clientId === clientId);
+        if (clientHist.length > 0) {
+          history = clientHist;
+          storedResponses = clientHist[0].questionnaireResponses || clientHist[0].questionnaire_responses || {};
+        }
+      } catch {}
     }
 
     // If still no responses, default to neutral options
@@ -249,28 +266,22 @@ export async function POST(
 
     const assessor = assessorName || `${session.firstName || "Licensed"} ${session.lastName || "Advisor"}`;
 
-    // 4. Update `clients` record with new risk profile & asset allocation
+    // 4. Update `clients` record with new risk profile
     const clientUpdates: Record<string, any> = {
       risk_profile: computed.riskCategory,
-      risk_score: computed.riskScore,
-      risk_capacity_score: computed.capacityScore,
-      risk_tolerance_score: computed.toleranceScore,
-      risk_assessment_date: computed.assessedAt,
-      risk_next_review_due: computed.nextReviewDue,
-      risk_assessment_responses: responses,
-      risk_recommended_equity_pct: computed.recommendedAllocation.equityPct,
-      risk_recommended_debt_pct: computed.recommendedAllocation.debtPct,
-      risk_recommended_gold_pct: computed.recommendedAllocation.goldPct,
-      risk_recommended_cash_pct: computed.recommendedAllocation.cashPct,
       updated_at: new Date().toISOString(),
     };
 
-    await supabaseAdmin
+    const { error: clientUpdateErr } = await supabaseAdmin
       .from("clients")
       .update(clientUpdates)
       .eq("client_id", clientId);
 
-    // 5. Insert immutable audit record into `client_risk_assessments`
+    if (clientUpdateErr) {
+      throw clientUpdateErr;
+    }
+
+    // 5. Insert immutable audit record into `client_risk_assessments` (if table exists)
     try {
       // Mark previous assessments as not current
       await supabaseAdmin
@@ -295,8 +306,12 @@ export async function POST(
         assessor_name: assessor,
       });
     } catch {
-      // Fallback: save to tenant_settings.branding.ria_compliance_store
-      if (tenantId) {
+      // quiet fail if table not yet created
+    }
+
+    // Also persist to tenant_settings.branding.ria_compliance_store
+    if (tenantId) {
+      try {
         const { data: tData } = await supabaseAdmin
           .from("tenant_settings")
           .select("branding")
@@ -312,18 +327,25 @@ export async function POST(
           clientId,
           riskScore: computed.riskScore,
           riskCategory: computed.riskCategory,
+          riskCapacityScore: computed.capacityScore,
+          riskToleranceScore: computed.toleranceScore,
+          demographicFactors: computed.capacityBreakdown,
+          financialFactors: financials,
+          recommendedAllocation: computed.recommendedAllocation,
           questionnaireResponses: responses,
           assessedAt: computed.assessedAt,
           nextReviewDue: computed.nextReviewDue,
-          isOverdue: false,
-          daysRemaining: 365,
+          assessorName: assessor,
+          isCurrent: true,
         });
         currentBranding.ria_compliance_store = store;
 
         await supabaseAdmin
           .from("tenant_settings")
-          .update({ branding: currentBranding })
+          .update({ branding: currentBranding, updated_at: new Date().toISOString() })
           .eq("tenant_id", tenantId);
+      } catch (storeErr) {
+        console.error("Non-fatal error persisting risk assessment to store:", storeErr);
       }
     }
 

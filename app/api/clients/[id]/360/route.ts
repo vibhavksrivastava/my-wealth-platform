@@ -234,8 +234,27 @@ export async function GET(
       };
     });
 
+    // Enrich client with risk score from store if not in db column
+    let clientWithRisk = { ...client };
+    if (!clientWithRisk.risk_score && client.tenant_id) {
+      try {
+        const { data: tData } = await supabaseAdmin
+          .from("tenant_settings")
+          .select("branding")
+          .eq("tenant_id", client.tenant_id)
+          .maybeSingle();
+        const store = tData?.branding?.ria_compliance_store?.riskAssessments || [];
+        const found = store.find((a: any) => a.clientId === clientId);
+        if (found) {
+          clientWithRisk.risk_score = found.riskScore;
+          clientWithRisk.risk_capacity_score = found.riskCapacityScore;
+          clientWithRisk.risk_tolerance_score = found.riskToleranceScore;
+        }
+      } catch {}
+    }
+
     return NextResponse.json({
-      client,
+      client: clientWithRisk,
       household,
       householdMembers: enrichedMembers,
       incomes,
@@ -313,10 +332,6 @@ export async function PUT(
       "annual_gross_income",
       "tax_regime",
       "risk_profile",
-      "risk_score",
-      "risk_capacity_score",
-      "risk_tolerance_score",
-      "risk_assessment_responses",
       "planning_horizon_years",
       "spouse_name",
       "spouse_dob",
@@ -331,10 +346,7 @@ export async function PUT(
         if (
           field === "annual_gross_income" ||
           field === "planning_horizon_years" ||
-          field === "dependents_count" ||
-          field === "risk_score" ||
-          field === "risk_capacity_score" ||
-          field === "risk_tolerance_score"
+          field === "dependents_count"
         ) {
           updates[field] = Number(body[field]);
         } else {
@@ -344,14 +356,32 @@ export async function PUT(
     }
 
     // Auto-update Risk Profile & Capacity when changes happen in client demographics or financial parameters
+    let recomputedRisk: any = null;
     if (
       updates.date_of_birth !== undefined ||
       updates.dependents_count !== undefined ||
       updates.annual_gross_income !== undefined
     ) {
-      let responses = existingClient.risk_assessment_responses || {};
-      if (!responses || Object.keys(responses).length === 0) {
-        responses = {};
+      let responses: Record<string, string> = {};
+      
+      // Try to find previous responses from tenant store
+      const tenantId = existingClient.tenant_id || session.tenantId;
+      if (tenantId) {
+        try {
+          const { data: tData } = await supabaseAdmin
+            .from("tenant_settings")
+            .select("branding")
+            .eq("tenant_id", tenantId)
+            .maybeSingle();
+          const store = tData?.branding?.ria_compliance_store?.riskAssessments || [];
+          const found = store.find((a: any) => a.clientId === clientId);
+          if (found?.questionnaireResponses) {
+            responses = found.questionnaireResponses;
+          }
+        } catch {}
+      }
+
+      if (Object.keys(responses).length === 0) {
         RISK_QUESTIONS.forEach((q) => {
           responses[q.id] = q.options[Math.floor(q.options.length / 2)].value;
         });
@@ -361,7 +391,7 @@ export async function PUT(
       const effectiveDependents = updates.dependents_count !== undefined ? updates.dependents_count : existingClient.dependents_count;
       const effectiveIncome = updates.annual_gross_income !== undefined ? updates.annual_gross_income : existingClient.annual_gross_income;
 
-      const recomputed = computeCompleteRiskProfile({
+      recomputedRisk = computeCompleteRiskProfile({
         responses,
         demographics: {
           dateOfBirth: effectiveDob,
@@ -376,17 +406,8 @@ export async function PUT(
       });
 
       if (body.risk_profile === undefined) {
-        updates.risk_profile = recomputed.riskCategory;
+        updates.risk_profile = recomputedRisk.riskCategory;
       }
-      updates.risk_score = recomputed.riskScore;
-      updates.risk_capacity_score = recomputed.capacityScore;
-      updates.risk_tolerance_score = recomputed.toleranceScore;
-      updates.risk_recommended_equity_pct = recomputed.recommendedAllocation.equityPct;
-      updates.risk_recommended_debt_pct = recomputed.recommendedAllocation.debtPct;
-      updates.risk_recommended_gold_pct = recomputed.recommendedAllocation.goldPct;
-      updates.risk_recommended_cash_pct = recomputed.recommendedAllocation.cashPct;
-      updates.risk_next_review_due = recomputed.nextReviewDue;
-      updates.risk_assessment_date = recomputed.assessedAt;
     }
 
     const { data: updatedClient, error: updateErr } = await supabaseAdmin
@@ -398,6 +419,49 @@ export async function PUT(
 
     if (updateErr || !updatedClient) {
       throw updateErr || new Error("Failed to update client details.");
+    }
+
+    // Persist recomputed risk profile to compliance store if demographics changed
+    if (recomputedRisk) {
+      const tenantId = existingClient.tenant_id || session.tenantId;
+      if (tenantId) {
+        try {
+          const { data: tData } = await supabaseAdmin
+            .from("tenant_settings")
+            .select("branding")
+            .eq("tenant_id", tenantId)
+            .maybeSingle();
+
+          const currentBranding = tData?.branding || {};
+          const store = currentBranding.ria_compliance_store || {};
+          store.riskAssessments = store.riskAssessments || [];
+          store.riskAssessments.unshift({
+            assessmentId: "risk-" + Math.random().toString(36).substring(2, 9),
+            tenantId,
+            clientId,
+            riskScore: recomputedRisk.riskScore,
+            riskCategory: recomputedRisk.riskCategory,
+            riskCapacityScore: recomputedRisk.capacityScore,
+            riskToleranceScore: recomputedRisk.toleranceScore,
+            demographicFactors: recomputedRisk.capacityBreakdown,
+            financialFactors: { annualGrossIncome: updates.annual_gross_income || existingClient.annual_gross_income },
+            recommendedAllocation: recomputedRisk.recommendedAllocation,
+            questionnaireResponses: recomputedRisk.toleranceBreakdown.responses,
+            assessedAt: recomputedRisk.assessedAt,
+            nextReviewDue: recomputedRisk.nextReviewDue,
+            assessorName: `${session.firstName || "Licensed"} ${session.lastName || "Advisor"}`,
+            isCurrent: true,
+          });
+          currentBranding.ria_compliance_store = store;
+
+          await supabaseAdmin
+            .from("tenant_settings")
+            .update({ branding: currentBranding, updated_at: new Date().toISOString() })
+            .eq("tenant_id", tenantId);
+        } catch (storeErr) {
+          console.error("Non-fatal error persisting risk assessment to store:", storeErr);
+        }
+      }
     }
 
     // Log audit trail
