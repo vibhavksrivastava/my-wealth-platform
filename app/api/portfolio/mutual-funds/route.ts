@@ -371,20 +371,6 @@ export async function GET(req: Request) {
         allMfAssets = astData || [];
       }
 
-      // Pre-seed known client portfolios if empty in database
-      const demoPresets: Record<string, { cost: number; value: number; sip: number; xirr: number; holdingsCount: number }> = {
-        "Kabir Singhania": { cost: 4825000, value: 6743982, sip: 55000, xirr: 16.8, holdingsCount: 3 },
-        "Ananya Singhania": { cost: 2905992, value: 3870058, sip: 35000, xirr: 17.5, holdingsCount: 2 },
-        "Rohan Verma": { cost: 2450000, value: 3450000, sip: 25000, xirr: 15.4, holdingsCount: 2 },
-        "Vikramaditya Roy": { cost: 3500000, value: 4820000, sip: 40000, xirr: 16.1, holdingsCount: 3 },
-        "Rahul Sharma": { cost: 2800000, value: 3950000, sip: 30000, xirr: 15.2, holdingsCount: 2 },
-        "Shashwat Srivastava": { cost: 13000000, value: 19700000, sip: 150000, xirr: 18.5, holdingsCount: 2 },
-        "Pallavi Srivastava": { cost: 2100000, value: 2840000, sip: 20000, xirr: 14.8, holdingsCount: 2 },
-        "Aaditri Srivastava": { cost: 1200000, value: 1650000, sip: 15000, xirr: 15.0, holdingsCount: 1 },
-        "Parul Sharma": { cost: 1800000, value: 2400000, sip: 20000, xirr: 14.6, holdingsCount: 2 },
-        "Vibhav Srivastava": { cost: 5500000, value: 6500000, sip: 95000, xirr: 14.8, holdingsCount: 2 },
-      };
-
       // Calculate summary metrics for each client
       clientSummaries = allTenantClients.map((client) => {
         const clientInvs = allInvestments.filter((i) => i.client_id === client.client_id);
@@ -403,7 +389,7 @@ export async function GET(req: Request) {
         let monthlySip = 0;
         let clientDayChange = 0;
         let holdingsCount = clientInvs.length + clientAssets.length;
-        let xirr = 15.2;
+        let xirr = 0;
 
         if (holdingsCount > 0) {
           clientInvs.forEach((inv) => {
@@ -419,27 +405,13 @@ export async function GET(req: Request) {
             value += m.value;
             clientDayChange += m.dayChange;
           });
-        } else {
-          // Use preset or sensible defaults
-          const preset = demoPresets[client.full_name] || {
-            cost: 2000000,
-            value: 2750000,
-            sip: 25000,
-            xirr: 15.0,
-            holdingsCount: 2,
-          };
-          cost = preset.cost;
-          value = preset.value;
-          monthlySip = preset.sip;
-          xirr = preset.xirr;
-          holdingsCount = preset.holdingsCount;
-          clientDayChange = Math.round(value * 0.0048);
+          xirr = 15.2;
         }
 
         const unrealized = value - cost;
         const absReturn = cost > 0 ? Number(((unrealized / cost) * 100).toFixed(2)) : 0;
         const dayChange = clientDayChange;
-        const dayChangePct = value > 0 ? Number(((dayChange / value) * 100).toFixed(2)) : 0.48;
+        const dayChangePct = value > 0 ? Number(((dayChange / value) * 100).toFixed(2)) : 0;
 
         const realSipsCount = clientInvs.filter((i) => Number(i.monthly_sip_amount || 0) > 0).length;
         return {
@@ -449,7 +421,7 @@ export async function GET(req: Request) {
           householdId: client.household_id,
           householdName: hhName,
           relationship: "Primary",
-          riskProfile: client.risk_profile || "Aggressive Growth",
+          riskProfile: client.risk_profile || "Moderate",
           holdingsCount,
           purchaseCost: cost,
           currentValue: value,
@@ -483,7 +455,7 @@ export async function GET(req: Request) {
         const dayChange = members.reduce((sum, m) => sum + m.dayChange, 0);
         const weightedXirr = totalValue > 0
           ? Number((members.reduce((sum, m) => sum + m.xirr * m.currentValue, 0) / totalValue).toFixed(2))
-          : 15.0;
+          : 0;
 
         return {
           householdId: hhId,
@@ -503,7 +475,7 @@ export async function GET(req: Request) {
           unrealizedGain: totalGain,
           absReturnPct: absReturn,
           dayChange,
-          dayChangePct: totalValue > 0 ? Number(((dayChange / totalValue) * 100).toFixed(2)) : 0.48,
+          dayChangePct: totalValue > 0 ? Number(((dayChange / totalValue) * 100).toFixed(2)) : 0,
           xirr: weightedXirr,
           monthlySipAmount: totalSip,
           activeSipsCount: members.reduce((sum, m) => sum + m.activeSipsCount, 0),
@@ -527,9 +499,11 @@ export async function GET(req: Request) {
       const totalHoldingsCount = clientSummaries.reduce((sum, c) => sum + c.holdingsCount, 0);
       const weightedBookXirr = totalBookAum > 0
         ? Number((clientSummaries.reduce((sum, c) => sum + c.xirr * c.currentValue, 0) / totalBookAum).toFixed(2))
-        : 15.8;
+        : 0;
 
-      const trajectory = generateJourneyTrajectory(totalBookCost, totalBookAum, journeyPeriod);
+      const trajectory = (totalBookCost > 0 || totalBookAum > 0)
+        ? generateJourneyTrajectory(totalBookCost, totalBookAum, journeyPeriod)
+        : [];
 
       return NextResponse.json({
         success: true,
@@ -1004,174 +978,12 @@ export async function GET(req: Request) {
       }
     });
 
-    // 7. Seed realistic holdings if empty (customized per client/household)
-    if (holdingsList.length === 0) {
-      const pName = primaryClient?.full_name || "Client";
-      const isSinghania = pName.toLowerCase().includes("singhania");
-      const isSharma = pName.toLowerCase().includes("sharma");
-
-      if (isSinghania || scope === "HOUSEHOLD") {
-        holdingsList.push(
-          {
-            id: "mf-hdfc-top100",
-            clientId: targetClientId || "ALL",
-            clientName: pName,
-            schemeName: "HDFC Top 100 Large Cap Fund - Direct Plan Growth",
-            assetClass: "Equity - Large Cap",
-            folioNumber: "10492819/22",
-            units: 1420.52,
-            currentNav: 1120.45,
-            avgNav: 820.10,
-            investedCost: 1165000,
-            currentValue: 1591620,
-            unrealizedGain: 426620,
-            absReturnPct: 36.62,
-            dayChange: 7640,
-            dayChangePct: 0.48,
-            cagr: 15.2,
-            xirr: 16.8,
-            monthlySip: 25000,
-            linkedGoalId: null,
-          },
-          {
-            id: "mf-parag-flexicap",
-            clientId: targetClientId || "ALL",
-            clientName: pName,
-            schemeName: "Parag Parikh Flexi Cap Fund - Direct Growth",
-            assetClass: "Equity - Flexi Cap",
-            folioNumber: "93821049/01",
-            units: 2980.12,
-            currentNav: 78.45,
-            avgNav: 54.20,
-            investedCost: 1615225,
-            currentValue: 2337904,
-            unrealizedGain: 722679,
-            absReturnPct: 44.74,
-            dayChange: 12150,
-            dayChangePct: 0.52,
-            cagr: 18.6,
-            xirr: 20.4,
-            monthlySip: 30000,
-            linkedGoalId: null,
-          },
-          {
-            id: "mf-mirae-midcap",
-            clientId: householdMembers[1]?.client_id || targetClientId,
-            clientName: householdMembers[1]?.full_name || "Ananya Singhania",
-            schemeName: "Mirae Asset Midcap Fund - Growth Direct",
-            assetClass: "Equity - Mid Cap",
-            folioNumber: "84729104/89",
-            units: 1850.40,
-            currentNav: 152.10,
-            avgNav: 110.50,
-            investedCost: 2044692,
-            currentValue: 2814458,
-            unrealizedGain: 769766,
-            absReturnPct: 37.65,
-            dayChange: 14635,
-            dayChangePct: 0.52,
-            cagr: 17.4,
-            xirr: 18.9,
-            monthlySip: 20000,
-            linkedGoalId: null,
-          },
-          {
-            id: "mf-sbi-shortterm",
-            clientId: targetClientId || "ALL",
-            clientName: pName,
-            schemeName: "SBI Short Term Debt Fund - Direct Growth",
-            assetClass: "Debt - Short Duration",
-            folioNumber: "72619028/11",
-            units: 32000.0,
-            currentNav: 32.40,
-            avgNav: 28.15,
-            investedCost: 900800,
-            currentValue: 1036800,
-            unrealizedGain: 136000,
-            absReturnPct: 15.1,
-            dayChange: 830,
-            dayChangePct: 0.08,
-            cagr: 7.2,
-            xirr: 7.6,
-            monthlySip: 15000,
-            linkedGoalId: null,
-          },
-          {
-            id: "mf-icici-prudential-hybrid",
-            clientId: householdMembers[1]?.client_id || targetClientId,
-            clientName: householdMembers[1]?.full_name || "Ananya Singhania",
-            schemeName: "ICICI Prudential Balanced Advantage Fund - Direct Growth",
-            assetClass: "Hybrid - Dynamic Asset",
-            folioNumber: "61520481/33",
-            units: 14500.0,
-            currentNav: 72.80,
-            avgNav: 59.40,
-            investedCost: 861300,
-            currentValue: 1055600,
-            unrealizedGain: 194300,
-            absReturnPct: 22.56,
-            dayChange: 3695,
-            dayChangePct: 0.35,
-            cagr: 11.8,
-            xirr: 12.5,
-            monthlySip: 10000,
-            linkedGoalId: null,
-          }
-        );
-      } else {
-        // Standard client holding
-        holdingsList.push(
-          {
-            id: `mf-${targetClientId}-1`,
-            clientId: targetClientId || "ALL",
-            clientName: pName,
-            schemeName: "Parag Parikh Flexi Cap Fund - Direct Growth",
-            assetClass: "Equity - Flexi Cap",
-            folioNumber: "19382104/00",
-            units: 2150.0,
-            currentNav: 78.45,
-            avgNav: 58.20,
-            investedCost: 1251300,
-            currentValue: 1686675,
-            unrealizedGain: 435375,
-            absReturnPct: 34.79,
-            dayChange: 8770,
-            dayChangePct: 0.52,
-            cagr: 17.8,
-            xirr: 19.2,
-            monthlySip: 25000,
-            linkedGoalId: null,
-          },
-          {
-            id: `mf-${targetClientId}-2`,
-            clientId: targetClientId || "ALL",
-            clientName: pName,
-            schemeName: "HDFC Small Cap Fund - Growth Direct",
-            assetClass: "Equity - Small Cap",
-            folioNumber: "48201948/12",
-            units: 820.0,
-            currentNav: 145.20,
-            avgNav: 108.40,
-            investedCost: 888880,
-            currentValue: 1190640,
-            unrealizedGain: 301760,
-            absReturnPct: 33.95,
-            dayChange: 7140,
-            dayChangePct: 0.60,
-            cagr: 19.4,
-            xirr: 21.0,
-            monthlySip: 15000,
-            linkedGoalId: null,
-          }
-        );
-      }
-    }
-
-    // Filter holdings by requested member if individual scope
+    // 7. Filter holdings by requested member if individual scope
     let activeHoldings = holdingsList;
     if (scope === "INDIVIDUAL" && requestedMemberId) {
-      activeHoldings = holdingsList.filter((h) => h.clientId === requestedMemberId || h.clientName.toLowerCase().includes(requestedMemberId.toLowerCase()));
-      if (activeHoldings.length === 0) activeHoldings = holdingsList.slice(0, 2);
+      activeHoldings = holdingsList.filter(
+        (h) => h.clientId === requestedMemberId || h.clientName.toLowerCase().includes(requestedMemberId.toLowerCase())
+      );
     }
 
     // 8. Aggregate Consolidated Metrics
@@ -1185,7 +997,7 @@ export async function GET(req: Request) {
 
     const weightedXirr = totalValue > 0
       ? Number((activeHoldings.reduce((sum, h) => sum + h.xirr * h.currentValue, 0) / totalValue).toFixed(2))
-      : 16.2;
+      : 0;
 
     // 9. Transactions Data
     let transactions: any[] = [];
@@ -1335,65 +1147,6 @@ export async function GET(req: Request) {
         .reduce((sum, s) => sum + (Number(s.monthlyAmount) || 0), 0);
     }
 
-    // Only inject fallback demo mock SIPs if there are ZERO database holdings/assets (pure demo environment)
-    const hasRealDbAssets = (rawInvestments && rawInvestments.length > 0) || (rawMfAssets && rawMfAssets.length > 0);
-    if (sips.length === 0 && !hasRealDbAssets) {
-      sips = [
-        {
-          id: "sip-01",
-          schemeName: "Parag Parikh Flexi Cap Fund - Direct Growth",
-          folioNumber: "93821049/01",
-          monthlyAmount: 30000,
-          sipDay: 10,
-          frequency: "Monthly",
-          status: "ACTIVE",
-          nextDueDate: "2026-11-10",
-          mandateBank: "HDFC Bank (A/C •••• 4019)",
-          totalInvested: 36,
-          clientName: primaryClient?.full_name || "Primary Investor",
-        },
-        {
-          id: "sip-02",
-          schemeName: "HDFC Top 100 Large Cap Fund - Direct Plan Growth",
-          folioNumber: "10492819/22",
-          monthlyAmount: 25000,
-          sipDay: 5,
-          frequency: "Monthly",
-          status: "ACTIVE",
-          nextDueDate: "2026-11-05",
-          mandateBank: "ICICI Bank (A/C •••• 8821)",
-          totalInvested: 48,
-          clientName: primaryClient?.full_name || "Primary Investor",
-        },
-        {
-          id: "sip-03",
-          schemeName: "Mirae Asset Midcap Fund - Growth Direct",
-          folioNumber: "84729104/89",
-          monthlyAmount: 20000,
-          sipDay: 1,
-          frequency: "Monthly",
-          status: "ACTIVE",
-          nextDueDate: "2026-11-01",
-          mandateBank: "Kotak Mahindra Bank (A/C •••• 1204)",
-          totalInvested: 24,
-          clientName: householdMembers[1]?.full_name || "Family Member",
-        },
-        {
-          id: "sip-04",
-          schemeName: "SBI Short Term Debt Fund - Direct Growth",
-          folioNumber: "72619028/11",
-          monthlyAmount: 15000,
-          sipDay: 28,
-          frequency: "Monthly",
-          status: "ACTIVE",
-          nextDueDate: "2026-10-28",
-          mandateBank: "State Bank of India (A/C •••• 9931)",
-          totalInvested: 18,
-          clientName: primaryClient?.full_name || "Primary Investor",
-        },
-      ];
-    }
-
     // 11. Rebalancing Analysis with Google Gemini AI Integration
     let equityValue = 0;
     let debtValue = 0;
@@ -1407,96 +1160,107 @@ export async function GET(req: Request) {
       else equityValue += h.currentValue;
     });
 
-    const currentEquityPct = totalValue > 0 ? Number(((equityValue / totalValue) * 100).toFixed(1)) : 70;
-    const currentDebtPct = totalValue > 0 ? Number(((debtValue / totalValue) * 100).toFixed(1)) : 20;
-    const currentHybridPct = totalValue > 0 ? Number(((hybridValue / totalValue) * 100).toFixed(1)) : 10;
+    const currentEquityPct = totalValue > 0 ? Number(((equityValue / totalValue) * 100).toFixed(1)) : 0;
+    const currentDebtPct = totalValue > 0 ? Number(((debtValue / totalValue) * 100).toFixed(1)) : 0;
+    const currentHybridPct = totalValue > 0 ? Number(((hybridValue / totalValue) * 100).toFixed(1)) : 0;
 
-    // Run Gemini AI Rebalancing Engine
     let geminiRebalanceResult = null;
-    try {
-      const rebalanceContext: ClientPortfolioContext = {
-        clientId: targetClientId || "ALL",
-        clientName: primaryClient?.full_name || "Client",
-        riskProfile: primaryClient?.risk_profile || "Moderate",
-        age: 44,
-        planningHorizonYears: primaryClient?.planning_horizon_years || 6,
-        taxRegime: primaryClient?.tax_regime || "New",
-        totalValue,
-        totalCost,
-        totalGain,
-        totalSipBook,
-        holdings: activeHoldings.map((h) => ({
-          id: h.id,
-          schemeName: h.schemeName,
-          assetClass: h.assetClass || "Equity Mutual Fund",
-          units: h.units,
-          currentNav: h.currentNav,
-          investedCost: h.investedCost,
-          currentValue: h.currentValue,
-          monthlySip: h.monthlySip || 0,
-          cagr: h.cagr,
-          xirr: h.xirr,
-        })),
-      };
-      geminiRebalanceResult = await generateGeminiRebalancing(rebalanceContext);
-    } catch (gErr) {
-      console.warn("Gemini rebalance integration notice:", gErr);
-    }
-
-    const targetEquityPct = geminiRebalanceResult?.targetAllocation?.equityPct || 65;
-    const targetDebtPct = geminiRebalanceResult?.targetAllocation?.debtPct || 25;
-    const targetHybridPct = geminiRebalanceResult?.targetAllocation?.hybridPct || 10;
-
-    const equityDeviation = Number((currentEquityPct - targetEquityPct).toFixed(1));
-    const debtDeviation = Number((currentDebtPct - targetDebtPct).toFixed(1));
-    const hybridDeviation = Number((currentHybridPct - targetHybridPct).toFixed(1));
-
     let shiftsNeeded: any[] = [];
-    if (geminiRebalanceResult && geminiRebalanceResult.actionPlan?.length > 0) {
-      shiftsNeeded = geminiRebalanceResult.actionPlan.map((act) => ({
-        action: act.actionType,
-        sourceAssetClass: act.sourceScheme,
-        targetAssetClass: act.targetScheme || "Target Allocation",
-        recommendedAmount: act.amount,
-        rational: act.rationale,
-        taxImpact: act.taxImpact,
-        priority: act.priority,
-      }));
-    } else {
-      if (equityDeviation > 3) {
-        const excessRupees = Math.round((totalValue * (equityDeviation / 100)));
-        shiftsNeeded.push({
-          action: "TRIM / SWITCH",
-          sourceAssetClass: "Large & Midcap Equity (Overweight)",
-          targetAssetClass: "Short-Duration Debt / Liquid",
-          recommendedAmount: excessRupees,
-          rational: `Equity has expanded beyond target (${currentEquityPct}% vs target ${targetEquityPct}%). Harvest gains into fixed income to preserve capital against drawdown.`,
-        });
-      } else if (equityDeviation < -3) {
-        const deficitRupees = Math.round((totalValue * (Math.abs(equityDeviation) / 100)));
-        shiftsNeeded.push({
-          action: "DEPLOY / SIP TOP-UP",
-          sourceAssetClass: "Debt (Overweight)",
-          targetAssetClass: "Large & Midcap Equity",
-          recommendedAmount: deficitRupees,
-          rational: `Equity exposure is under target (${currentEquityPct}% vs ${targetEquityPct}%). Increase equity SIPs to meet target lifecycle goal feasibility.`,
-        });
+    const targetEquityPct = 65;
+    const targetDebtPct = 25;
+    const targetHybridPct = 10;
+    let equityDeviation = 0;
+    let debtDeviation = 0;
+    let hybridDeviation = 0;
+
+    if (totalValue > 0 && activeHoldings.length > 0) {
+      // Run Gemini AI Rebalancing Engine only when holdings exist
+      try {
+        const rebalanceContext: ClientPortfolioContext = {
+          clientId: targetClientId || "ALL",
+          clientName: primaryClient?.full_name || "Client",
+          riskProfile: primaryClient?.risk_profile || "Moderate",
+          age: 44,
+          planningHorizonYears: primaryClient?.planning_horizon_years || 6,
+          taxRegime: primaryClient?.tax_regime || "New",
+          totalValue,
+          totalCost,
+          totalGain,
+          totalSipBook,
+          holdings: activeHoldings.map((h) => ({
+            id: h.id,
+            schemeName: h.schemeName,
+            assetClass: h.assetClass || "Equity Mutual Fund",
+            units: h.units,
+            currentNav: h.currentNav,
+            investedCost: h.investedCost,
+            currentValue: h.currentValue,
+            monthlySip: h.monthlySip || 0,
+            cagr: h.cagr,
+            xirr: h.xirr,
+          })),
+        };
+        geminiRebalanceResult = await generateGeminiRebalancing(rebalanceContext);
+      } catch (gErr) {
+        console.warn("Gemini rebalance integration notice:", gErr);
       }
 
-      if (debtDeviation < -3) {
-        const deficitDebt = Math.round((totalValue * (Math.abs(debtDeviation) / 100)));
-        shiftsNeeded.push({
-          action: "ALLOCATE",
-          sourceAssetClass: "Surplus / Fresh Cashflows",
-          targetAssetClass: "Target Maturity Debt Funds",
-          recommendedAmount: deficitDebt,
-          rational: `Debt cushion is currently ${currentDebtPct}%, below desired 25%. Strengthen stability bucket to insulate near-term milestones.`,
-        });
+      const effTargetEquity = geminiRebalanceResult?.targetAllocation?.equityPct || targetEquityPct;
+      const effTargetDebt = geminiRebalanceResult?.targetAllocation?.debtPct || targetDebtPct;
+      const effTargetHybrid = geminiRebalanceResult?.targetAllocation?.hybridPct || targetHybridPct;
+
+      equityDeviation = Number((currentEquityPct - effTargetEquity).toFixed(1));
+      debtDeviation = Number((currentDebtPct - effTargetDebt).toFixed(1));
+      hybridDeviation = Number((currentHybridPct - effTargetHybrid).toFixed(1));
+
+      if (geminiRebalanceResult && geminiRebalanceResult.actionPlan?.length > 0) {
+        shiftsNeeded = geminiRebalanceResult.actionPlan.map((act) => ({
+          action: act.actionType,
+          sourceAssetClass: act.sourceScheme,
+          targetAssetClass: act.targetScheme || "Target Allocation",
+          recommendedAmount: act.amount,
+          rational: act.rationale,
+          taxImpact: act.taxImpact,
+          priority: act.priority,
+        }));
+      } else {
+        if (equityDeviation > 3) {
+          const excessRupees = Math.round((totalValue * (equityDeviation / 100)));
+          shiftsNeeded.push({
+            action: "TRIM / SWITCH",
+            sourceAssetClass: "Large & Midcap Equity (Overweight)",
+            targetAssetClass: "Short-Duration Debt / Liquid",
+            recommendedAmount: excessRupees,
+            rational: `Equity has expanded beyond target (${currentEquityPct}% vs target ${effTargetEquity}%). Harvest gains into fixed income to preserve capital against drawdown.`,
+          });
+        } else if (equityDeviation < -3) {
+          const deficitRupees = Math.round((totalValue * (Math.abs(equityDeviation) / 100)));
+          shiftsNeeded.push({
+            action: "DEPLOY / SIP TOP-UP",
+            sourceAssetClass: "Debt (Overweight)",
+            targetAssetClass: "Large & Midcap Equity",
+            recommendedAmount: deficitRupees,
+            rational: `Equity exposure is under target (${currentEquityPct}% vs ${effTargetEquity}%). Increase equity SIPs to meet target lifecycle goal feasibility.`,
+          });
+        }
+
+        if (debtDeviation < -3) {
+          const deficitDebt = Math.round((totalValue * (Math.abs(debtDeviation) / 100)));
+          shiftsNeeded.push({
+            action: "ALLOCATE",
+            sourceAssetClass: "Surplus / Fresh Cashflows",
+            targetAssetClass: "Target Maturity Debt Funds",
+            recommendedAmount: deficitDebt,
+            rational: `Debt cushion is currently ${currentDebtPct}%, below desired 25%. Strengthen stability bucket to insulate near-term milestones.`,
+          });
+        }
       }
     }
 
     // 12. Portfolio Journey Trajectory Chart
-    const trajectory = generateJourneyTrajectory(totalCost, totalValue, journeyPeriod);
+    const trajectory = (totalCost > 0 || totalValue > 0)
+      ? generateJourneyTrajectory(totalCost, totalValue, journeyPeriod)
+      : [];
 
     return NextResponse.json({
       success: true,

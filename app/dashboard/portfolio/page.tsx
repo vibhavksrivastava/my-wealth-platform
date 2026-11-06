@@ -1318,8 +1318,8 @@ function MutualFundPortfolioContent() {
                 <div className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
                   {formatINR(clientMetrics.currentValue)}
                 </div>
-                <div className="text-[10px] text-emerald-500 font-bold mt-1">
-                  +{formatINR(clientMetrics.unrealizedGain)} (+{clientMetrics.absReturnPct}%)
+                <div className={`text-[10px] font-bold mt-1 ${clientMetrics.unrealizedGain > 0 ? "text-emerald-500" : clientMetrics.unrealizedGain < 0 ? "text-rose-500" : "text-slate-400"}`}>
+                  {clientMetrics.unrealizedGain > 0 ? "+" : ""}{formatINR(clientMetrics.unrealizedGain)} ({clientMetrics.absReturnPct > 0 ? "+" : ""}{clientMetrics.absReturnPct}%)
                 </div>
               </div>
 
@@ -1328,12 +1328,12 @@ function MutualFundPortfolioContent() {
                 <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   1-Day Gain / Loss
                 </div>
-                <div className={`text-lg font-bold mt-0.5 ${clientMetrics.dayChange >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                  {clientMetrics.dayChange >= 0 ? "+" : ""}{formatINR(clientMetrics.dayChange)}
+                <div className={`text-lg font-bold mt-0.5 ${clientMetrics.dayChange > 0 ? "text-emerald-500" : clientMetrics.dayChange < 0 ? "text-rose-500" : "text-slate-600 dark:text-slate-400"}`}>
+                  {clientMetrics.dayChange > 0 ? "+" : ""}{formatINR(clientMetrics.dayChange)}
                 </div>
-                <div className={`text-[10px] font-bold mt-1 flex items-center gap-0.5 ${clientMetrics.dayChange >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                  {clientMetrics.dayChange >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                  <span>{clientMetrics.dayChangePct >= 0 ? "+" : ""}{clientMetrics.dayChangePct}% today</span>
+                <div className={`text-[10px] font-bold mt-1 flex items-center gap-0.5 ${clientMetrics.dayChange > 0 ? "text-emerald-500" : clientMetrics.dayChange < 0 ? "text-rose-500" : "text-slate-400"}`}>
+                  {clientMetrics.dayChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : clientMetrics.dayChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                  <span>{clientMetrics.dayChange > 0 ? "+" : ""}{clientMetrics.dayChangePct}% today</span>
                 </div>
               </div>
 
@@ -1345,8 +1345,8 @@ function MutualFundPortfolioContent() {
                 <div className="text-lg font-bold text-sky-500 dark:text-sky-400 mt-0.5">
                   {clientMetrics.xirr}%
                 </div>
-                <div className="text-[10px] text-emerald-500 font-semibold mt-1">
-                  SIP compounded returns
+                <div className="text-[10px] text-slate-400 font-semibold mt-1">
+                  {clientMetrics.holdingsCount > 0 ? "SIP compounded returns" : "No active holdings"}
                 </div>
               </div>
 
@@ -1398,46 +1398,60 @@ function MutualFundPortfolioContent() {
 
             {/* Trajectory Bar Chart */}
             <div className="pt-2">
-              <div className="h-44 flex items-end gap-2 sm:gap-3 px-2 border-b border-slate-200 dark:border-slate-800 pb-3">
-                {(portfolioData?.trajectory || []).map((pt: any, i: number) => {
-                  const maxVal = Math.max(...(portfolioData?.trajectory || []).map((t: any) => t.marketValue), 1);
-                  const valHeight = Math.max(12, Math.round((pt.marketValue / maxVal) * 100));
-                  const costHeight = Math.max(10, Math.round((pt.investedCost / maxVal) * 100));
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1.5 group relative h-full justify-end">
-                      <div className="opacity-0 group-hover:opacity-100 transition absolute -top-16 z-20 pointer-events-none bg-slate-900 text-white text-[10px] p-2 rounded-lg shadow-xl border border-slate-700 whitespace-nowrap">
-                        <div className="font-bold text-sky-400">{pt.date}</div>
-                        <div>Value: {formatINR(pt.marketValue)}</div>
-                        <div className="text-slate-400">Cost: {formatINR(pt.investedCost)}</div>
-                      </div>
+              {(portfolioData?.trajectory || []).length === 0 ? (
+                <div className="py-12 text-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 space-y-2">
+                  <TrendingUp className="h-8 w-8 mx-auto text-slate-300 dark:text-slate-600" />
+                  <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    No Investment Trajectory Recorded
+                  </div>
+                  <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+                    Growth and compounding performance will be tracked here once mutual fund folios are registered or imported via CAS.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="h-44 flex items-end gap-2 sm:gap-3 px-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+                    {(portfolioData?.trajectory || []).map((pt: any, i: number) => {
+                      const maxVal = Math.max(...(portfolioData?.trajectory || []).map((t: any) => t.marketValue), 1);
+                      const valHeight = Math.max(12, Math.round((pt.marketValue / maxVal) * 100));
+                      const costHeight = Math.max(10, Math.round((pt.investedCost / maxVal) * 100));
+                      return (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1.5 group relative h-full justify-end">
+                          <div className="opacity-0 group-hover:opacity-100 transition absolute -top-16 z-20 pointer-events-none bg-slate-900 text-white text-[10px] p-2 rounded-lg shadow-xl border border-slate-700 whitespace-nowrap">
+                            <div className="font-bold text-sky-400">{pt.date}</div>
+                            <div>Value: {formatINR(pt.marketValue)}</div>
+                            <div className="text-slate-400">Cost: {formatINR(pt.investedCost)}</div>
+                          </div>
 
-                      <div className="w-full flex items-end justify-center gap-1 h-full">
-                        <div
-                          className="w-full max-w-[14px] bg-sky-500 dark:bg-sky-400 rounded-t-sm transition-all duration-300"
-                          style={{ height: `${valHeight}%` }}
-                        />
-                        <div
-                          className="w-full max-w-[14px] bg-slate-300 dark:bg-slate-700 rounded-t-sm transition-all duration-300 opacity-60"
-                          style={{ height: `${costHeight}%` }}
-                        />
-                      </div>
-                      <span className="text-[10px] text-slate-400 tracking-tighter truncate w-full text-center">
-                        {pt.date}
-                      </span>
+                          <div className="w-full flex items-end justify-center gap-1 h-full">
+                            <div
+                              className="w-full max-w-[14px] bg-sky-500 dark:bg-sky-400 rounded-t-sm transition-all duration-300"
+                              style={{ height: `${valHeight}%` }}
+                            />
+                            <div
+                              className="w-full max-w-[14px] bg-slate-300 dark:bg-slate-700 rounded-t-sm transition-all duration-300 opacity-60"
+                              style={{ height: `${costHeight}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-slate-400 tracking-tighter truncate w-full text-center">
+                            {pt.date}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-center gap-6 mt-3 text-xs text-slate-500">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-sm bg-sky-500" />
+                      <span>Market Valuation</span>
                     </div>
-                  );
-                })}
-              </div>
-              <div className="flex items-center justify-center gap-6 mt-3 text-xs text-slate-500">
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-sm bg-sky-500" />
-                  <span>Market Valuation</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-sm bg-slate-400 opacity-60" />
-                  <span>Invested Cost</span>
-                </div>
-              </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-sm bg-slate-400 opacity-60" />
+                      <span>Invested Cost</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -1586,8 +1600,34 @@ function MutualFundPortfolioContent() {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                       {filteredHoldings.length === 0 ? (
                         <tr>
-                          <td colSpan={10} className="py-8 text-center text-slate-400">
-                            No holdings match your search criteria.
+                          <td colSpan={10} className="py-12 text-center">
+                            <div className="max-w-md mx-auto space-y-3">
+                              <div className="h-10 w-10 rounded-full bg-sky-500/10 text-sky-500 flex items-center justify-center mx-auto">
+                                <PieChart className="h-5 w-5" />
+                              </div>
+                              <div className="font-bold text-slate-800 dark:text-slate-200 text-sm">
+                                {(portfolioData?.holdings || []).length === 0
+                                  ? "No Mutual Fund Holdings Recorded"
+                                  : "No holdings match your search criteria"}
+                              </div>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {(portfolioData?.holdings || []).length === 0
+                                  ? "This client does not have any active mutual fund investments registered yet. Upload a Consolidated Account Statement (CAS) PDF or enter folios to start tracking."
+                                  : "Try clearing your search query or adjusting your class and nature filters."}
+                              </p>
+                              {(portfolioData?.holdings || []).length === 0 && (
+                                <div className="pt-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowCasModal(true)}
+                                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs shadow-xs transition"
+                                  >
+                                    <UploadCloud className="h-3.5 w-3.5" />
+                                    <span>Upload CAS PDF</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ) : (
@@ -2344,7 +2384,7 @@ function MutualFundPortfolioContent() {
                     <div className="text-2xl font-black text-sky-500">
                       {geminiResult?.currentAllocation?.largeCapPct !== undefined
                         ? (100 - (geminiResult.currentAllocation.debtPct || 0) - (geminiResult.currentAllocation.hybridPct || 0))
-                        : portfolioData?.rebalancing?.current?.equity || 70}%
+                        : portfolioData?.rebalancing?.current?.equity || 0}%
                     </div>
                     <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div
@@ -2352,7 +2392,7 @@ function MutualFundPortfolioContent() {
                         style={{
                           width: `${Math.min(
                             100,
-                            portfolioData?.rebalancing?.current?.equity || 70
+                            portfolioData?.rebalancing?.current?.equity || 0
                           )}%`,
                         }}
                       />
@@ -2459,10 +2499,12 @@ function MutualFundPortfolioContent() {
                   </div>
 
                   {(geminiResult?.actionPlan || portfolioData?.rebalancing?.shiftsNeeded || []).length === 0 ? (
-                    <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 flex items-center gap-2">
+                    <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4" />
                       <span>
-                        Portfolio is aligned within acceptable risk tolerance (&plusmn;3% threshold). No rebalancing required at this moment.
+                        {clientMetrics.currentValue === 0
+                          ? "Portfolio valuation is ₹0. No active mutual fund holdings require rebalancing."
+                          : "Portfolio is aligned within acceptable risk tolerance (±3% threshold). No rebalancing required at this moment."}
                       </span>
                     </div>
                   ) : (
