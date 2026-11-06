@@ -48,12 +48,46 @@ export default function ClientDashboard() {
   const [userName, setUserName] = useState("Investor");
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewScope, setViewScope] = useState<"INDIVIDUAL" | "HOUSEHOLD">("INDIVIDUAL");
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [clientActionInput, setClientActionInput] = useState<{ [id: string]: string }>({});
   const [isSavingAction, setIsSavingAction] = useState<{ [id: string]: boolean }>({});
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [showKycModal, setShowKycModal] = useState(false);
   const [showCasModal, setShowCasModal] = useState(false);
   const [panDocUrl, setPanDocUrl] = useState<string | null>(null);
+
+  const fetchOverview = async (scope = viewScope, clientId = selectedClientId) => {
+    const token = localStorage.getItem("auth_token");
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+    try {
+      const url = new URL("/api/client/overview", window.location.origin);
+      if (scope) url.searchParams.set("scope", scope);
+      if (clientId) url.searchParams.set("clientId", clientId);
+
+      const res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+        if (json?.clientRecord?.client_id && !clientId) {
+          setSelectedClientId(json.clientRecord.client_id);
+        }
+        if (json?.tenant) {
+          localStorage.setItem("tenant_branding", JSON.stringify(json.tenant));
+          window.dispatchEvent(new Event("tenant_branding_updated"));
+        }
+      }
+    } catch (err) {
+      console.error("Overview error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const savedPan = localStorage.getItem("client_pan_doc_url");
@@ -71,40 +105,11 @@ export default function ClientDashboard() {
       }
     }
 
-    const token = localStorage.getItem("auth_token");
-    if (token) {
-      fetch("/api/client/overview", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.json())
-        .then((json) => {
-          setData(json);
-          if (json?.tenant) {
-            localStorage.setItem("tenant_branding", JSON.stringify(json.tenant));
-            window.dispatchEvent(new Event("tenant_branding_updated"));
-          }
-        })
-        .catch(console.error)
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
+    fetchOverview();
   }, []);
 
   const reloadData = async () => {
-    const token = localStorage.getItem("auth_token");
-    if (!token) return;
-    try {
-      const res = await fetch("/api/client/overview", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    await fetchOverview(viewScope, selectedClientId);
   };
 
   const handleLogClientAction = async (suggestionId: string, targetClientId: string) => {
@@ -179,11 +184,14 @@ export default function ClientDashboard() {
     }
   };
 
-  const totalAssets = Number(data?.profile?.total_assets || 42500000);
-  const totalLiabilities = Number(data?.profile?.total_liabilities || 10975114);
-  const netWorth = Number(data?.profile?.net_worth || 31524886);
+  const totalAssets = Number(data?.summary?.totalAssets ?? data?.profile?.total_assets ?? 0);
+  const totalLiabilities = Number(data?.summary?.totalLiabilities ?? data?.profile?.total_liabilities ?? 0);
+  const netWorth = Number(data?.summary?.netWorth ?? data?.profile?.net_worth ?? 0);
+  const physicalAssetsTotal = Number(data?.summary?.physicalAssetsTotal ?? 0);
+  const investmentsTotal = Number(data?.summary?.investmentsTotal ?? 0);
   const clientRecord = data?.clientRecord;
   const assetsList = data?.assets || [];
+  const investmentsList = data?.investments || [];
   const liabilitiesList = data?.liabilities || [];
   const goalsList = data?.goals || [];
   const scorecards = data?.scorecards || [];
@@ -191,6 +199,8 @@ export default function ClientDashboard() {
   const suggestionsList = data?.suggestions || [];
   const advisor = data?.advisor;
   const tenant = data?.tenant;
+  const householdMembers = data?.householdMembers || [];
+  const isHousehold = data?.summary?.scope === "HOUSEHOLD";
 
   const brandColor = tenant?.primary_color || "#0284c7";
   const brandName = tenant?.firm_brand_name || "InvestWell Mint Client Portal";
@@ -233,11 +243,11 @@ export default function ClientDashboard() {
               )}
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
-              Welcome back, {userName}
+              Welcome back, {clientRecord?.full_name || userName}
             </h1>
             <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
-              Consolidated family net worth &amp; financial planning scorecard
-              {advisor?.full_name ? ` • ${terms.advisorLabel}: ${advisor.full_name}` : ""}
+              {isHousehold ? "Consolidated family net worth & financial scorecard" : "Personal net worth & financial scorecard"}
+              {advisor?.first_name ? ` • ${terms.advisorLabel}: ${advisor.first_name} ${advisor.last_name || ""}` : ""}
             </p>
           </div>
         </div>
@@ -258,6 +268,13 @@ export default function ClientDashboard() {
             <span>Mutual Fund Portfolio</span>
           </Link>
           <Link
+            href="/dashboard/planning/tax"
+            className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/80 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-bold transition shadow-xs"
+          >
+            <Wallet className="h-3.5 w-3.5 text-emerald-600" />
+            <span>Tax Planning</span>
+          </Link>
+          <Link
             href="/dashboard/planning/retirement"
             className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/80 dark:hover:bg-purple-900 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-bold transition shadow-xs"
           >
@@ -271,7 +288,7 @@ export default function ClientDashboard() {
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-white text-xs font-bold transition shadow-md hover:brightness-110 active:scale-95"
             >
               <Pencil className="h-3.5 w-3.5" />
-              <span>View &amp; Edit Complete 360 Profile</span>
+              <span>Complete 360 Profile</span>
             </Link>
           )}
           <span 
@@ -298,45 +315,112 @@ export default function ClientDashboard() {
         </div>
       </div>
 
+      {/* Family / Individual Scope & Assessee Selector */}
+      {householdMembers.length > 1 && (
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">View Scope:</span>
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewScope("INDIVIDUAL");
+                  fetchOverview("INDIVIDUAL", selectedClientId);
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                  viewScope === "INDIVIDUAL"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                👤 Individual View
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewScope("HOUSEHOLD");
+                  fetchOverview("HOUSEHOLD", selectedClientId);
+                }}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                  viewScope === "HOUSEHOLD"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                👥 Family Consolidated
+              </button>
+            </div>
+          </div>
+
+          {viewScope === "INDIVIDUAL" && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-500">Active Member:</span>
+              <select
+                value={selectedClientId}
+                onChange={(e) => {
+                  const newId = e.target.value;
+                  setSelectedClientId(newId);
+                  fetchOverview("INDIVIDUAL", newId);
+                }}
+                className="bg-slate-100 dark:bg-slate-800 text-xs text-slate-900 dark:text-white font-semibold rounded-xl px-3 py-1.5 border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer"
+              >
+                {householdMembers.map((m: any) => (
+                  <option key={m.clientId} value={m.clientId} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                    {m.fullName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* KPI Cards with Dynamic Tenant Accents */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
           <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Net Worth</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              {isHousehold ? "Family Net Worth" : "Total Net Worth"}
+            </span>
             <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColor}15` }}>
               <Wallet className="h-4 w-4" style={{ color: brandColor }} />
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">{formatINR(netWorth)}</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-white font-mono">{formatINR(netWorth)}</div>
           <div className="mt-2 flex items-center gap-1.5 text-xs font-medium" style={{ color: brandColor }}>
             <ArrowUpRight className="h-3.5 w-3.5" />
-            <span>Assets minus Liabilities</span>
+            <span>{isHousehold ? "Consolidated household wealth" : "Assets minus Liabilities"}</span>
           </div>
         </div>
 
         <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
           <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Gross Assets</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              {isHousehold ? "Family Gross Assets" : "Gross Assets"}
+            </span>
             <div className="p-2 rounded-lg" style={{ backgroundColor: `${brandColor}15` }}>
               <TrendingUp className="h-4 w-4" style={{ color: brandColor }} />
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">{formatINR(totalAssets)}</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-white font-mono">{formatINR(totalAssets)}</div>
           <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            {assetsList.length} registered asset categories
+            {investmentsList.length > 0 ? `${investmentsList.length} mutual funds • ` : ""}
+            {assetsList.length} tangible assets
           </div>
         </div>
 
         <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
           <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Liabilities</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              {isHousehold ? "Family Liabilities" : "Total Liabilities"}
+            </span>
             <div className="p-2 rounded-lg bg-rose-500/10">
               <PieChart className="h-4 w-4 text-rose-500" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">{formatINR(totalLiabilities)}</div>
+          <div className="text-2xl font-bold text-rose-600 dark:text-rose-400 font-mono">{formatINR(totalLiabilities)}</div>
           <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            {liabilitiesList.length} outstanding loan facilities
+            {liabilitiesList.length === 0 ? "Zero outstanding debt" : `${liabilitiesList.length} active loan ${liabilitiesList.length === 1 ? "facility" : "facilities"}`}
           </div>
         </div>
 
@@ -347,11 +431,13 @@ export default function ClientDashboard() {
               <Calendar className="h-4 w-4" style={{ color: brandColor }} />
             </div>
           </div>
-          <div className="text-base font-bold text-slate-900 dark:text-white">
-            {advisor ? `${advisor.first_name} ${advisor.last_name}` : "Pooja Verma"}
+          <div className="text-base font-bold text-slate-900 dark:text-white truncate">
+            {advisor
+              ? `${advisor.first_name || ""} ${advisor.last_name || ""}`.trim()
+              : (clientRecord?.advisor_name || "Pallavi Srivastava")}
           </div>
-          <div className="mt-2 text-xs font-medium" style={{ color: brandColor }}>
-            {advisor?.email || "advisor@example.com"}
+          <div className="mt-2 text-xs font-medium truncate" style={{ color: brandColor }}>
+            {advisor?.email || "pallavi@unifiedwealth.com"}
           </div>
         </div>
       </div>
@@ -376,46 +462,138 @@ export default function ClientDashboard() {
         </div>
       )}
 
-      {/* Assets & Liabilities Detailed Tables */}
+      {/* Assets & Investments Detailed Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Assets Breakdown */}
+        {/* Tangible Assets Breakdown */}
         <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
           <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center justify-between">
             <span className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" style={{ color: brandColor }} />
-              Assets Breakdown
+              Tangible Assets Breakdown
             </span>
-            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Total: {formatINR(totalAssets)}</span>
+            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Total: {formatINR(physicalAssetsTotal)}</span>
           </h2>
-          <div className="space-y-3">
-            {assetsList.map((asset: any) => (
-              <div
-                key={asset.asset_id}
-                className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between"
-              >
-                <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">{asset.description || asset.asset_category}</div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400">{asset.asset_category}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                    {formatINR(Number(asset.current_market_value))}
-                  </div>
-                  {asset.is_liquid && (
-                    <span 
-                      className="text-[10px] font-medium"
-                      style={{ color: brandColor }}
-                    >
-                      Liquid
-                    </span>
-                  )}
-                </div>
+          <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+            {assetsList.length === 0 ? (
+              <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 text-center">
+                No tangible physical assets recorded.
               </div>
-            ))}
+            ) : (
+              assetsList.map((asset: any) => (
+                <div
+                  key={asset.asset_id}
+                  className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between"
+                >
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">{asset.description || asset.asset_category}</div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400">{asset.asset_category}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                      {formatINR(Number(asset.current_market_value))}
+                    </div>
+                    {asset.is_liquid && (
+                      <span 
+                        className="text-[10px] font-medium"
+                        style={{ color: brandColor }}
+                      >
+                        Liquid
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Liabilities Breakdown */}
+        {/* Mutual Fund Investments Portfolio */}
+        {investmentsList.length > 0 ? (
+          <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <PieChart className="h-4 w-4 text-sky-500" />
+                Mutual Fund Holdings ({investmentsList.length})
+              </span>
+              <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Total: {formatINR(investmentsTotal)}</span>
+            </h2>
+            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              {investmentsList.map((inv: any) => (
+                <div
+                  key={inv.investment_id}
+                  className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between"
+                >
+                  <div className="min-w-0 pr-2">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {inv.scheme_instrument_name}
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {inv.asset_class || "Mutual Fund"} &bull; Cost: {formatINR(Number(inv.invested_amount || 0))}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-xs font-bold text-sky-600 dark:text-sky-400 font-mono">
+                      {formatINR(Number(inv.current_value))}
+                    </div>
+                    {Number(inv.current_value) - Number(inv.invested_amount || 0) >= 0 ? (
+                      <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                        +{formatINR(Number(inv.current_value) - Number(inv.invested_amount || 0))}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-semibold text-rose-500 font-mono">
+                        {formatINR(Number(inv.current_value) - Number(inv.invested_amount || 0))}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* Liabilities Breakdown (when no investments) */
+          <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 text-rose-500" />
+                Liabilities &amp; EMIs
+              </span>
+              <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Total: {formatINR(totalLiabilities)}</span>
+            </h2>
+            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              {liabilitiesList.length === 0 ? (
+                <div className="p-4 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 text-xs text-emerald-700 dark:text-emerald-300 text-center font-medium">
+                  Zero Outstanding Debt. You have no active loan liabilities!
+                </div>
+              ) : (
+                liabilitiesList.map((liab: any) => (
+                  <div
+                    key={liab.liability_id}
+                    className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white">{liab.liability_type}</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Lender: {liab.lender_name || "Bank"} &bull; {liab.tenure_remaining_months} mos remaining
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-bold text-rose-600 dark:text-rose-400 font-mono">
+                        {formatINR(Number(liab.outstanding_principal))}
+                      </div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                        EMI: ₹{Number(liab.monthly_emi).toLocaleString("en-IN")}/mo
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Liabilities Breakdown (when investments are also present) */}
+      {investmentsList.length > 0 && (
         <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm">
           <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center justify-between">
             <span className="flex items-center gap-2">
@@ -424,31 +602,39 @@ export default function ClientDashboard() {
             </span>
             <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Total: {formatINR(totalLiabilities)}</span>
           </h2>
-          <div className="space-y-3">
-            {liabilitiesList.map((liab: any) => (
-              <div
-                key={liab.liability_id}
-                className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between"
-              >
-                <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">{liab.liability_type}</div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Lender: {liab.lender_name || "Bank"} &bull; {liab.tenure_remaining_months} mos remaining
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs font-bold text-rose-600 dark:text-rose-400">
-                    {formatINR(Number(liab.outstanding_principal))}
-                  </div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                    EMI: ₹{Number(liab.monthly_emi).toLocaleString("en-IN")}/mo
-                  </div>
-                </div>
+          <div>
+            {liabilitiesList.length === 0 ? (
+              <div className="p-4 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 text-xs text-emerald-700 dark:text-emerald-300 text-center font-medium">
+                Zero Outstanding Debt. You have no active loan liabilities!
               </div>
-            ))}
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {liabilitiesList.map((liab: any) => (
+                  <div
+                    key={liab.liability_id}
+                    className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white">{liab.liability_type}</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Lender: {liab.lender_name || "Bank"} &bull; {liab.tenure_remaining_months} mos remaining
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-bold text-rose-600 dark:text-rose-400 font-mono">
+                        {formatINR(Number(liab.outstanding_principal))}
+                      </div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                        EMI: ₹{Number(liab.monthly_emi).toLocaleString("en-IN")}/mo
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Advisor Action Plan & Recommendations */}
       {suggestionsList.length > 0 && (
